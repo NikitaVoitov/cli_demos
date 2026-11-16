@@ -1,0 +1,147 @@
+/*
+ * SDS-Web → app token translation layer (the only place raw colors may appear).
+ *
+ * Intended source: Splunk Web UI Library (Figma file MciFxhR8kNLzTh6v9sId52), collection
+ * "Web 1.0 Themes", mode "Dark". Never use "_⚠️ [Deprecated] web 2.0 color".
+ *
+ * Status, Nov 16 2026: PROVISIONAL. The Figma read was refused (MCP seat limit), so the
+ * primitives below come from brand/Brand Color Swatches/Cisco Splunk-brand-colors-rgb.ase and the
+ * semantic values are tints of those primitives. Replace each semantic value with the resolved
+ * Figma variable before external release; component code consumes only the semantic tokens.
+ * Values marked "no brand primitive" have no source in the swatch file at all.
+ */
+
+:root {
+  /* Primitives (ASE) */
+  --sds-pink: #ff007f;
+  --sds-orange: #ff9000;
+  --sds-blue: #0a60ff;
+  --sds-cyan: #02c8ff;
+  --sds-white: #ffffff;
+  --sds-ink-950: #04070b;
+  --sds-ink-900: #0b1118;
+  --sds-mist-100: #e9eef4;
+  --sds-mist-50: #f2f5fa;
+
+  /* Semantic, dark mode: app token          SDS-Web variable */
+  --surface-page: var(--sds-ink-900);                                         /* surface/page */
+  --surface-card: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 5%);   /* surface/card */
+  --surface-elevated: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 8%);
+  --surface-subtle: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 11%); /* surface/subtle */
+  --text-primary: var(--sds-mist-50);                                         /* text/primary */
+  --text-secondary: color-mix(in oklab, var(--sds-mist-50), var(--sds-ink-900) 24%); /* text/secondary */
+  --text-muted: color-mix(in oklab, var(--sds-mist-50), var(--sds-ink-900) 38%);     /* text/muted */
+  --text-link: var(--sds-cyan);                                               /* text/link */
+  --text-accent: color-mix(in oklab, var(--sds-pink), var(--sds-mist-50) 45%);  /* pink text on dark; no SDS variable found yet */
+  --artifact: #a78bfa;                                                        /* file artifacts in Transcript, no brand primitive */
+  --border-default: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 17%); /* border/default */
+  --border-subtle: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 10%);  /* border/subtle */
+  --border-strong: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 52%);  /* border/strong */
+  --border-focus: var(--sds-cyan);                                            /* border/focus */
+  --action-primary: var(--sds-pink);                                          /* action/primary */
+  --action-primary-hover: color-mix(in oklab, var(--sds-pink), var(--sds-white) 18%); /* action/primary-hover */
+  --action-primary-foreground: var(--sds-ink-950);
+  --action-secondary-border: var(--sds-mist-100);                             /* action/secondary-border */
+  --action-secondary-hover: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 12%); /* action/secondary-hover */
+  --action-disabled: color-mix(in oklab, var(--sds-ink-900), var(--sds-mist-50) 30%); /* action/disabled */
+  --status-warning: var(--sds-orange);                                        /* status/warning */
+  --status-success: #3ddc84;                                                  /* status/success, no brand primitive */
+  --status-error: #ff5c5c;                                                    /* status/error, no brand primitive */
+  --status-info: var(--sds-cyan);                                             /* status/info */
+
+  /* Recorded-terminal theme (separate from SDS; matches Cursor CLI's dark default) */
+  --terminal-bg: #0f1115;
+  --terminal-chrome: #1c1f26;
+  --terminal-fg: #d8dbe2;
+  --terminal-dot-close: #ff5f57;
+  --terminal-dot-min: #febc2e;
+  --terminal-dot-max: #28c840;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--surface-page);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-elevated);
+  --color-popover-foreground: var(--text-primary);
+  --color-muted: var(--surface-subtle);
+  --color-muted-foreground: var(--text-secondary);
+  --color-subtle-foreground: var(--text-muted);
+  --color-accent: var(--action-secondary-hover);
+  --color-accent-foreground: var(--text-primary);
+  --color-secondary: var(--surface-subtle);
+  --color-secondary-foreground: var(--text-primary);
+  --color-primary: var(--action-primary);
+  --color-primary-hover: var(--action-primary-hover);
+  --color-primary-foreground: var(--action-primary-foreground);
+  --color-secondary-border: var(--action-secondary-border);
+  --color-secondary-hover: var(--action-secondary-hover);
+  --color-disabled: var(--action-disabled);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--border-strong);
+  --color-ring: var(--border-focus);
+  --color-focus-ring: var(--border-focus);
+  --color-link: var(--text-link);
+  --color-accent-pink: var(--text-accent);
+  --color-artifact: var(--artifact);
+  --color-success: var(--status-success);
+  --color-gate: var(--status-warning);
+  --color-destructive: var(--status-error);
+  --color-info: var(--status-info);
+  --color-terminal: var(--terminal-bg);
+  --color-terminal-chrome: var(--terminal-chrome);
+  --color-terminal-foreground: var(--terminal-fg);
+  --color-terminal-dot-close: var(--terminal-dot-close);
+  --color-terminal-dot-min: var(--terminal-dot-min);
+  --color-terminal-dot-max: var(--terminal-dot-max);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: calc(var(--radius-lg) * 1.5);
+}
+
+/* SDS-Web "web 1.0 desktop/*" text styles (metrics from the Figma review in the architecture doc). */
+@utility text-display {
+  font-size: 30px;
+  line-height: 33px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  @media (width < 48rem) {
+    font-size: 24px;
+    line-height: 28px;
+  }
+}
+@utility text-h4 {
+  font-size: 21px;
+  line-height: 23.1px;
+  font-weight: 600;
+}
+@utility text-body {
+  font-size: 18px;
+  line-height: 25.2px;
+}
+@utility text-body-sm {
+  font-size: 15px;
+  line-height: 21px;
+}
+@utility text-button {
+  font-size: 15px;
+  line-height: 15px;
+  font-weight: 600;
+}
+@utility text-tag {
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: 600;
+}

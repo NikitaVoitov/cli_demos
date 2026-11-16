@@ -1,0 +1,167 @@
+{
+  "title": "Checkout latency",
+  "description": "Checkout request latency and 5xx rate for the last 24 hours.",
+  "dataSources": {
+    "ds_p95": {
+      "type": "ds.search",
+      "name": "Checkout p95 latency",
+      "options": {
+        "query": "index=demo_checkout sourcetype=checkout\n| stats perc95(latency_ms) as p95_ms"
+      }
+    },
+    "ds_5xx_rate": {
+      "type": "ds.search",
+      "name": "Checkout 5xx rate",
+      "options": {
+        "query": "index=demo_checkout sourcetype=checkout\n| eval is_5xx=if(tonumber(status)>=500 AND tonumber(status)<600, 1, 0)\n| stats sum(is_5xx) as errors, count as requests\n| eval rate_pct=if(requests==0, 0, round(100*errors/requests, 2))\n| fields rate_pct"
+      }
+    },
+    "ds_latency_over_time": {
+      "type": "ds.search",
+      "name": "Checkout latency over time",
+      "options": {
+        "query": "index=demo_checkout sourcetype=checkout\n| timechart span=30m perc95(latency_ms) as p95_ms\n| where isnotnull(p95_ms)"
+      }
+    },
+    "ds_latency_by_region": {
+      "type": "ds.search",
+      "name": "Checkout latency by region",
+      "options": {
+        "query": "index=demo_checkout sourcetype=checkout\n| stats perc95(latency_ms) as p95_ms by region\n| sort - p95_ms"
+      }
+    }
+  },
+  "visualizations": {
+    "viz_p95": {
+      "type": "splunk.singlevalue",
+      "title": "p95 latency",
+      "description": "95th percentile checkout latency",
+      "dataSources": {
+        "primary": "ds_p95"
+      },
+      "options": {
+        "majorValue": "> primary | seriesByName(\"p95_ms\") | lastPoint()",
+        "unit": "ms",
+        "unitPosition": "after",
+        "backgroundColor": "transparent",
+        "majorColor": "> majorValue | rangeValue(majorColorConfig)"
+      },
+      "context": {
+        "majorColorConfig": [
+          {"value": "#53A051", "to": 400},
+          {"value": "#F8BE34", "from": 400, "to": 800},
+          {"value": "#DC4E41", "from": 800}
+        ]
+      }
+    },
+    "viz_5xx_rate": {
+      "type": "splunk.singlevalue",
+      "title": "5xx rate",
+      "description": "Share of checkout requests with HTTP 5xx",
+      "dataSources": {
+        "primary": "ds_5xx_rate"
+      },
+      "options": {
+        "majorValue": "> primary | seriesByName(\"rate_pct\") | lastPoint()",
+        "numberPrecision": 2,
+        "unit": "%",
+        "unitPosition": "after",
+        "backgroundColor": "transparent",
+        "majorColor": "> majorValue | rangeValue(majorColorConfig)"
+      },
+      "context": {
+        "majorColorConfig": [
+          {"value": "#53A051", "to": 1},
+          {"value": "#F8BE34", "from": 1, "to": 2},
+          {"value": "#DC4E41", "from": 2}
+        ]
+      }
+    },
+    "viz_latency_over_time": {
+      "type": "splunk.line",
+      "title": "Latency over time",
+      "description": "p95 checkout latency",
+      "dataSources": {
+        "primary": "ds_latency_over_time"
+      },
+      "options": {
+        "yAxisTitleText": "p95 latency (ms)",
+        "xAxisTitleText": "Time",
+        "yAxisTitleVisibility": "show",
+        "xAxisTitleVisibility": "show",
+        "nullValueDisplay": "connect",
+        "legendDisplay": "off",
+        "seriesColors": ["#009CEB"],
+        "yAxisAbbreviation": "auto"
+      }
+    },
+    "viz_latency_by_region": {
+      "type": "splunk.bar",
+      "title": "Latency by region",
+      "description": "p95 checkout latency by region",
+      "dataSources": {
+        "primary": "ds_latency_by_region"
+      },
+      "options": {
+        "xAxisTitleText": "p95 latency (ms)",
+        "yAxisTitleText": "Region",
+        "xAxisTitleVisibility": "show",
+        "yAxisTitleVisibility": "show",
+        "legendDisplay": "off",
+        "seriesColors": ["#7B56DB"],
+        "yAxisAbbreviation": "auto"
+      }
+    }
+  },
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "globalInputs": ["input_global_trp"],
+    "structure": [
+      {
+        "item": "viz_p95",
+        "type": "block",
+        "position": {"x": 0, "y": 0, "w": 600, "h": 250}
+      },
+      {
+        "item": "viz_5xx_rate",
+        "type": "block",
+        "position": {"x": 600, "y": 0, "w": 600, "h": 250}
+      },
+      {
+        "item": "viz_latency_over_time",
+        "type": "block",
+        "position": {"x": 0, "y": 250, "w": 1200, "h": 400}
+      },
+      {
+        "item": "viz_latency_by_region",
+        "type": "block",
+        "position": {"x": 0, "y": 650, "w": 1200, "h": 400}
+      }
+    ]
+  },
+  "applicationProperties": {
+    "theme": "dark"
+  }
+}

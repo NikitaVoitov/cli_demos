@@ -1,0 +1,19 @@
+# What visitors read. Editable without a new capture.
+title: Build your first Splunk agent in about 30 lines
+summary: >
+  Ask Cursor CLI for a Splunk agent and it writes a short Python script with the Agentic SDK. The script
+  gives a Gemini model two read-only Splunk MCP tools, asks which index holds the checkout logs, and
+  prints the answer as structured output.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [App Developer, DevOps Engineer, Analyst]
+  category: Extend & Build
+  technologies: [Python, Gemini]
+  splunk: [Splunk MCP, Agentic SDK, Splunk Cloud]
+chapters:
+  prompt: Prompt
+  write: Write the agent
+  run: Run it
+  rerun: Run it yourself
+flow: { kind: sdk, mcp: "allowlist: 2 tools" }
+display: { hidden: false, featured: false, order: 50 }

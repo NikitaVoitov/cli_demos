@@ -1,0 +1,21 @@
+| makeresults count=__COUNT__
+| streamstats count AS n
+| eval n = n + __OFFSET__
+| eval _time = now() - __SPAN__ + n * __STEP__ + (random() % 1000) / 1000
+| eval r = random() % 100, region = case(r < 40, "us-east-1", r < 65, "us-west-2", r < 90, "eu-west-1", true(), "ap-southeast-1")
+| eval e = random() % 100, endpoint = case(e < 60, "POST /checkout", e < 90, "POST /checkout/confirm", true(), "GET /checkout/status")
+| eval p = random() % 100, payment_method = case(p < 70, "card", p < 92, "wallet", true(), "bank")
+| eval incident = if(region = "eu-west-1" AND _time >= now() - 18000 AND _time <= now() - 10800, 1, 0)
+| eval hour = tonumber(strftime(_time, "%H")), diurnal = 1 + 0.25 * sin((hour - 9) / 24 * 2 * pi())
+| eval u1 = (random() % 100000 + 1) / 100001, u2 = (random() % 100000 + 1) / 100001, z = sqrt(-2 * ln(u1)) * cos(2 * pi() * u2)
+| eval v1 = (random() % 100000 + 1) / 100001, v2 = (random() % 100000 + 1) / 100001, y = sqrt(-2 * ln(v1)) * cos(2 * pi() * v2)
+| eval rf = case(region = "us-west-2", 1.05, region = "eu-west-1", 1.10, region = "ap-southeast-1", 1.35, true(), 1.0)
+| eval ef = case(endpoint = "POST /checkout/confirm", 1.4, endpoint = "GET /checkout/status", 0.35, true(), 1.0)
+| eval latency_ms = round(exp(ln(170) + 0.45 * z) * rf * ef * diurnal * if(incident = 1, 2.8 + (random() % 140) / 100, 1))
+| eval s = random() % 1000, p5 = if(incident = 1, 45, 4)
+| eval status = case(s < p5, mvindex(split("502,503,504", ","), random() % 3), s < p5 + 15, mvindex(split("400,402,409", ","), random() % 3), true(), "200")
+| eval amount_usd = round(exp(ln(48) + 0.8 * y), 2)
+| eval trace_id = substr(md5(n . "-" . random()), 1, 16), pod = "checkout-api-0" . tostring(random() % 6 + 1)
+| eval _raw = json_object("timestamp", strftime(_time, "%Y-%m-%dT%H:%M:%S.%3N%z"), "service", "checkout-api", "pod", pod, "region", region, "endpoint", endpoint, "status", tonumber(status), "latency_ms", latency_ms, "payment_method", payment_method, "amount_usd", amount_usd, "trace_id", trace_id)
+| table _time _raw
+| collect index=demo_checkout sourcetype=checkout source=checkout-api host=checkout-api

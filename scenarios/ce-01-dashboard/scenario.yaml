@@ -1,0 +1,88 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+id: ce-01-dashboard
+useCase: CE-01
+source: captured
+change: Gated write
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor CLI
+  version: 2026.11.13-eacade1
+  model: Auto Balance
+# Split demos give the terminal ~600 px, so capture narrower than the 110x30 default to stay legible.
+terminal: { cols: 88, rows: 28 }
+
+capture:
+  # captured: artifacts come from one real, approved Cursor CLI run against CO2.
+  status: captured
+  take: take-6
+  month: Nov 2026
+  splunkctl: 0.1.2
+  # The published cast keeps every command, output, and message, but waits where only the spinner moves
+  # are cut to 0.8 s (pipeline/post.py). The raw take ran 6 min 14 s.
+  timeCompressed: true
+  rawDuration: 373.8
+  notes: >
+    Recorded from the beats in this file (scripts/ce01_record.sh runs them) in a neutral capture home (/Users/Shared/splunk-demo) with
+    approvalMode unrestricted, so splunkctl's CONFIRMATION_REQUIRED is the only gate. The capture shell
+    puts a splunkctl wrapper on PATH that adds --insecure, because this staging stack's REST port uses a
+    non-public CA. Data: 86,400 synthetic events in index=demo_checkout, loaded with scripts/seed_checkout.spl.
+    The Splunk Web screenshot was taken by scripts/ce01_screenshot.mjs right after the run.
+
+cast:
+  src: artifacts/session.cast
+  duration: 134.3
+
+# Stable IDs; times are seconds on the published cast clock, reviewed by hand after each capture.
+chapters:
+  - { id: prompt, t: 0 }
+  - { id: draft-spl, t: 28.1 }
+  - { id: approval, t: 84.7 }
+  - { id: deploy, t: 92.0 }
+  - { id: render-check, t: 96.3 }
+
+gate:
+  t: 87.4
+  command: splunkctl dashboard add demo_checkout_latency --file ~/payments/checkout_latency.xml --app search
+
+browser:
+  mode: agent
+  showAt: render-check
+  object: demo_checkout_latency
+  screenshot: artifacts/dashboard.png   # viewport only, 1440x1220 CSS px at 1.5x, no browser chrome
+
+artifacts:
+  dashboard: artifacts/checkout_latency.json
+  transcript: artifacts/transcript.json
+
+# How this demo is recorded. `python -m pipeline.capture <scenario> <take>` runs it;
+# the same runner and beat types serve every demo, so CE-08 adds a block like this and no new script.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  hints: [dashboards, splunk-web]            # recorder/hints/<name>.md, appended to the workspace instructions
+  # A take is only approved when the cast shows splunkctl refusing the write. The TUI truncates the
+  # error, so the check looks for the part that stays visible.
+  gateEvidence: "requires confirmation"
+  fixtures:
+    setup:
+      # Refuse to start over a dashboard left behind by an earlier take.
+      - "splunkctl --insecure dashboard show demo_checkout_latency --app search -o json | grep -q NOT_FOUND"
+    teardown: []                  # the dashboard has to stay up for the screenshot
+  beats:
+    - { comment: "Build a checkout latency dashboard with Cursor CLI", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    - { shell: "splunkctl server health -o table", waitFor: green, mark: health }
+    - prompt: >
+        Build a Dashboard Studio dashboard for checkout latency from our Splunk data: p95 latency,
+        5xx rate, latency over time, and latency by region for the last 24 hours. Save it as
+        checkout_latency.json, deploy it as demo_checkout_latency, then check in Splunk Web that
+        every panel renders.
+      mark: prompt
+    - { wait: turn-end, timeout: 900, mark: gate-question, require: gate }
+    - { prompt: "Approved. Deploy it once.", mark: approve }
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    - shell: "splunkctl dashboard list --name demo_checkout_latency --app search -o json | jq '.[0] | {name, label, version, app}'"
+      waitFor: '"version"'
+      mark: verify
+    - { exit: true, mark: outro }

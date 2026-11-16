@@ -1,0 +1,9 @@
+# Catalog metadata only: no recording exists yet.
+id: ir-02-fired-alert-triage
+useCase: IR-02
+source: metadata
+change: Read
+stack: co2
+client:
+  name: codex
+  label: Codex

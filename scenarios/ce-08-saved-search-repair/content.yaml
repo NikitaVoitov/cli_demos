@@ -1,0 +1,27 @@
+# What visitors read. Editable without a new capture.
+title: Repair a broken saved search
+summary: >
+  A saved search stopped returning results. Cursor CLI runs it, reads the parser error, finds the
+  macro that was deleted, and proposes the fix. splunkctl holds the repair until you approve, then
+  the agent reruns the search to show it works.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [Analyst, Admin]
+  category: Content Authoring & Lifecycle
+  technologies: []
+  splunk: [splunkctl, Splunk MCP, Agent Skills]
+chapters:
+  prompt: Prompt
+  diagnose: Diagnose
+  approval: Approval
+  repair: Repair
+  rerun: Rerun
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: No change was made.
+  declinedBody: splunkctl never ran the repair, so the saved search still points at a macro that doesn't exist.
+flow: { mcp: "MCP · run saved search, macros" }
+display: { hidden: false, featured: false, order: 40 }

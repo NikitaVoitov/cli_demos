@@ -1,0 +1,331 @@
+{
+  "placeholder": false,
+  "source": "cursor-cli session log",
+  "chapters": [
+    {
+      "id": "prompt",
+      "entries": [
+        {
+          "kind": "shell",
+          "t": 10.2,
+          "command": "splunkctl server health -o table",
+          "result": "name     health  disabled_features  eai:acl\nsplunkd  green   true               <nil>",
+          "by": "user"
+        },
+        {
+          "kind": "user",
+          "t": 15.2,
+          "text": "Build a Dashboard Studio dashboard for checkout latency from our Splunk data: p95 latency, 5xx rate, latency over time, and latency by region for the last 24 hours. Save it as checkout_latency.json, deploy it as demo_checkout_latency, then check in Splunk Web that every panel renders."
+        }
+      ],
+      "summary": "1 shell command"
+    },
+    {
+      "id": "draft-spl",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 30.4,
+          "text": "I'll build a checkout-latency Dashboard Studio dashboard from the Splunk data, then deploy it and confirm every panel renders in Splunk Web. First I'm loading the dashboard, Splunk, and browser skills so the definition and deploy steps match this workspace."
+        },
+        {
+          "kind": "skill",
+          "t": 30.4,
+          "name": "splunk-dashboard-studio"
+        },
+        {
+          "kind": "skill",
+          "t": 34.8,
+          "name": "splunkctl"
+        },
+        {
+          "kind": "skill",
+          "t": 35.0,
+          "name": "playwright-cli"
+        },
+        {
+          "kind": "skill",
+          "t": 35.0,
+          "name": "search-and-dashboard-troubleshooter"
+        },
+        {
+          "kind": "agent",
+          "t": 35.0,
+          "text": "The workspace is empty aside from the agent notes, so next I’ll inspect the checkout logs in Splunk and confirm how `splunkctl` deploys a Studio dashboard."
+        },
+        {
+          "kind": "skill",
+          "t": 35.0,
+          "name": "splunk-visualization"
+        },
+        {
+          "kind": "shell",
+          "t": 35.0,
+          "command": "splunkctl dashboard --help && echo \"----\" && splunkctl dashboard add --help",
+          "result": "Manage Splunk dashboards\n\nUsage:\n  splunkctl dashboard [command]\n\nAvailable Commands:\n  add         Create a dashboard from a file or inline content\n  edit        Update a dashboard from a file or inline content\n  list        List dashboards\n  remove      Delete a dashboard\n  show        Show dashboard definition (XML or JSON)\n\nFlags:\n  -h, --help   help for dashboard\n\nGlobal Flags:\n      --describe            Show available --param keys for this command (required and optional) then exit\n      --host string         Splunk REST endpoint (env: SPLUNKCTL_HOST)\n      --insecure            Skip TLS certificate verification\n  -o, --output string       Output format: json|table|text (default: table on TTY, json otherwise)\n      --param stringArray   Extra Splunk API parameter as key=value (repeatable, e.g. --param frozenTimePeriodInSecs=2592000)\n      --read-only           Block operations that can modify state\n      --timeout int         HTTP request timeout in seconds (default 30)\n      --token string        Splunk API bearer token (env: SPLUNKCTL_TOKEN)\n      --yes                 Skip write confirmation\n\nUse \"splunkctl dashboard [command] --help\" for more information about a command.\n----\nCreate a dashboard from a file or inline content\n\nUsage:\n  splunkctl dashboard add <name> [flags]\n\nExamples:\n  splunkctl dashboard add soc-overview --content '<dashboard><label>SOC Overview</label></dashboard>'\n  splunkctl dashboard add soc-overview --file dashboard.xml --app search\n\nFlags:\n      --app string       app context (e.g. search)\n      --content string   dashboard XML/JSON content (inline alternative to --file)\n      --file string      path to dashboard XML/JSON file\n  -h, --help             help for add\n      --name string      dashboard name (positional or --name)\n\nGlobal Flags:\n      --describe            Show available --param keys for this command (required and optional) then exit\n      --host string         Splunk REST endpoint (env: SPLUNKCTL_HOST)\n      --insecure            Skip TLS certificate verification\n  -o, --output string       Output format: json|table|text (default: table on TTY, json otherwise)\n      --param stringArray   Extra Splunk API parameter as key=value (repeatable, e.g. --param frozenTimePeriodInSecs=2592000)\n      --read-only           Block operations that can modify state\n      --timeout int         HTTP request timeout in seconds (default 30)\n      --token string        Splunk API bearer token (env: SPLUNKCTL_TOKEN)\n      --yes                 Skip write confirmation"
+        },
+        {
+          "kind": "mcp",
+          "t": 38.9,
+          "tool": "saia_find_data_source",
+          "args": {
+            "query": "checkout service request logs with latency, HTTP status, and region",
+            "earliest_time": "-24h",
+            "include_sample_event": true,
+            "limit": 5
+          },
+          "result": "{\n  \"error\": \"Agent Mode must be enabled to use /data_discovery\"\n}"
+        },
+        {
+          "kind": "mcp",
+          "t": 41.1,
+          "tool": "splunk_get_indexes",
+          "args": {
+            "count": 50
+          },
+          "result": "50 rows\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"93784\", \"totalEventCount\": \"1050151208\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"93774\", \"totalEventCount\": \"1050151151\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"93749\", \"totalEventCount\": \"1050151171\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"130\", \"totalEventCount\": \"915562\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"131\", \"totalEventCount\": \"915562\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"130\", \"totalEventCount\": \"915562\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n… 42 more rows"
+        },
+        {
+          "kind": "mcp",
+          "t": 43.3,
+          "tool": "splunk_run_query",
+          "args": {
+            "query": "| tstats count where earliest=-24h latest=now index=* by index | sort - count",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "app": "search",
+            "row_limit": 100
+          },
+          "result": "8 rows\n{\"index\": \"demo_checkout\", \"count\": \"38827\"}\n{\"index\": \"summary\", \"count\": \"5994\"}\n{\"index\": \"audit_summary\", \"count\": \"156\"}\n{\"index\": \"ers\", \"count\": \"36\"}\n{\"index\": \"cim_modactions\", \"count\": \"18\"}\n{\"index\": \"entra\", \"count\": \"2\"}\n{\"index\": \"mc_history\", \"count\": \"1\"}\n{\"index\": \"notable\", \"count\": \"1\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 43.3,
+          "tool": "splunk_get_indexes",
+          "args": {
+            "count": 50,
+            "offset": 50
+          },
+          "result": "50 rows\n{\"name\": \"_thefishbucket\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_thefishbucket\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n{\"name\": \"audit_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"3\", \"totalEventCount\": \"14040\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"audit_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"3\", \"totalEventCount\": \"14040\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"audit_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"3\", \"totalEventCount\": \"14040\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"audit_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n{\"name\": \"ba_test\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"ba_test\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n… 42 more rows"
+        },
+        {
+          "kind": "agent",
+          "t": 45.4,
+          "text": "Checkout traffic is in `demo_checkout`. I’ll sample the fields so the latency, 5xx, and region panels use the real event shape."
+        },
+        {
+          "kind": "mcp",
+          "t": 45.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout | head 3 | fieldsummary | table field count distinct_count values",
+            "row_limit": 100
+          },
+          "result": "34 rows\n{\"field\": \"amount_usd\", \"count\": \"3\", \"distinct_count\": \"3\", \"values\": \"[{\\\"value\\\":\\\"56.26\\\",\\\"count\\\":1},{\\\"value\\\":\\\"59.96\\\",\\\"count\\\":1},{\\\"value\\\":\\\"92.25\\\",\\\"count\\\":1}]\"}\n{\"field\": \"count\", \"count\": \"0\", \"distinct_count\": \"0\", \"values\": \"[]\"}\n{\"field\": \"date_hour\", \"count\": \"3\", \"distinct_count\": \"1\", \"values\": \"[{\\\"value\\\":\\\"14\\\",\\\"count\\\":3}]\"}\n{\"field\": \"date_mday\", \"count\": \"3\", \"distinct_count\": \"1\", \"values\": \"[{\\\"value\\\":\\\"16\\\",\\\"count\\\":3}]\"}\n{\"field\": \"date_minute\", \"count\": \"3\", \"distinct_count\": \"1\", \"values\": \"[{\\\"value\\\":\\\"15\\\",\\\"count\\\":3}]\"}\n{\"field\": \"date_month\", \"count\": \"3\", \"distinct_count\": \"1\", \"values\": \"[{\\\"value\\\":\\\"november\\\",\\\"count\\\":3}]\"}\n{\"field\": \"date_second\", \"count\": \"3\", \"distinct_count\": \"3\", \"values\": \"[{\\\"value\\\":\\\"34\\\",\\\"count\\\":1},{\\\"value\\\":\\\"36\\\",\\\"count\\\":1},{\\\"value\\\":\\\"38\\\",\\\"count\\\":1}]\"}\n{\"field\": \"date_wday\", \"count\": \"3\", \"distinct_count\": \"1\", \"values\": \"[{\\\"value\\\":\\\"monday\\\",\\\"count\\\":3}]\"}\n… 26 more rows"
+        },
+        {
+          "kind": "mcp",
+          "t": 45.4,
+          "tool": "splunk_get_sourcetypes",
+          "args": {
+            "count": 20,
+            "earliest_time": "-24h",
+            "index": "demo_checkout"
+          },
+          "result": "1 rows\n{\"sourcetype\": \"checkout\", \"index_scope\": [\"demo_checkout\"], \"event_count\": \"86410\", \"first_event_time\": \"2026-11-14T14:15:26Z\", \"last_event_time\": \"2026-11-16T14:15:38Z\", \"last_indexed_time\": \"2026-11-16T14:15:40Z\", \"definitions\": [{\"app\": \"search\", \"description\": \"CE-01 synthetic checkout request logs\", \"disabled\": false}]}"
+        },
+        {
+          "kind": "mcp",
+          "t": 46.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | stats count perc95(latency_ms) as p95 avg(latency_ms) as avg min(latency_ms) as min max(latency_ms) as max | eval p95=round(p95,2), avg=round(avg,2)",
+            "row_limit": 10
+          },
+          "result": "1 rows\n{\"count\": \"38816\", \"p95\": \"482.20\", \"avg\": \"219.69\", \"min\": \"9\", \"max\": \"3985\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 46.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | eval is_5xx=if(tonumber(status)>=500,1,0) | stats count as requests sum(is_5xx) as errors | eval error_rate_pct=round(100*errors/requests, 4)",
+            "row_limit": 10
+          },
+          "result": "1 rows\n{\"requests\": \"38815\", \"errors\": \"194\", \"error_rate_pct\": \"0.4998\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 46.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | stats count by status | sort status",
+            "row_limit": 20
+          },
+          "result": "7 rows\n{\"status\": \"200\", \"count\": \"38003\"}\n{\"status\": \"400\", \"count\": \"231\"}\n{\"status\": \"402\", \"count\": \"194\"}\n{\"status\": \"409\", \"count\": \"193\"}\n{\"status\": \"502\", \"count\": \"59\"}\n{\"status\": \"503\", \"count\": \"68\"}\n{\"status\": \"504\", \"count\": \"67\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 46.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | stats perc95(latency_ms) as p95_latency_ms count by region | eval p95_latency_ms=round(p95_latency_ms,1) | sort - p95_latency_ms",
+            "row_limit": 20
+          },
+          "result": "4 rows\n{\"region\": \"eu-west-1\", \"p95_latency_ms\": \"695.9\", \"count\": \"9785\"}\n{\"region\": \"ap-southeast-1\", \"p95_latency_ms\": \"548.4\", \"count\": \"3765\"}\n{\"region\": \"us-west-2\", \"p95_latency_ms\": \"423.5\", \"count\": \"9825\"}\n{\"region\": \"us-east-1\", \"p95_latency_ms\": \"407.0\", \"count\": \"15439\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 46.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | timechart span=1h perc95(latency_ms) as p95_latency_ms",
+            "row_limit": 30
+          },
+          "result": "25 rows\n{\"_time\": \"2026-11-15T16:00:00.000+00:00\", \"p95_latency_ms\": \"528.3499999999997\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T17:00:00.000+00:00\", \"p95_latency_ms\": \"561.1763635772726\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T18:00:00.000+00:00\", \"p95_latency_ms\": \"509.9975760363634\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T19:00:00.000+00:00\", \"p95_latency_ms\": \"481.7166669999999\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T20:00:00.000+00:00\", \"p95_latency_ms\": \"467.4819443083333\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T21:00:00.000+00:00\", \"p95_latency_ms\": \"436.38003663003656\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T22:00:00.000+00:00\", \"p95_latency_ms\": \"395.6416666666666\", \"_span\": \"3600\"}\n{\"_time\": \"2026-11-15T23:00:00.000+00:00\", \"p95_latency_ms\": \"406.8199996999999\", \"_span\": \"3600\"}\n… 17 more rows"
+        },
+        {
+          "kind": "shell",
+          "t": 60.4,
+          "command": "splunkctl dashboard list --app search -o json 2>/dev/null | head -c 8000; echo; splunkctl dashboard list -o table 2>/dev/null | head -80",
+          "result": "[\n  {\n    \"app\": \"system\",\n    \"dashboardType\": 2,\n    \"disabled\": false,\n    \"eai:acl\": null,\n    \"eai:appName\": \"search\",\n    \"eai:data\": \"\\u003cview isVisible=\\\"false\\\" \\u003e\\n  \\u003clabel\\u003eInternal Admin Nav\\u003c/label\\u003e\\n  \\u003cmodule name=\\\"Message\\\" layoutPanel=\\\"messaging\\\"\\u003e\\n    \\u003cparam name=\\\"filter\\\"\\u003e*\\u003c/param\\u003e\\n    \\u003cparam name=\\\"clearOnJobDispatch\\\"\\u003eFalse\\u003c/param\\u003e\\n    \\u003cparam name=\\\"maxSize\\\"\\u003e1\\u003c/param\\u003e\\n  \\u003c/module\\u003e\\n  \\u003cmodule name=\\\"AccountBar\\\" layoutPanel=\\\"appHeader\\\"\\u003e\\n    \\u003cparam name=\\\"mode\\\"\\u003elite\\u003c/param\\u003e\\n  \\u003c/module\\u003e\\n  \\u003cmodule name=\\\"LiteBar\\\" layoutPanel=\\\"liteHeader\\\"\\u003e\\u003c/module\\u003e\\n\\u003c/view\\u003e\",\n    \"eai:digest\": \"e41e47cf9ec843c06c453cc6f71613eb\",\n    \"eai:type\": \"views\",\n    \"eai:userName\": \"nobody\",\n    \"embed.enabled\": false,\n    \"embed.expiry\": 0,\n    \"isDashboard\": true,\n    \"isVisible\": false,\n    \"label\": \"Internal Admin Nav\",\n    \"name\": \"_admin\",\n    \"owner\": \"nobody\",\n    \"rootNode\": \"view\",\n    \"sharing\": \"system\",\n    \"version\": null\n  },\n  {\n    \"app\": \"SplunkEnterpriseSecuritySuite\",\n    \"applicationSuite\": \"ess\",\n    \"dashboardType\": 2,\n    \"disabled\": false,\n    \"eai:acl\": null,\n    \"eai:appName\": \"search\",\n    \"eai:data\": \"\\u003cview template=\\\"SplunkEnterpriseSecuritySuite:/templates/udf_generic.html\\\" type=\\\"html\\\" applicationSuite=\\\"ess\\\"\\u003e\\n    \\u003clabel\\u003eAccess analyzer\\u003c/label\\u003e\\n\\u003c/view\\u003e\",\n    \"eai:digest\": \"dc82068101af18f5a5261634cba80f4a\",\n    \"eai:type\": \"views\",\n    \"eai:userName\": \"nobody\",\n    \"embed.enabled\": false,\n    \"embed.expiry\": 0,\n    \"isDashboard\": true,\n    \"isVisible\": true,\n    \"label\": \"Access analyzer\",\n    \"name\": \"access_analyzer\",\n    \"owner\": \"nobody\",\n    \"rootNode\": \"view\",\n    \"sharing\": \"global\",\n    \"version\": null\n  },\n  {\n    \"app\": \"SplunkEnterpriseSecuritySuite\",\n    \"dashboardType\": 1,\n    \"disabled\": false,\n    \"eai:acl\": null,\n    \"eai:appName\": \"search\",\n    \"eai:data\": \"\\u003cdashboard version=\\\"2\\\" isDashboard=\\\"false\\\"\\u003e\\n\\u003cdefinition\\u003e\\u003c![CDATA[{\\n  \\\"visualizations\\\": {\\n    \\\"viz_public_facing_queues\\\": {\\n      \\\"type\\\": \\\"splunk.pie\\\",\\n      \\\"description\\\": \\\"\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_public_facing_queues\\\"\\n      },\\n      \\\"eventHandlers\\\": [],\\n      \\\"options\\\": {\\n        \\\"collapseThreshold\\\": 0.05,\\n        \\\"resultLimit\\\": 6,\\n        \\\"showDonutHole\\\": true\\n      },\\n      \\\"title\\\": \\\"Number of public facing queues\\\"\\n    },\\n    \\\"viz_public_facing_lambda\\\": {\\n      \\\"type\\\": \\\"splunk.pie\\\",\\n      \\\"description\\\": \\\"\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_public_facing_lambda\\\"\\n      },\\n      \\\"eventHandlers\\\": [],\\n      \\\"options\\\": {\\n        \\\"collapseThreshold\\\": 0.05,\\n        \\\"resultLimit\\\": 6,\\n        \\\"showDonutHole\\\": true\\n      },\\n      \\\"title\\\": \\\"Number of public facing AWS lambda\\\"\\n    },\\n    \\\"viz_public_facing_s3_buckets\\\": {\\n      \\\"type\\\": \\\"splunk.pie\\\",\\n      \\\"description\\\": \\\"\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_public_facing_s3_buckets\\\"\\n      },\\n      \\\"eventHandlers\\\": [],\\n      \\\"options\\\": {\\n        \\\"collapseThreshold\\\": 0.05,\\n        \\\"resultLimit\\\": 6,\\n        \\\"showDonutHole\\\": true\\n      },\\n      \\\"title\\\": \\\"Number of public facing S3 buckets\\\"\\n    },\\n    \\\"viz_access_analyzer_trend\\\": {\\n      \\\"type\\\": \\\"splunk.line\\\",\\n      \\\"description\\\": \\\"\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_access_analyzer_trend\\\"\\n      },\\n      \\\"eventHandlers\\\": [],\\n      \\\"options\\\": {\\n        \\\"markerDisplay\\\": \\\"outlined\\\",\\n        \\\"nullValueDisplay\\\": \\\"zero\\\",\\n        \\\"yAxisTitleText\\\": \\\"count\\\",\\n        \\\"xAxisTitleText\\\": \\\"time\\\",\\n        \\\"showYMinorGridLines\\\": false,\\n        \\\"dataValuesDisplay\\\": \\\"all\\\",\\n        \\\"legendDisplay\\\": \\\"bottom\\\"\\n      },\\n      \\\"title\\\": \\\"Access analyzer trend\\\"\\n    }\\n  },\\n  \\\"dataSources\\\": {\\n    \\\"ds_region\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Regions\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"| inputlookup aws_regions\\\",\\n        \\\"queryParameters\\\": {\\n          \\\"earliest\\\": \\\"-1s\\\",\\n          \\\"latest\\\": \\\"now\\\"\\n        }\\n      }\\n    },\\n    \\\"ds_account_id\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Account\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"| inputlookup aws_all_account_ids | search account_id!=\\\\\\\"ANONYMOUS_PRINCIPAL\\\\\\\"\\\",\\n        \\\"queryParameters\\\": {\\n          \\\"earliest\\\": \\\"-1s\\\",\\n          \\\"latest\\\": \\\"now\\\"\\n        }\\n      }\\n    },\\n    \\\"ds_public_facing_queues\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"single public facing queues\\\",\\n      \\\"options\\\": {\\n        \\\"data\\\": {},\\n        \\\"query\\\": \\\"`aws-index` sourcetype=\\\\\\\"aws:accessanalyzer:finding\\\\\\\" resourceType=\\\\\\\"AWS::SQS::Queue\\\\\\\" isPublic=true $ds_input_tokens:result.accountID$ $ds_input_tokens:result.regions$ $ds_input_tokens:result.raw_status$ | dedup resource | stats count by resource\\\"\\n      }\\n    },\\n    \\\"ds_public_facing_lambda\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Aws lambda\\\",\\n      \\\"options\\\": {\\n        \\\"data\\\": {},\\n        \\\"query\\\": \\\"`aws-index` sourcetype=\\\\\\\"aws:accessanalyzer:finding\\\\\\\" resourceType=\\\\\\\"AWS::Lambda::*\\\\\\\" isPublic=true $ds_input_tokens:result.accountID$ $ds_input_tokens:result.regions$ $ds_input_tokens:result.raw_status$ | dedup resource | stats count by resource\\\"\\n      }\\n    },\\n    \\\"ds_public_facing_s3_buckets\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"S3 buckets\\\",\\n      \\\"options\\\": {\\n        \\\"data\\\": {},\\n        \\\"query\\\": \\\"`aws-index` sourcetype=\\\\\\\"aws:accessanalyzer:finding\\\\\\\" resourceType=\\\\\\\"AWS::S3::Bucket\\\\\\\" isPublic=true $ds_input_tokens:result.accountID$ $ds_input_tokens:result.regions$ $ds_input_tokens:result.raw_status$ | dedup resource | stats count by resource\\\"\\n      }\\n    },\\n    \\\"ds_access_analyzer_trend\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Access analyzer trend\\\",\\n      \\\"options\\\": {\\n        \\\"data\\\": {},\\n        \\\"query\\\": \\\"`aws-index` sourcetype=\\\\\\\"aws:accessanalyzer:finding\\\\\\\" isPublic=true $ds_input_tokens:result.accountID$ $ds_input_tokens:result.regions$ $ds_input_tokens:result.raw_status$ | dedup resource | timechart limit=20 count by resourceType\\\"\\n      }\\n    },\\n    \\\"ds_input_tokens\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"ds_input_tokens\\\",\\n      \\\"options\\\": {\\n        \\\"enableSmartSources\\\": true,\\n        \\\"query\\\": \\\"| makeresults count=1\\\\n| eval region=\\\\\\\"$region$\\\\\\\"\\\\n| eval list=split(region,\\\\\\\",\\\\\\\")\\\\n| eval filterlist=mvfilter(!list IN (\\\\\\\"*\\\\\\\"))\\\\n| eval regions_fields_dm=\\\\\\\"(\\\\\\\".mvjoin(mvmap(filterlist,\\\\\\\"vendor_region=\\\\\\\\\\\\\\\"\\\\\\\" . filterlist . \\\\\\\"\\\\\\\\\\\\\\\"\\\\\\\"), \\\\\\\" OR \\\\\\\").\\\\\\\")\\\\\\\"\\\\n| eval regions_fields_tstats=\\\\\\\"(\\\\\\\".mvjoin(mvmap(filterlist,\\\\\\\"All_Changes.vendor_region=\\\\\\\\\\\\\\\"\\\\\\\" . filterlist . \\\\\\\"\\\\\\\\\\\\\\\"\\\\\\\"), \\\\\\\" OR \\\\\\\").\\\\\\\")\\\\\\\"\\\\n| eval regions_fields=\\\\\\\"(\\\\\\\".mvjoin(mvmap(filterlist,\\\\\\\"region=\\\\\\\\\\\\\\\"\\\\\\\" . filterlist . \\\\\\\"\\\\\\\\\\\\\\\"\\\\\\\"), \\\\\\\" OR \\\\\\\").\\\\\\\")\\\\\\\"\\\\n| eval regions=case(region==\\\\\\\"*\\\\\\\",\\\\\\\"(region=\\\\\\\\\\\\\\\"*\\\\\\\\\\\\\\\")\\\\\\\", true(), regions_fields)\\\\n| eval regions_DM=case(region==\\\\\\\"*\\\\\\\",\\\\\\\"(vendor_region=\\\\\\\\\\\\\\\"*\\\\\\\\\\\\\\\")\\\\\\\", true(), regions_fields_dm)\\\\n| eval regions_TSTATS=case(region==\\\\\\\"*\\\\\\\",\\\\\\\"(All_Changes.vendor_region=\\\\\\\\\\\\\\\"*\\\\\\\\\\\\\\\")\\\\\\\", true(), regions_fields_tstats)\\\\n\\\\n| eval raw_status=\\\\\\\"(status=\\\\\\\\\\\\\\\"$status$\\\\\\\\\\\\\\\")\\\\\\\"\\\\n\\\\n| eval accountID=\\\\\\\"(accountId=\\\\\\\\\\\\\\\"$account_id$\\\\\\\\\\\\\\\")\\\\\\\"\\\",\\n        \\\"queryParameters\\\": {\\n          \\\"earliest\\\": \\\"0\\\",\\n          \\\"latest\\\": \\\"now\\\"\\n        }\\n      }\\n    }\\n  },\\n  \\\"defaults\\\": {\\n    \\\"visualizations\\\": {\\n      \\\"global\\\": {\\n        \\\"showProgressBar\\\": true\\n      }\\n    },\\n    \\\"dataSources\\\": {\\n      \\\"ds.sea\nname    owner   dashboardType  eai:acl  embed.enabled  eai:userName  isDashboard  app     eai:type  embed.expiry  rootNode  eai:data  eai:digest  sharing  isVisible  disabled  eai:appName  version  label\n_admin  nobody  2              <nil>    false          admin         true         system  views     0             view      <view isVisible=\"false\" >\n  <label>Internal Admin Nav</label>\n  <module name=\"Message\" layoutPanel=\"messaging\">\n    <param name=\"filter\">*</param>\n    <param name=\"clearOnJobDispatch\">False</param>\n    <param name=\"maxSize\">1</param>\n  </module>\n  <module name=\"AccountBar\" layoutPanel=\"appHeader\">\n    <param name=\"mode\">lite</param>\n  </module>\n  <module name=\"LiteBar\" layoutPanel=\"liteHeader\"></module>\n</view>          e41e47cf9ec843c06c453cc6f71613eb  system  false  false  search  <nil>  Internal Admin Nav\naccess_analyzer  nobody                            2       <nil>  false  admin   true   SplunkEnterpriseSecuritySuite  views  0  view  <view template=\"SplunkEnterpriseSecuritySuite:/templates/udf_generic.html\" type=\"html\" applicationSuite=\"ess\">\n    <label>Access analyzer</label>\n</view>               dc82068101af18f5a5261634cba80f4a  global  true   false  search  <nil>  Access analyzer\naccess_analyzer_data  nobody                            1       <nil>  false  admin   false  SplunkEnterpriseSecuritySuite  views  0  dashboard  <dashboard version=\"2\" isDashboard=\"false\">\n<definition><![CDATA[{\n  \"visualizations\": {\n    \"viz_public_facing_queues\": {\n      \"type\": \"splunk.pie\",\n      \"description\": \"\",\n      \"dataSources\": {\n        \"primary\": \"ds_public_facing_queues\"\n      },\n      \"eventHandlers\": [],\n      \"options\": {\n        \"collapseThreshold\": 0.05,\n        \"resultLimit\": 6,\n        \"showDonutHole\": true\n      },\n      \"title\": \"Number of public facing queues\"\n    },\n    \"viz_public_facing_lambda\": {\n      \"type\": \"splunk.pie\",\n      \"description\": \"\",\n      \"dataSources\": {\n        \"primary\": \"ds_public_facing_lambda\"\n      },\n      \"eventHandlers\": [],\n      \"options\": {\n        \"collapseThreshold\": 0.05,\n        \"resultLimit\": 6,\n        \"showDonutHole\": true\n      },\n      \"title\": \"Number of public facing AWS lambda\"\n    },\n    \"viz_public_facing_s3_buckets\": {\n      \"type\": \"splunk.pie\",\n      \"description\": \"\",\n      \"dataSources\": {\n        \"primary\": \"ds_public_facing_s3_buckets\"\n      },\n      \"eventHandlers\": [],\n      \"options\": {\n        \"collapseThreshold\": 0.05,\n        \"resultLimit\": 6,\n        \"showDonutHole\": true\n      },\n      \"title\": \"Number of public facing S3 buckets\"\n    },\n    \"viz_access_analyzer_trend\": {\n      \"type\": \"splunk.line\",\n      \"description\": \"\",\n      \"dataSources\": {\n        \"primary\": \"ds_access_analyzer_trend\"\n      },\n      \"eventHandlers\": [],\n      \"options\": {\n        \"markerDisplay\": \"outlined\",\n        \"nullValueDisplay\": \"zero\",\n        \"yAxisTitleText\": \"count\",\n        \"xAxisTitleText\": \"time\",\n        \"showYMinorGridLines\": false,\n        \"dataValuesDisplay\": \"all\",\n        \"legendDisplay\": \"bottom\"\n      },\n      \"title\": \"Access analyzer trend\"\n    }\n  },"
+        },
+        {
+          "kind": "agent",
+          "t": 73.4,
+          "text": "Checkout logs are in `demo_checkout` (`latency_ms`, `status`, `region`). The 5xx rate is about 0.50%, so the rate panel needs two decimal places. I’ll write the Studio definition and the XML wrapper next."
+        },
+        {
+          "kind": "file",
+          "t": 75.5,
+          "name": "checkout_latency.json",
+          "tag": "Dashboard Studio",
+          "artifact": "dashboard"
+        },
+        {
+          "kind": "file",
+          "t": 81.2,
+          "name": "checkout_latency.xml"
+        },
+        {
+          "kind": "shell",
+          "t": 81.4,
+          "command": "python3 -c 'import json; json.load(open(\"checkout_latency.json\")); print(\"json ok\")' && splunkctl dashboard show demo_checkout_latency --app search -o json >/tmp/demo_checkout_latency_show.json 2>/tmp/demo_checkout_latency_show.err; echo EXIT:$?; python3 -c 'import pathlib; p=pathlib.Path(\"/tmp/demo_checkout_latency_show.err\"); t=p.read_text() if p.exists() else \"\"; print(t[:800])'",
+          "result": "json ok\nEXIT:3\n{\"error\":\"splunk error 404 (NOT_FOUND): Could not find object id=demo_checkout_latency\",\"code\":\"NOT_FOUND\"}"
+        }
+      ],
+      "summary": "5 skills · 11 MCP calls · 3 shell commands · 2 files"
+    },
+    {
+      "id": "approval",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 84.7,
+          "text": "The dashboard is not in Splunk yet. I’ll run the create command once without `--yes` so it can stop for confirmation."
+        },
+        {
+          "kind": "shell",
+          "t": 84.7,
+          "command": "splunkctl dashboard add demo_checkout_latency --file /Users/Shared/splunk-demo/payments/checkout_latency.xml --app search",
+          "result": "{\"error\":\"write operation for \\\"splunkctl dashboard add\\\" requires confirmation; rerun with --yes after user approval\",\"code\":\"CONFIRMATION_REQUIRED\"}",
+          "blocked": true
+        },
+        {
+          "kind": "agent",
+          "t": 86.9,
+          "text": "The checkout latency dashboard is saved locally and ready to create in the `search` app. Splunk stopped the write and asked for confirmation before creating `demo_checkout_latency`.\n\n`checkout_latency.json` is the Dashboard Studio definition, wrapped by `checkout_latency.xml`. It uses `index=demo_checkout sourcetype=checkout` and defaults to the last 24 hours. The four panels are:\n\n- **p95 latency** shows the 95th percentile of `latency_ms` (about 482 ms over the last day).\n- **5xx rate** shows the share of HTTP 5xx responses, about 0.50%, with `numberPrecision` set to 2 so the value is not rounded to 0%.\n- **Latency over time** shows the p95 in 30-minute buckets.\n- **Latency by region** compares p95 across `eu-west-1`, `ap-southeast-1`, `us-west-2`, and `us-east-1`.\n\nApprove this command and I will rerun it with `--yes`, then open the dashboard in Splunk Web and confirm every panel renders:\n\n```bash\nsplunkctl dashboard add demo_checkout_latency --file /Users/Shared/splunk-demo/payments/checkout_latency.xml --app search\n```"
+        },
+        {
+          "kind": "user",
+          "t": 89.8,
+          "text": "Approved. Deploy it once."
+        }
+      ],
+      "summary": "The write stopped at CONFIRMATION_REQUIRED until you approved",
+      "gate": true
+    },
+    {
+      "id": "deploy",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 93.1,
+          "text": "I'll deploy `demo_checkout_latency` once with the command you approved, then open it in Splunk Web and confirm each panel renders."
+        },
+        {
+          "kind": "shell",
+          "t": 93.1,
+          "command": "splunkctl dashboard add demo_checkout_latency --file /Users/Shared/splunk-demo/payments/checkout_latency.xml --app search --yes",
+          "result": "[\n  {\n    \"app\": \"search\",\n    \"dashboardType\": 1,\n    \"description\": \"Checkout request latency and 5xx rate for the last 24 hours.\",\n    \"disabled\": false,\n    \"eai:acl\": null,\n    \"eai:appName\": \"search\",\n    \"eai:data\": \"\\u003cdashboard version=\\\"2\\\" theme=\\\"dark\\\"\\u003e\\n  \\u003clabel\\u003eCheckout latency\\u003c/label\\u003e\\n  \\u003cdescription\\u003eCheckout request latency and 5xx rate for the last 24 hours.\\u003c/description\\u003e\\n  \\u003cdefinition\\u003e\\u003c![CDATA[\\n{\\n  \\\"title\\\": \\\"Checkout latency\\\",\\n  \\\"description\\\": \\\"Checkout request latency and 5xx rate for the last 24 hours.\\\",\\n  \\\"dataSources\\\": {\\n    \\\"ds_p95\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Checkout p95 latency\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"index=demo_checkout sourcetype=checkout\\\\n| stats perc95(latency_ms) as p95_ms\\\"\\n      }\\n    },\\n    \\\"ds_5xx_rate\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Checkout 5xx rate\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"index=demo_checkout sourcetype=checkout\\\\n| eval is_5xx=if(tonumber(status)\\u003e=500 AND tonumber(status)\\u003c600, 1, 0)\\\\n| stats sum(is_5xx) as errors, count as requests\\\\n| eval rate_pct=if(requests==0, 0, round(100*errors/requests, 2))\\\\n| fields rate_pct\\\"\\n      }\\n    },\\n    \\\"ds_latency_over_time\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Checkout latency over time\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"index=demo_checkout sourcetype=checkout\\\\n| timechart span=30m perc95(latency_ms) as p95_ms\\\\n| where isnotnull(p95_ms)\\\"\\n      }\\n    },\\n    \\\"ds_latency_by_region\\\": {\\n      \\\"type\\\": \\\"ds.search\\\",\\n      \\\"name\\\": \\\"Checkout latency by region\\\",\\n      \\\"options\\\": {\\n        \\\"query\\\": \\\"index=demo_checkout sourcetype=checkout\\\\n| stats perc95(latency_ms) as p95_ms by region\\\\n| sort - p95_ms\\\"\\n      }\\n    }\\n  },\\n  \\\"visualizations\\\": {\\n    \\\"viz_p95\\\": {\\n      \\\"type\\\": \\\"splunk.singlevalue\\\",\\n      \\\"title\\\": \\\"p95 latency\\\",\\n      \\\"description\\\": \\\"95th percentile checkout latency\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_p95\\\"\\n      },\\n      \\\"options\\\": {\\n        \\\"majorValue\\\": \\\"\\u003e primary | seriesByName(\\\\\\\"p95_ms\\\\\\\") | lastPoint()\\\",\\n        \\\"unit\\\": \\\"ms\\\",\\n        \\\"unitPosition\\\": \\\"after\\\",\\n        \\\"backgroundColor\\\": \\\"transparent\\\",\\n        \\\"majorColor\\\": \\\"\\u003e majorValue | rangeValue(majorColorConfig)\\\"\\n      },\\n      \\\"context\\\": {\\n        \\\"majorColorConfig\\\": [\\n          {\\\"value\\\": \\\"#53A051\\\", \\\"to\\\": 400},\\n          {\\\"value\\\": \\\"#F8BE34\\\", \\\"from\\\": 400, \\\"to\\\": 800},\\n          {\\\"value\\\": \\\"#DC4E41\\\", \\\"from\\\": 800}\\n        ]\\n      }\\n    },\\n    \\\"viz_5xx_rate\\\": {\\n      \\\"type\\\": \\\"splunk.singlevalue\\\",\\n      \\\"title\\\": \\\"5xx rate\\\",\\n      \\\"description\\\": \\\"Share of checkout requests with HTTP 5xx\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_5xx_rate\\\"\\n      },\\n      \\\"options\\\": {\\n        \\\"majorValue\\\": \\\"\\u003e primary | seriesByName(\\\\\\\"rate_pct\\\\\\\") | lastPoint()\\\",\\n        \\\"numberPrecision\\\": 2,\\n        \\\"unit\\\": \\\"%\\\",\\n        \\\"unitPosition\\\": \\\"after\\\",\\n        \\\"backgroundColor\\\": \\\"transparent\\\",\\n        \\\"majorColor\\\": \\\"\\u003e majorValue | rangeValue(majorColorConfig)\\\"\\n      },\\n      \\\"context\\\": {\\n        \\\"majorColorConfig\\\": [\\n          {\\\"value\\\": \\\"#53A051\\\", \\\"to\\\": 1},\\n          {\\\"value\\\": \\\"#F8BE34\\\", \\\"from\\\": 1, \\\"to\\\": 2},\\n          {\\\"value\\\": \\\"#DC4E41\\\", \\\"from\\\": 2}\\n        ]\\n      }\\n    },\\n    \\\"viz_latency_over_time\\\": {\\n      \\\"type\\\": \\\"splunk.line\\\",\\n      \\\"title\\\": \\\"Latency over time\\\",\\n      \\\"description\\\": \\\"p95 checkout latency\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_latency_over_time\\\"\\n      },\\n      \\\"options\\\": {\\n        \\\"yAxisTitleText\\\": \\\"p95 latency (ms)\\\",\\n        \\\"xAxisTitleText\\\": \\\"Time\\\",\\n        \\\"yAxisTitleVisibility\\\": \\\"show\\\",\\n        \\\"xAxisTitleVisibility\\\": \\\"show\\\",\\n        \\\"nullValueDisplay\\\": \\\"connect\\\",\\n        \\\"legendDisplay\\\": \\\"off\\\",\\n        \\\"seriesColors\\\": [\\\"#009CEB\\\"],\\n        \\\"yAxisAbbreviation\\\": \\\"auto\\\"\\n      }\\n    },\\n    \\\"viz_latency_by_region\\\": {\\n      \\\"type\\\": \\\"splunk.bar\\\",\\n      \\\"title\\\": \\\"Latency by region\\\",\\n      \\\"description\\\": \\\"p95 checkout latency by region\\\",\\n      \\\"dataSources\\\": {\\n        \\\"primary\\\": \\\"ds_latency_by_region\\\"\\n      },\\n      \\\"options\\\": {\\n        \\\"xAxisTitleText\\\": \\\"p95 latency (ms)\\\",\\n        \\\"yAxisTitleText\\\": \\\"Region\\\",\\n        \\\"xAxisTitleVisibility\\\": \\\"show\\\",\\n        \\\"yAxisTitleVisibility\\\": \\\"show\\\",\\n        \\\"legendDisplay\\\": \\\"off\\\",\\n        \\\"seriesColors\\\": [\\\"#7B56DB\\\"],\\n        \\\"yAxisAbbreviation\\\": \\\"auto\\\"\\n      }\\n    }\\n  },\\n  \\\"inputs\\\": {\\n    \\\"input_global_trp\\\": {\\n      \\\"type\\\": \\\"input.timerange\\\",\\n      \\\"title\\\": \\\"Time range\\\",\\n      \\\"options\\\": {\\n        \\\"token\\\": \\\"global_time\\\",\\n        \\\"defaultValue\\\": \\\"-24h,now\\\"\\n      }\\n    }\\n  },\\n  \\\"defaults\\\": {\\n    \\\"dataSources\\\": {\\n      \\\"ds.search\\\": {\\n        \\\"options\\\": {\\n          \\\"queryParameters\\\": {\\n            \\\"earliest\\\": \\\"$global_time.earliest$\\\",\\n            \\\"latest\\\": \\\"$global_time.latest$\\\"\\n          }\\n        }\\n      }\\n    }\\n  },\\n  \\\"layout\\\": {\\n    \\\"type\\\": \\\"grid\\\",\\n    \\\"globalInputs\\\": [\\\"input_global_trp\\\"],\\n    \\\"structure\\\": [\\n      {\\n        \\\"item\\\": \\\"viz_p95\\\",\\n        \\\"type\\\": \\\"block\\\",\\n        \\\"position\\\": {\\\"x\\\": 0, \\\"y\\\": 0, \\\"w\\\": 600, \\\"h\\\": 250}\\n      },\\n      {\\n        \\\"item\\\": \\\"viz_5xx_rate\\\",\\n        \\\"type\\\": \\\"block\\\",\\n        \\\"position\\\": {\\\"x\\\": 600, \\\"y\\\": 0, \\\"w\\\": 600, \\\"h\\\": 250}\\n      },\\n      {\\n        \\\"item\\\": \\\"viz_latency_over_time\\\",\\n        \\\"type\\\": \\\"block\\\",\\n        \\\"position\\\": {\\\"x\\\": 0, \\\"y\\\": 250, \\\"w\\\": 1200, \\\"h\\\": 400}\\n      },\\n      {\\n        \\\"item\\\": \\\"viz_latency_by_region\\\",\\n        \\\"type\\\": \\\"block\\\",\\n        \\\"position\\\": {\\\"x\\\": 0, \\\"y\\\": 650, \\\"w\\\": 1200, \\\"h\\\": 400}\\n      }\\n    ]\\n  },\\n  \\\"applicationProperties\\\": {\\n    \\\"theme\\\": \\\"dark\\\"\\n  }\\n}\\n  ]]\\u003e\\u003c/definition\\u003e\\n\\u003c/dashboard\\u003e\\n\",\n    \"eai:digest\": \"92dffaf853f27b9311d57fadde5d5cf8\",\n    \"eai:type\": \"views\",\n    \"eai:userName\": \"nobody\",\n    \"embed.enabled\": false,\n    \"embed.expiry\": 0,\n    \"isDashboard\": true,\n    \"isVisible\": true,\n    \"label\": \"Checkout latency\",\n    \"name\": \"demo_checkout_latency\",\n    \"owner\": \"admin\",\n    \"rootNode\": \"dashboard\",\n    \"sharing\": \"app\",\n    \"version\": \"2\"\n  }\n]"
+        }
+      ],
+      "summary": "1 shell command"
+    },
+    {
+      "id": "render-check",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 96.3,
+          "text": "The dashboard is in the `search` app. Next I’ll open it in Splunk Web and check that all four panels render."
+        },
+        {
+          "kind": "browser",
+          "t": 96.3,
+          "command": "playwright-cli open \"https://splunk-cloud-demo-stack-0001.example.com/en-US/app/search/demo_checkout_latency\"",
+          "result": "### Browser `default` opened with pid 87339.\n### Ran Playwright code"
+        },
+        {
+          "kind": "browser",
+          "t": 103.0,
+          "command": "playwright-cli find \"Visualization\" --filename=viz-find.md && echo \"---- SNAPSHOT HEAD ----\" && playwright-cli snapshot --filename=dash.yaml --depth=6",
+          "result": "### Result\n- [Find results](./viz-find.md)\n### Page\n- Page URL: https://splunk-cloud-demo-stack-0001.example.com/en-US/app/search/demo_checkout_latency?form.global_time.earliest=-24h&form.global_time.latest=now&tab=layout_1\n- Page Title: Checkout latency | Splunk 10.5.2605.6\n- Console: 2 errors, 7 warnings\n### Events\n- New console entries: ../.cache/playwright-cli/console-2026-11-16T16-44-41-134Z.log#L1-L9\n---- SNAPSHOT HEAD ----\n### Page\n- Page URL: https://splunk-cloud-demo-stack-0001.example.com/en-US/app/search/demo_checkout_latency?form.global_time.earliest=-24h&form.global_time.latest=now&tab=layout_1\n- Page Title: Checkout latency | Splunk 10.5.2605.6\n- Console: 2 errors, 7 warnings\n### Snapshot\n- [Snapshot](./dash.yaml)\n\n── viz-find.md ──\nFound 5 matches for \"Visualization\":\n\n- generic [active] [ref=e1]:\n  - main [ref=e83]:\n    - generic [ref=e126]:\n      - main [ref=e127]:\n        - generic [ref=e155]:\n          - generic [ref=e163]:\n            - generic \"Input Time range\" [ref=e166]:\n    10|              - generic [ref=e167]:\n                ...\n                - generic [ref=e171]:\n                  ...\n                  - button \"Time range Last 24 hours\" [ref=e173] [cursor=pointer]:\n                    - generic [ref=e174]: Last 24 hours\n            - generic [ref=e178]:\n              - generic:\n                - generic \"Visualization p95 latency\" [ref=e180]:\n                  - generic [ref=e183]:\n    20|                    - generic [ref=e184]:\n                      - generic [ref=e185]: p95 latency\n                      - generic [ref=e186]: 95th percentile checkout latency\n                    - generic \"481\" [ref=e197]: 481 ms\n                - generic \"Visualization 5xx rate\" [ref=e199]:\n                  - generic [ref=e202]:\n                    - generic [ref=e203]:\n                      - generic [ref=e204]: 5xx rate\n                      - generic [ref=e205]: Share of checkout requests with HTTP 5xx\n                    - generic \"0.50\" [ref=e216]: 0.50 %\n    30|                - generic \"Visualization Latency over time\" [ref=e218]:\n                  - generic [ref=e221]:\n                    - generic [ref=e222]:\n                      - generic [ref=e223]: Latency over time\n\n----\n\n- generic [active] [ref=e1]:\n  - main [ref=e83]:\n    - generic [ref=e126]:\n    40|      - main [ref=e127]:\n        - generic [ref=e155]:\n          - generic [ref=e163]:\n            - generic [ref=e178]:\n              - generic:\n                - generic \"Visualization Latency over time\" [ref=e218]:\n                  - generic [ref=e221]:\n                    ...\n                    - img [ref=e229]:\n                      ...\n    50|                      - generic [ref=e254]:\n                        ...\n                        - generic [ref=e256]: 0.75K\n                        - generic [ref=e257]: 1.00K\n                        - generic [ref=e258]: 1.25K\n                - generic \"Visualization Latency by region\" [ref=e260]:\n                  - generic [ref=e263]:\n                    - generic [ref=e264]:\n                      - generic [ref=e265]: Latency by region\n\n    60|----\n\n- generic [active] [ref=e1]:\n  - main [ref=e83]:\n    - generic [ref=e126]:\n      - main [ref=e127]:\n        - generic [ref=e155]:\n          - generic [ref=e163]:\n            - generic [ref=e178]:\n              - generic:\n    70|                - generic \"Visualization Latency by region\" [ref=e260]:\n                  - generic [ref=e263]:\n                    ...\n                    - img [ref=e271]:\n                      ...\n                      - generic [ref=e292]:\n                        ...\n                        - generic [ref=e295]: \"400\"\n                        - generic [ref=e296]: \"600\"\n                        - generic [ref=e297]: \"800\"\n    80|      - generic [ref=e298]: Visualizations updated\n      - status [ref=e299]"
+        },
+        {
+          "kind": "browser",
+          "t": 113.3,
+          "command": "playwright-cli find \"eu-west-1\" --filename=region-find.md && playwright-cli find \"us-east-1\" --filename=region2-find.md",
+          "result": "### Result\n- [Find results](./region-find.md)\n### Result\n- [Find results](./region2-find.md)\n\n── region-find.md ──\nFound 1 match for \"eu-west-1\":\n\n- generic [active] [ref=e1]:\n  - main [ref=e83]:\n    - generic [ref=e126]:\n      - main [ref=e127]:\n        - generic [ref=e155]:\n          - generic [ref=e163]:\n            - generic [ref=e178]:\n    10|              - generic:\n                - generic \"Visualization Latency by region\" [ref=e260]:\n                  - generic [ref=e263]:\n                    - img [ref=e271]:\n                      - generic [ref=e279]: Region\n                      - generic [ref=e282] [cursor=pointer]\n                      - generic [ref=e287]:\n                        - generic [ref=e288]: eu-west-1\n                        - generic [ref=e289]: ap-southeast-1\n                        - generic [ref=e290]: us-west-2\n    20|                        - generic [ref=e291]: us-east-1\n\n── region2-find.md ──\nFound 1 match for \"us-east-1\":\n\n- generic [active] [ref=e1]:\n  - main [ref=e83]:\n    - generic [ref=e126]:\n      - main [ref=e127]:\n        - generic [ref=e155]:\n          - generic [ref=e163]:\n            - generic [ref=e178]:\n    10|              - generic:\n                - generic \"Visualization Latency by region\" [ref=e260]:\n                  - generic [ref=e263]:\n                    - img [ref=e271]:\n                      - generic [ref=e287]:\n                        - generic [ref=e288]: eu-west-1\n                        - generic [ref=e289]: ap-southeast-1\n                        - generic [ref=e290]: us-west-2\n                        - generic [ref=e291]: us-east-1\n                      - generic [ref=e292]:\n    20|                        - generic [ref=e293]: \"0\"\n                        - generic [ref=e294]: \"200\""
+        },
+        {
+          "kind": "browser",
+          "t": 117.4,
+          "command": "playwright-cli close && rm -f viz-find.md dash.yaml region-find.md region2-find.md",
+          "result": "Browser 'default' closed"
+        },
+        {
+          "kind": "agent",
+          "t": 120.1,
+          "text": "`demo_checkout_latency` is deployed in the `search` app, and all four panels render in Splunk Web for the last 24 hours.\n\n- **p95 latency** shows **481 ms**.\n- **5xx rate** shows **0.50%**.\n- **Latency over time** shows a line chart with a p95 scale up to about 1.25K ms.\n- **Latency by region** shows `eu-west-1`, `ap-southeast-1`, `us-west-2`, and `us-east-1`.\n\nThe dashboard is at https://splunk-cloud-demo-stack-0001.example.com/en-US/app/search/demo_checkout_latency."
+        },
+        {
+          "kind": "shell",
+          "t": 124.2,
+          "command": "splunkctl dashboard list --name demo_checkout_latency --app search -o json | jq '.[0] | {name, label, version, app}'",
+          "result": "{\n  \"name\": \"demo_checkout_latency\",\n  \"label\": \"Checkout latency\",\n  \"version\": \"2\",\n  \"app\": \"search\"\n}",
+          "by": "user"
+        }
+      ],
+      "summary": "1 shell command · 4 browser commands"
+    }
+  ]
+}

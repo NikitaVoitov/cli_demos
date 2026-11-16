@@ -1,0 +1,35 @@
+# Secrets
+.env
+.env.*
+
+# Raw captures, session stores, and capture secrets; only sanitized artifacts under scenarios/ are committed
+.captures/
+
+# Local docs, design sources, and brand material
+brand/
+design/
+docs/
+
+# Agent tooling and local workspace state
+_bmad/
+_bmad-output/
+.agents/
+skills-lock.json
+.playwright/
+.playwright-mcp/
+
+# Not part of the demo pipeline
+scripts/gemini_frame.py
+
+# Build, test, and dependency output
+node_modules/
+dist/
+playwright-report/
+test-results/
+.venv/
+__pycache__/
+*.pyc
+*.log
+
+# OS
+.DS_Store

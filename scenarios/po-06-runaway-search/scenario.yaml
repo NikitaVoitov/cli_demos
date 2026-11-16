@@ -1,0 +1,9 @@
+# Catalog metadata only: no recording exists yet.
+id: po-06-runaway-search
+useCase: PO-06
+source: metadata
+change: Gated write
+stack: co2
+client:
+  name: claude-code
+  label: Claude Code

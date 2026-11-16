@@ -1,0 +1,11 @@
+title: Triage a fired alert via the Splunk MCP Server
+summary: >
+  Codex pulls the triggering events, checks whether the page went out, and spots the throttle,
+  using only the Splunk MCP Server's read-only tools.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [SRE]
+  category: Incident Investigation & Triage
+  technologies: []
+  splunk: [Splunk MCP, Splunk Cloud]
+display: { hidden: false, featured: false, order: 20 }

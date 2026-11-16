@@ -1,0 +1,29 @@
+/* Recorded-terminal theme for asciinema-player (theme: 'demo'). Kept separate from SDS tokens.
+   Two classes, because the player's lazily loaded CSS resets every color on .ap-player. */
+.ap-player.asciinema-player-theme-demo {
+  --term-color-foreground: #d8dbe2;
+  --term-color-background: #0f1115;
+  --term-color-0: #1c1f26;
+  --term-color-1: #ff6b6b;
+  --term-color-2: #4ade80;
+  --term-color-3: #ffb347;
+  --term-color-4: #6ea8ff;
+  --term-color-5: #ff5fb0;
+  --term-color-6: #4fd6ff;
+  --term-color-7: #d8dbe2;
+  --term-color-8: #8b90a0;
+  --term-color-9: #ff8a8a;
+  --term-color-10: #86efac;
+  --term-color-11: #ffd08a;
+  --term-color-12: #9cc3ff;
+  --term-color-13: #ff8fca;
+  --term-color-14: #8be3ff;
+  --term-color-15: #ffffff;
+  border-radius: 0;
+  background-color: var(--term-color-background);
+}
+
+.ap-wrapper {
+  height: 100%;
+  background: var(--terminal-bg);
+}

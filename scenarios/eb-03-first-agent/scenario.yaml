@@ -1,0 +1,70 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+id: eb-03-first-agent
+useCase: EB-03
+source: captured
+change: Read
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor CLI
+  version: 2026.11.13-eacade1
+  model: Auto Balance
+# One pane, so the terminal gets the full stage width.
+terminal: { cols: 110, rows: 30 }
+
+capture:
+  status: captured
+  take: take-1
+  month: Nov 2026
+  sdk: 3.0.1
+  # The published cast keeps every command, output, and message, but waits where only the spinner moves
+  # are cut to 0.8 s (pipeline/post.py). The raw take ran 2 min 29 s.
+  timeCompressed: true
+  rawDuration: 148.9
+  notes: >
+    Recorded from the beats in this file in a neutral capture home with approvalMode unrestricted. The
+    agent is a splunklib.ai script running Gemini 3.5 Flash on Vertex AI against the CO2 stack's Splunk MCP
+    Server. scenarios/eb-03-first-agent/fixtures/setup.sh installs splunk-sdk 3.0.1 under a throwaway
+    $SPLUNK_HOME/etc/apps/agent_demo (locate_app requires it) and adds a sitecustomize.py that supplies the
+    MCP token, because SDK 3.0.1's GET /services/mcp_token?username=... returns HTTP 400 on this stack.
+
+cast:
+  src: artifacts/session.cast
+  duration: 68.0
+
+# Stable IDs; times are seconds on the published cast clock, reviewed by hand after each capture.
+chapters:
+  - { id: prompt, t: 0 }
+  - { id: write, t: 24 }
+  - { id: run, t: 49.2 }
+  - { id: rerun, t: 59.5 }
+
+artifacts:
+  source: artifacts/agent.py
+  transcript: artifacts/transcript.json
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/eb-03-first-agent <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  hints: [agentic-sdk]
+  # No write, so no gate: splunkctl is not part of this story.
+  fixtures:
+    setup:
+      - bash scenarios/eb-03-first-agent/fixtures/setup.sh
+    teardown:
+      - bash scenarios/eb-03-first-agent/fixtures/teardown.sh
+  beats:
+    - { comment: "Write a first Splunk agent with the Agentic SDK", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    - prompt: >
+        Write a Splunk agent with the Agentic SDK in agent.py, about 30 lines. Give the model only the
+        Splunk MCP tools splunk_get_indexes and splunk_run_query, and ask it which index holds our checkout
+        request logs and how many events it has. Return the answer as structured output. Run it.
+      mark: prompt
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    - shell: 'python3 agent.py; echo lines: $(wc -l < agent.py)'
+      waitFor: 'lines: \d+'
+      timeout: 120
+      mark: rerun
+    - { exit: true, mark: outro }

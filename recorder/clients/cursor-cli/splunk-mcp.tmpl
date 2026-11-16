@@ -1,0 +1,8 @@
+#!/bin/sh
+# Bridges the Splunk MCP Server (streamable HTTP) to stdio for Cursor CLI.
+set -a
+. "$HOME/.config/splunk-mcp.env"
+set +a
+NODE_TLS_REJECT_UNAUTHORIZED=0 exec npx -y mcp-remote@0.16.6 \
+  "https://__SPLUNK_WEB_HOST__/en-US/splunkd/__raw/services/mcp" \
+  --header "Authorization:${SPLUNK_MCP_AUTH}"

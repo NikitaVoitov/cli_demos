@@ -1,0 +1,31 @@
+# What visitors read. Editable without a new capture.
+title: Build a dashboard and check it renders
+summary: >
+  Cursor CLI finds the checkout data, drafts the SPL, and writes a Dashboard Studio definition.
+  splunkctl holds the deploy until you approve, then the agent opens Splunk Web to confirm every
+  panel renders.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [Analyst, SRE]
+  category: Content Authoring & Lifecycle
+  technologies: [Playwright]
+  splunk: [Dashboard Studio, splunkctl, Splunk MCP]
+chapters:
+  prompt: Prompt
+  draft-spl: Draft SPL
+  approval: Approval
+  deploy: Deploy
+  render-check: Render check
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: No change was made.
+  declinedBody: splunkctl never ran the deploy, so the dashboard doesn't exist in Splunk.
+browser:
+  waiting: Waiting for the agent to publish the dashboard
+  alt: >
+    Splunk Web showing the deployed Checkout latency dashboard with four rendered panels: p95
+    latency, 5xx rate, latency over time, and latency by region.
+display: { hidden: false, featured: true, order: 30 }

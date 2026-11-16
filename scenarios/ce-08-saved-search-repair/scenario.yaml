@@ -1,0 +1,74 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+id: ce-08-saved-search-repair
+useCase: CE-08
+source: captured
+change: Gated write
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor CLI
+  model: Auto Balance
+# One pane, so the terminal gets the full stage width.
+terminal: { cols: 110, rows: 30 }
+
+capture:
+  status: captured
+  take: take-1
+  month: Nov 2026
+  splunkctl: 0.1.2
+  # The published cast keeps every command, output, and message, but waits where only the spinner moves
+  # are cut to 0.8 s (pipeline/post.py). The raw take ran 3 min 57 s.
+  timeCompressed: true
+  rawDuration: 236.6
+  notes: >
+    Recorded from the beats in this file in a neutral capture home with approvalMode unrestricted, so
+    splunkctl's CONFIRMATION_REQUIRED is the only gate. scenarios/ce-08-saved-search-repair/fixtures/setup.sh
+    leaves demo_checkout_errors_by_region pointing at a deleted macro, demo_checkout_5xx.
+
+cast:
+  src: artifacts/session.cast
+  duration: 83.9
+
+# Stable IDs; times are seconds on the published cast clock, reviewed by hand after each capture.
+chapters:
+  - { id: prompt, t: 0 }
+  - { id: diagnose, t: 24 }
+  - { id: approval, t: 56.5 }
+  - { id: repair, t: 64.5 }
+  - { id: rerun, t: 67.5 }
+
+gate:
+  t: 60.5
+  command: splunkctl macro add demo_checkout_5xx --definition 'index=demo_checkout sourcetype=checkout status>=500 status<600'
+
+artifacts:
+  transcript: artifacts/transcript.json
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/ce-08-saved-search-repair <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  hints: [saved-searches]
+  gateEvidence: "requires confirmation"
+  fixtures:
+    # The saved search points at a macro that was deleted; setup recreates that state for every take.
+    setup:
+      - bash scenarios/ce-08-saved-search-repair/fixtures/setup.sh
+    teardown:
+      - bash scenarios/ce-08-saved-search-repair/fixtures/teardown.sh
+  beats:
+    - { comment: "Repair a broken saved search with Cursor CLI", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    - { shell: "splunkctl server health -o table", waitFor: green, mark: health }
+    - prompt: >
+        Our saved search demo_checkout_errors_by_region is failing. Find out why, fix the cause without
+        editing the search, and rerun it to show it works.
+      mark: prompt
+    - { wait: turn-end, timeout: 900, mark: gate-question, require: gate }
+    - { prompt: "Approved. Apply it once.", mark: approve }
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    # Macros the agent creates are private to the user, so `macro list` would not show it; `acl show` does.
+    - shell: "splunkctl acl show demo_checkout_5xx --type macro -o json | jq '.[0] | {name, owner, app, sharing}'"
+      waitFor: '"sharing"'
+      mark: verify
+    - { exit: true, mark: outro }

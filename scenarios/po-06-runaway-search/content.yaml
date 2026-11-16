@@ -1,0 +1,10 @@
+title: Contain a runaway scheduled search
+summary: >
+  Claude Code finds the scheduled search that is starving the scheduler and asks before disabling it.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [Admin, SRE]
+  category: Platform Operations & Governance
+  technologies: []
+  splunk: [splunkctl, Agent Skills, Splunk Cloud]
+display: { hidden: false, featured: false, order: 10 }
