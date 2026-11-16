@@ -8,7 +8,9 @@
 # Local docs, design sources, and brand material
 brand/
 design/
-docs/
+docs/*
+!docs/demo_pipeline_architecture.md
+!docs/headless_use_case_matrix.md
 
 # Agent tooling and local workspace state
 _bmad/
