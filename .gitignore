@@ -19,6 +19,8 @@ _bmad-output/
 skills-lock.json
 .playwright/
 .playwright-mcp/
+.wrangler/
+.dev.vars*
 
 # Not part of the demo pipeline
 scripts/gemini_frame.py
