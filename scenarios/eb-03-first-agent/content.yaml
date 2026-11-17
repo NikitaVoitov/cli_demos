@@ -9,7 +9,7 @@ taxonomy:
   personas: [App Developer, DevOps Engineer, Analyst]
   category: Extend & Build
   technologies: [Python, Gemini]
-  splunk: [Splunk MCP, Agentic SDK, Splunk Cloud]
+  splunk: [Splunk MCP, Agentic Splunk SDK, Splunk Cloud]
 chapters:
   prompt: Prompt
   write: Write the agent

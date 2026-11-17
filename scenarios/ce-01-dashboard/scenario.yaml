@@ -6,7 +6,7 @@ change: Gated write
 stack: co2
 client:
   name: cursor-cli
-  label: Cursor CLI
+  label: Cursor
   version: 2026.11.13-eacade1
   model: Auto Balance
 # Split demos give the terminal ~600 px, so capture narrower than the 110x30 default to stay legible.

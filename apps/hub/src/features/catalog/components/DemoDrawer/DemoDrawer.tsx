@@ -45,7 +45,8 @@ export function DemoDrawer() {
           <SheetDescription className="sr-only">Filter the demos, then pick one to watch.</SheetDescription>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        {/* macOS hides the scrollbar until you scroll, so the bottom fade shows that more demos follow. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pb-12 [mask-image:linear-gradient(to_bottom,black_calc(100%-48px),transparent)]">
           <CategoryPills />
           <FacetGroups />
           <ActiveFilters />

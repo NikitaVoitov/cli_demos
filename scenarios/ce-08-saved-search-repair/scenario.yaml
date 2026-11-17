@@ -6,7 +6,7 @@ change: Gated write
 stack: co2
 client:
   name: cursor-cli
-  label: Cursor CLI
+  label: Cursor
   model: Auto Balance
 # One pane, so the terminal gets the full stage width.
 terminal: { cols: 110, rows: 30 }
