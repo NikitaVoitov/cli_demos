@@ -9,7 +9,7 @@ taxonomy:
   personas: [SOC Analyst]
   category: Security Operations
   technologies: [Jira]
-  splunk: [Splunk MCP, AI Toolkit, Splunk Cloud]
+  splunk: [Splunk MCP, Splunk AI Toolkit, Splunk Cloud]
 chapters:
   prompt: The alert
   correlate: Read the queue

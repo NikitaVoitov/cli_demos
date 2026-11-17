@@ -6,7 +6,7 @@ change: Read
 stack: co2
 client:
   name: cursor-cli
-  label: Cursor CLI
+  label: Cursor
   version: 2026.11.13-eacade1
   model: Auto Balance
 # One pane, so the terminal gets the full stage width.

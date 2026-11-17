@@ -9,7 +9,7 @@ taxonomy:
   personas: [Analyst, SRE]
   category: Content Authoring & Lifecycle
   technologies: [Playwright]
-  splunk: [Dashboard Studio, splunkctl, Splunk MCP]
+  splunk: [Splunk Dashboard Studio, splunkctl, Splunk MCP]
 chapters:
   prompt: Prompt
   draft-spl: Draft SPL

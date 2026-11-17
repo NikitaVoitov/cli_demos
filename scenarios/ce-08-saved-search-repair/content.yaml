@@ -9,7 +9,7 @@ taxonomy:
   personas: [Analyst, Admin]
   category: Content Authoring & Lifecycle
   technologies: []
-  splunk: [splunkctl, Splunk MCP, Agent Skills]
+  splunk: [splunkctl, Splunk MCP, Splunk Agent Skills]
 chapters:
   prompt: Prompt
   diagnose: Diagnose

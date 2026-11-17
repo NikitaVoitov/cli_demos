@@ -6,5 +6,5 @@ taxonomy:
   personas: [Admin, SRE]
   category: Platform Operations & Governance
   technologies: []
-  splunk: [splunkctl, Agent Skills, Splunk Cloud]
+  splunk: [splunkctl, Splunk Agent Skills, Splunk Cloud]
 display: { hidden: false, featured: false, order: 10 }

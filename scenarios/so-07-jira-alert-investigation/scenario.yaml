@@ -8,7 +8,7 @@ change: Gated write
 stack: co2
 client:
   name: cursor-cli
-  label: Cursor CLI
+  label: Cursor
   model: Auto Balance
 # Split demo: the terminal shares the stage with the Jira screenshot, like CE-01.
 terminal: { cols: 88, rows: 28 }
