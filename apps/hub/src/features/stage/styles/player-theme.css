@@ -24,6 +24,19 @@
 }
 
 .ap-wrapper {
+  position: relative;
   height: 100%;
   background: var(--terminal-bg);
+}
+
+/* Captions live inside .ap-wrapper because that is the element the player makes fullscreen. */
+.ap-wrapper:fullscreen .demo-caption {
+  bottom: 72px;
+}
+
+.ap-wrapper:fullscreen .demo-caption p {
+  max-width: 70ch;
+  font-size: 22px;
+  line-height: 30px;
+  padding: 8px 16px;
 }

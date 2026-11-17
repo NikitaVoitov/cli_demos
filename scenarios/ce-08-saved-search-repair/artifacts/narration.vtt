@@ -1,0 +1,51 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:07.020
+Here, Cursor CLI repairs a saved search that stopped working on a real Splunk Cloud stack.
+
+health
+00:00:09.800 --> 00:00:13.960
+A quick splunkctl check first. The stack is green.
+
+ask
+00:00:15.400 --> 00:00:21.400
+The prompt asks Cursor to fix a failing saved search without editing the search itself.
+
+run
+00:00:24.400 --> 00:00:28.800
+Cursor runs the failing search first, to get the real error.
+
+parser
+00:00:31.100 --> 00:00:36.140
+The parser error says the search calls a macro that Splunk can't find.
+
+context
+00:00:37.500 --> 00:00:44.060
+It checks the saved search and a sample of the checkout logs, so the fix matches the actual data.
+
+count
+00:00:46.500 --> 00:00:54.020
+Then it counts 5xx errors by region on the real checkout data, to confirm what the search should return.
+
+why-stop
+00:00:56.600 --> 00:00:59.800
+Splunkctl holds this change for approval.
+
+deploy
+00:01:01.300 --> 00:01:06.900
+Approved. Cursor runs the same command once, and the macro is created.
+
+rerun
+00:01:07.500 --> 00:01:12.140
+Next, it reruns the saved search to prove the fix works.
+
+results
+00:01:12.900 --> 00:01:15.940
+All four regions return errors again.
+
+outro
+00:01:17.700 --> 00:01:22.500
+A final check confirms the macro is live, and the search works again.

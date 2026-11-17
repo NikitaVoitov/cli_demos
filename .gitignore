@@ -15,7 +15,11 @@ docs/*
 # Agent tooling and local workspace state
 _bmad/
 _bmad-output/
-.agents/
+# Local agent skills stay out, except the repo's own authoring skill that AGENTS.md points to.
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/demo-author/
 skills-lock.json
 .playwright/
 .playwright-mcp/

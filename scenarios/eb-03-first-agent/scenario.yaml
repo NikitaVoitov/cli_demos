@@ -43,6 +43,48 @@ artifacts:
   source: artifacts/agent.py
   transcript: artifacts/transcript.json
 
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/eb-03-first-agent` builds the audio and
+# captions; rerun it after changing a line, an anchor, a chapter time, or the voice (recorder/voice.yaml).
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    - id: intro
+      chapter: prompt
+      offset: 0.3
+      text: Here, Cursor CLI writes a first Splunk agent with the Agentic SDK, in about 30 lines.
+    - id: ask
+      t: 9.4
+      text: The prompt asks for a script that can only look up indexes and run a search.
+    - id: setup
+      t: 17.0
+      text: It should find which index holds the checkout logs, and how many events it has.
+    - id: skills
+      chapter: write
+      offset: 0.4
+      text: Cursor loads the Agentic SDK skill, so it follows Splunk's pattern instead of guessing.
+    - id: env
+      t: 31.2
+      text: It checks that Splunk and Gemini credentials are set, without printing the values.
+    - id: imports
+      t: 39.0
+      text: Then it confirms the SDK imports, and writes a short script.
+    - id: allowlist
+      t: 44.0
+      text: The script allowlists two Splunk MCP tools.
+    - id: run
+      chapter: run
+      text: Cursor runs the agent. Gemini looks up the checkout index on the live stack.
+    - id: answer
+      t: 55.3
+      text: That's demo_checkout, about 86,000 events.
+    - id: rerun
+      t: 60.8
+      text: Now you run the same script yourself.
+    - id: outro
+      t: 65.2
+      text: One prompt, and a working Splunk agent.
+
 # How this demo is recorded: `python -m pipeline.capture scenarios/eb-03-first-agent <take>`.
 recording:
   home: /Users/Shared/splunk-demo

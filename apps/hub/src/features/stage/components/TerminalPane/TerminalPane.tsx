@@ -1,18 +1,23 @@
 import { useRef } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import type { DemoEntry } from '@/types/content.types'
 import { useCastPlayer } from '../../hooks/useCastPlayer'
+import { CaptionOverlay, CaptionsToggle } from '../NarrationCaption/NarrationCaption'
 import '../../styles/player-theme.css'
 
 export function PaneFrame({
   title,
   aside,
+  actions,
   focused,
   className,
   children,
 }: {
   title: string
-  aside?: string
+  aside?: React.ReactNode
+  /** Controls on the right of a terminal-style header, which keeps its centered title. */
+  actions?: React.ReactNode
   focused?: boolean
   className?: string
   children: React.ReactNode
@@ -36,7 +41,8 @@ export function PaneFrame({
         <span className={cn(aside === undefined ? 'absolute inset-x-0 text-center' : 'font-semibold text-foreground')}>
           {title}
         </span>
-        {aside && <span className="ml-auto">{aside}</span>}
+        {aside && <span className="ml-auto flex min-w-0 items-center gap-2 truncate">{aside}</span>}
+        {actions && <span className="relative ml-auto flex items-center gap-2">{actions}</span>}
       </div>
       {children}
     </div>
@@ -45,20 +51,22 @@ export function PaneFrame({
 
 export function TerminalPane({ entry, focused }: { entry: DemoEntry; focused: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  useCastPlayer(entry, containerRef)
+  const wide = useMediaQuery('(min-width: 1100px)')
+  useCastPlayer(entry, containerRef, wide ? 'both' : 'width')
   const { cols, rows } = entry.scenario.terminal ?? { cols: 88, rows: 28 }
 
   return (
-    <PaneFrame title="zsh — cursor-agent" focused={focused}>
+    <PaneFrame title="zsh — cursor-agent" focused={focused} actions={<CaptionsToggle entry={entry} />}>
       <div
         ref={containerRef}
         role="region"
         aria-label={`Terminal recording of ${entry.scenario.client.label}. The Transcript tab has the same session as text.`}
         // A full-width pane follows the recording's shape (a monospace cell is about 0.6 x 1.33 em, plus the
         // control bar), so the whole screen and the controls stay inside the frame.
-        className={cn(entry.split ? 'h-[386px]' : 'max-h-[640px] w-full')}
-        style={entry.split ? undefined : { aspectRatio: `${cols * 0.6} / ${rows * 1.33 + 3}` }}
+        className={cn('w-full', wide && (entry.split ? 'h-[386px]' : 'max-h-[640px]'))}
+        style={wide && !entry.split ? { aspectRatio: `${cols * 0.6} / ${rows * 1.33 + 3}` } : undefined}
       />
+      <CaptionOverlay entry={entry} containerRef={containerRef} />
     </PaneFrame>
   )
 }

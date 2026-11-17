@@ -7,7 +7,27 @@ import { isBeyondGate } from '../utils/timeline'
 /** The player has no time-update event, so the stage polls its clock. */
 const POLL_MS = 100
 
-export function useCastPlayer(entry: DemoEntry, containerRef: RefObject<HTMLDivElement | null>) {
+/**
+ * Workers static assets answer Range requests with a full 200, and Safari can't seek audio without a 206, so the
+ * track plays from a Blob URL. Without it the demo still plays, just silently.
+ */
+async function loadNarration(url: string | undefined) {
+  if (!url) return undefined
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return URL.createObjectURL(await response.blob())
+  } catch (error) {
+    console.warn('Narration unavailable, playing without sound:', error)
+    return undefined
+  }
+}
+
+export function useCastPlayer(
+  entry: DemoEntry,
+  containerRef: RefObject<HTMLDivElement | null>,
+  fit: 'both' | 'width',
+) {
   useEffect(() => {
     const el = containerRef.current
     if (!el || !entry.castUrl) return
@@ -15,16 +35,29 @@ export function useCastPlayer(entry: DemoEntry, containerRef: RefObject<HTMLDivE
     const gateT = entry.scenario.gate?.t
     let player: Player | undefined
     let interval: number | undefined
+    let audioUrl: string | undefined
     let disposed = false
 
     store().reset()
 
-    Promise.all([import('asciinema-player'), import('asciinema-player/dist/bundle/asciinema-player.css')]).then(
-      ([AsciinemaPlayer]) => {
-        if (disposed) return
+    Promise.all([
+      import('asciinema-player'),
+      import('asciinema-player/dist/bundle/asciinema-player.css'),
+      loadNarration(entry.narrationUrl),
+    ]).then(
+      ([AsciinemaPlayer, , narration]) => {
+        if (disposed) {
+          if (narration) URL.revokeObjectURL(narration)
+          return
+        }
+        audioUrl = narration
         player = AsciinemaPlayer.create({ url: entry.castUrl! }, el, {
-          // Fit inside the pane in both directions so the bottom rows and the control bar are never clipped.
-          fit: 'both',
+          // The player keeps the audio on its own clock through play, pause, seek, and the gate pause, and adds a
+          // speaker button to its control bar. Narrated demos never autoplay, so the visitor's Play click allows sound.
+          audioUrl,
+          // 'both' keeps the bottom rows and the control bar inside a fixed-height pane; 'width' lets a narrow
+          // pane take the recording's own height instead of leaving empty space under the controls.
+          fit,
           controls: true,
           preload: true,
           theme: 'demo',
@@ -44,6 +77,11 @@ export function useCastPlayer(entry: DemoEntry, containerRef: RefObject<HTMLDivE
           if (store().status === 'playing') store().setStatus('paused')
         })
         p.addEventListener('ended', () => store().setStatus('ended'))
+        // The published types omit `muted`; the 3.18 player fires it with a boolean when the speaker button is used.
+        ;(p as Player & { addEventListener(event: 'muted', handler: (muted: boolean) => void): void }).addEventListener(
+          'muted',
+          (muted) => store().setMuted(Boolean(muted)),
+        )
 
         store().setController({
           play: () => void p.play(),
@@ -81,7 +119,8 @@ export function useCastPlayer(entry: DemoEntry, containerRef: RefObject<HTMLDivE
       disposed = true
       window.clearInterval(interval)
       player?.dispose()
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
       store().setController(null)
     }
-  }, [entry, containerRef])
+  }, [entry, containerRef, fit])
 }

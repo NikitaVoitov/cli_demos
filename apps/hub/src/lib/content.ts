@@ -1,15 +1,55 @@
 import { CATEGORIES, FACET_GROUPS, type FacetGroupId } from '@/constants/taxonomy'
-import type { Content, DemoEntry, Scenario, Transcript } from '@/types/content.types'
+import type { Caption, Content, DemoEntry, Scenario, Transcript } from '@/types/content.types'
 
 const scenarios = import.meta.glob<Scenario>('@scenarios/*/scenario.yaml', { eager: true, import: 'default' })
 const contents = import.meta.glob<Content>('@scenarios/*/content.yaml', { eager: true, import: 'default' })
 const howItWorks = import.meta.glob<string>('@scenarios/*/how-it-works.md', { eager: true, import: 'default' })
 const transcripts = import.meta.glob<Transcript>('@scenarios/*/artifacts/transcript.json', { eager: true, import: 'default' })
 const rawJson = import.meta.glob<string>('@scenarios/*/artifacts/*.{json,py}', { eager: true, query: '?raw', import: 'default' })
-const assetUrls = import.meta.glob<string>('@scenarios/*/artifacts/*.{cast,png}', { eager: true, query: '?url', import: 'default' })
+const assetUrls = import.meta.glob<string>('@scenarios/*/artifacts/*.{cast,png,mp3}', { eager: true, query: '?url', import: 'default' })
+const captionFiles = import.meta.glob<string>('@scenarios/*/artifacts/*.vtt', { eager: true, query: '?raw', import: 'default' })
 
 function dirOf(path: string) {
   return path.slice(0, path.lastIndexOf('/'))
+}
+
+function seconds(stamp: string) {
+  const [h, m, s] = stamp.split(':')
+  return Number(h) * 3600 + Number(m) * 60 + Number(s)
+}
+
+/** Reads the WebVTT that pipeline/narrate.py writes: one cue per line, the cue id is the line id. */
+function parseCaptions(vtt: string): Caption[] {
+  return vtt
+    .split(/\n{2,}/)
+    .map((block) => block.trim().split('\n'))
+    .filter((rows) => rows.length >= 3 && rows[1].includes('-->'))
+    .map(([id, timing, ...text]) => {
+      const [start, end] = timing.split('-->').map((stamp) => seconds(stamp.trim()))
+      return { id, start, end, text: text.join(' ') }
+    })
+}
+
+/** Narration audio is generated from scenario.yaml, so a line, anchor, or chapter edit without a rerun is stale. */
+function loadCaptions(scenario: Scenario, vtt: string | undefined): Caption[] {
+  const { narration } = scenario
+  const rerun = `run \`python -m pipeline.narrate scenarios/${scenario.id}\``
+  if (!narration) return []
+  if (!vtt) throw new Error(`${scenario.id}: ${narration.captions} is missing; ${rerun}`)
+  const anchors: Record<string, number> = Object.fromEntries((scenario.chapters ?? []).map((c) => [c.id, c.t]))
+  if (scenario.gate) anchors.gate = scenario.gate.t
+  const captions = parseCaptions(vtt)
+  const byId = new Map(captions.map((caption) => [caption.id, caption]))
+  for (const line of narration.lines) {
+    const caption = byId.get(line.id)
+    const start = line.t ?? anchors[line.chapter ?? ''] + (line.offset ?? 0)
+    const text = line.text.split(/\s+/).join(' ').trim()
+    if (!caption || caption.text !== text || Math.abs(caption.start - start) > 0.02) {
+      throw new Error(`${scenario.id}: narration line "${line.id}" doesn't match ${narration.captions}; ${rerun}`)
+    }
+  }
+  if (captions.length !== narration.lines.length) throw new Error(`${scenario.id}: ${narration.captions} has extra cues; ${rerun}`)
+  return captions
 }
 
 function assertVocabulary(id: string, group: string, values: string[], allowed: readonly string[]) {
@@ -55,6 +95,8 @@ function buildEntry(scenarioPath: string): DemoEntry {
     split: Boolean(scenario.browser),
     chapters,
     castUrl: assetUrls[artifact(scenario.cast?.src) ?? ''],
+    narrationUrl: assetUrls[artifact(scenario.narration?.audio) ?? ''],
+    captions: loadCaptions(scenario, captionFiles[artifact(scenario.narration?.captions) ?? '']),
     screenshotUrl: assetUrls[artifact(scenario.browser?.screenshot) ?? ''],
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],

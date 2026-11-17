@@ -34,9 +34,11 @@ export function TranscriptPanel({ entry }: { entry: DemoEntry }) {
                 >
                   {i + 1}
                 </span>
-                <span className="text-[14px] font-semibold">{meta?.label ?? chapter.id}</span>
-                <span className="truncate text-[12px] font-normal text-subtle-foreground">{chapter.summary}</span>
-                <span className="ml-auto font-mono text-[12px] font-normal text-subtle-foreground">
+                <span className="shrink-0 text-[14px] font-semibold whitespace-nowrap">{meta?.label ?? chapter.id}</span>
+                <span className="min-w-0 flex-1 truncate text-[12px] font-normal text-subtle-foreground max-sm:hidden">
+                  {chapter.summary}
+                </span>
+                <span className="ml-auto shrink-0 font-mono text-[12px] font-normal text-subtle-foreground">
                   {formatClock(meta?.t ?? 0)}
                 </span>
               </AccordionTrigger>

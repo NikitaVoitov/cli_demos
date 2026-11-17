@@ -1,0 +1,47 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:07.420
+Here, Cursor CLI writes a first Splunk agent with the Agentic SDK, in about 30 lines.
+
+ask
+00:00:09.400 --> 00:00:14.600
+The prompt asks for a script that can only look up indexes and run a search.
+
+setup
+00:00:17.000 --> 00:00:22.360
+It should find which index holds the checkout logs, and how many events it has.
+
+skills
+00:00:24.400 --> 00:00:30.720
+Cursor loads the Agentic SDK skill, so it follows Splunk's pattern instead of guessing.
+
+env
+00:00:31.200 --> 00:00:36.480
+It checks that Splunk and Gemini credentials are set, without printing the values.
+
+imports
+00:00:39.000 --> 00:00:43.640
+Then it confirms the SDK imports, and writes a short script.
+
+allowlist
+00:00:44.000 --> 00:00:48.000
+The script allowlists two Splunk MCP tools.
+
+run
+00:00:49.200 --> 00:00:54.960
+Cursor runs the agent. Gemini looks up the checkout index on the live stack.
+
+answer
+00:00:55.300 --> 00:01:00.420
+That's demo_checkout, about 86,000 events.
+
+rerun
+00:01:00.800 --> 00:01:03.680
+Now you run the same script yourself.
+
+outro
+00:01:05.200 --> 00:01:08.000
+One prompt, and a working Splunk agent.

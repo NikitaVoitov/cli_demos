@@ -55,6 +55,70 @@ artifacts:
   dashboard: artifacts/checkout_latency.json
   transcript: artifacts/transcript.json
 
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/ce-01-dashboard` builds the audio and
+# captions; rerun it after changing a line, an anchor, a chapter time, or the voice (recorder/voice.yaml).
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    - id: intro
+      chapter: prompt
+      offset: 0.3
+      text: Here, Cursor CLI builds a Splunk dashboard from one plain-language prompt on a real Splunk Cloud stack.
+    - id: health
+      t: 9.4
+      text: A quick splunkctl check first. The stack is green.
+    - id: ask
+      t: 15.4
+      text: >
+        The prompt asks for four panels, from p95 latency to latency by region, then a deploy and a check that
+        every panel renders.
+    - id: plan
+      t: 26.1
+      text: Now Cursor plans the work.
+    - id: skills
+      chapter: draft-spl
+      offset: 2.4
+      text: Cursor loads Agent Skills for Dashboard Studio and splunkctl, so it follows Splunk's conventions instead of guessing.
+    - id: discover
+      t: 38.8
+      text: Through the Splunk MCP Server, it finds the checkout index, samples the fields, and tests each search.
+    - id: numbers
+      t: 48.6
+      text: p95 latency is about 480 milliseconds, and half a percent of requests fail with a server error.
+    - id: real-data
+      t: 57.2
+      text: That's the difference from a template. Every panel starts from a search that already returned real data.
+    - id: existing
+      t: 65.3
+      text: It also lists the dashboards already in Splunk, to match how they're stored before writing its own.
+    - id: write
+      t: 73.6
+      text: With the data confirmed, it writes the Dashboard Studio definition.
+    - id: gate
+      t: 79.2
+      text: Deploying is a write, so splunkctl stops it and waits for your approval.
+    - id: deploy
+      chapter: gate
+      offset: 0.8
+      text: Approved. Cursor reruns the same command with your go-ahead, and the dashboard is created.
+    - id: render
+      chapter: render-check
+      offset: 0.4
+      text: Next, it opens the dashboard in Splunk Web with Playwright and checks all four panels.
+    - id: read-page
+      t: 103.6
+      text: Instead of eyeballing a screenshot, it reads the live page and checks each panel for real values, not an empty chart.
+    - id: regions
+      t: 113.3
+      text: Region names in the bar chart prove the last panel has data too.
+    - id: result
+      t: 120.3
+      text: Every panel renders, with the numbers it found in the data.
+    - id: outro
+      t: 125.7
+      text: A final shell check confirms the dashboard is live. One prompt, one approval, and a verified dashboard.
+
 # How this demo is recorded. `python -m pipeline.capture <scenario> <take>` runs it;
 # the same runner and beat types serve every demo, so CE-08 adds a block like this and no new script.
 recording:

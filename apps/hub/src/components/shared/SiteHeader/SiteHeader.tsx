@@ -4,7 +4,7 @@ import { APP_CONFIG } from '@/config/app.config'
 
 export function SiteHeader() {
   return (
-    <header className="flex h-16 items-center gap-4">
+    <header className="flex h-16 items-center gap-3 sm:gap-4">
       <a href={APP_CONFIG.splunkHomeUrl} aria-label="Splunk homepage" className="shrink-0 rounded-sm">
         <img src={logoUrl} alt="" width={88} height={32} className="h-8 w-auto" />
       </a>
@@ -15,9 +15,11 @@ export function SiteHeader() {
         Skip to main content
       </a>
       <span aria-hidden className="h-6 w-px bg-border" />
-      <span className="text-body-sm text-muted-foreground">{APP_CONFIG.productName}</span>
+      <span className="min-w-0 text-[13px] leading-tight text-muted-foreground sm:text-body-sm">
+        {APP_CONFIG.productName}
+      </span>
       <span className="flex-1" />
-      <Button asChild variant="outline" size="pill">
+      <Button asChild variant="outline" size="pill" className="shrink-0">
         <a href={APP_CONFIG.getSplunkctlUrl}>Get splunkctl</a>
       </Button>
     </header>
