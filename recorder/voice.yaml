@@ -16,9 +16,12 @@ maxSilence: 3.0
 
 # Written form (captions) -> spoken form (sent to the voice). Whole words, case-sensitive.
 # Add a term when a speech-to-text check of the clip comes back wrong; captions keep the written form.
-# eleven_v4 already reads MCP, SDK, and JSON correctly. CLI is mapped because the model draws it out.
+# eleven_v4 already reads SDK and JSON correctly. CLI and MCP are mapped because the model draws them out;
+# SOC is a word ("sock"), not letters. eleven_v4 ignores `speed`, so only spelling changes the pace.
 pronounce:
   splunkctl: splunk control
   p95: P ninety-five
   5xx: five-x-x
   CLI: see-ell-eye
+  MCP: em-see-pee
+  SOC: sock

@@ -1,0 +1,43 @@
+#!/bin/bash
+# acli in the capture home. Jira writes stop the way splunkctl's do: run without --yes and the change is held
+# until the same command is rerun with --yes. Only work-item commands on the demo site are allowed.
+REAL=/opt/homebrew/bin/acli
+SITE="__JIRA_SITE__"
+
+args=()
+yes=0
+for a in "$@"; do
+  if [ "$a" = "--yes" ]; then yes=1; else args+=("$a"); fi
+done
+
+refuse() { echo "Error: $1" >&2; exit 2; }
+
+case "${args[0]} ${args[1]} ${args[2]}" in
+  "jira workitem "*) ;;
+  "jira project view"|"jira project list") ;;
+  *) refuse "only 'acli jira workitem' and 'acli jira project view' are available here" ;;
+esac
+
+"$REAL" jira auth status 2>/dev/null | grep -q "Site: $SITE" || refuse "acli is not signed in to the demo site"
+
+[ "${args[1]}" = "project" ] && exec "$REAL" "${args[@]}"
+
+verb="${args[2]}"
+case "$verb" in
+  comment|link|attachment|watcher) verb="$verb ${args[3]}" ;;
+esac
+case "$verb" in
+  view|search|list-watchers|"comment list"|"link list"|"link type"|"attachment list"|"watcher list")
+    exec "$REAL" "${args[@]}" ;;
+  delete|archive|unarchive)
+    refuse "deleting or archiving work items is not available here" ;;
+esac
+
+if [ "$yes" -ne 1 ]; then
+  cat >&2 <<EOF
+CONFIRMATION_REQUIRED: acli jira workitem $verb requires confirmation.
+Rerun the same command with --yes after approval.
+EOF
+  exit 3
+fi
+exec "$REAL" "${args[@]}"

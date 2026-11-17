@@ -29,7 +29,17 @@ export interface Scenario {
   cast?: { src: string; duration: number }
   chapters?: ScenarioChapter[]
   gate?: { t: number; command: string }
-  browser?: { mode: 'agent'; showAt: string; object: string; screenshot: string }
+  browser?: {
+    mode: 'agent'
+    showAt: string
+    object: string
+    screenshot: string
+    /**
+     * Screenshots shown before the result, each over its own stretch of the cast, such as the source data and an
+     * intermediate result. `from` and `until` are chapter IDs or seconds on the published clock; `from` defaults to 0.
+     */
+    steps?: { id: string; screenshot: string; object: string; from?: string | number; until: string | number }[]
+  }
   artifacts?: { dashboard?: string; source?: string; transcript?: string }
   narration?: Narration
 }
@@ -56,9 +66,16 @@ export interface Content {
   taxonomy: { category: string; personas?: string[]; technologies: string[]; splunk: string[] }
   chapters?: Record<string, string>
   gate?: { title: string; body: string; approve: string; decline: string; declinedTitle: string; declinedBody: string }
-  browser?: { waiting: string; alt: string }
+  /** `title` names the app in the screenshot pane; it defaults to Splunk Web. */
+  browser?: {
+    waiting: string
+    alt: string
+    title?: string
+    /** Pane title and alt text for each scenario `browser.steps` entry, by its ID. */
+    steps?: Record<string, { title?: string; alt: string }>
+  }
   /** Labels for the architecture diagram; the browser boxes appear only for demos with a browser pane. */
-  flow?: { mcp?: string; kind?: 'sdk' }
+  flow?: { mcp?: string; kind?: 'sdk' | 'jira' }
   display: { hidden: boolean; featured: boolean; order: number }
 }
 
@@ -100,6 +117,8 @@ export interface DemoEntry {
   narrationUrl?: string
   captions?: Caption[]
   screenshotUrl?: string
+  /** Resolved `browser.steps`: when each one shows on the published clock, and its image. */
+  browserSteps?: { id: string; url: string; object: string; from: number; until: number; title?: string; alt: string }[]
   dashboardJson?: string
   /** The script the agent wrote, for demos whose output is code rather than a dashboard. */
   sourceCode?: string

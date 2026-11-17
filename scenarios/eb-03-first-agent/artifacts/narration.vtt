@@ -27,7 +27,7 @@ imports
 Then it confirms the SDK imports, and writes a short script.
 
 allowlist
-00:00:44.000 --> 00:00:48.000
+00:00:44.000 --> 00:00:47.840
 The script allowlists two Splunk MCP tools.
 
 run

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Bridges the Atlassian Rovo MCP server to stdio for Cursor CLI. The OAuth token lives in ~/.mcp-auth,
+# signed in once to the personal demo site with `python3 scripts/ce01_capture.py atlassian-login`.
+exec npx -y mcp-remote@0.16.6 https://mcp.atlassian.com/v1/mcp

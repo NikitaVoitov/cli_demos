@@ -4,36 +4,44 @@ import { PaneFrame } from '../TerminalPane/TerminalPane'
 interface SplunkWebPaneProps {
   entry: DemoEntry
   published: boolean
+  /** A `browser.steps` screenshot to show instead of the waiting state, while its stretch of the cast plays. */
+  step?: NonNullable<DemoEntry['browserSteps']>[number]
   declined: boolean
 }
 
-export function SplunkWebPane({ entry, published, declined }: SplunkWebPaneProps) {
+export function SplunkWebPane({ entry, published, step, declined }: SplunkWebPaneProps) {
   const browser = entry.scenario.browser!
   const copy = entry.content.browser
-  const showShot = published && entry.screenshotUrl
+  const resultApp = copy?.title ?? 'Splunk Web'
+  const shot = published && entry.screenshotUrl
+    ? { src: entry.screenshotUrl, alt: copy?.alt ?? `The result in ${resultApp}`, object: browser.object, app: resultApp }
+    : step
+      ? { src: step.url, alt: step.alt, object: step.object, app: step.title ?? resultApp }
+      : undefined
+  const app = shot?.app ?? resultApp
 
   return (
     <PaneFrame
-      title="Splunk Web"
+      title={app}
       aside={
         <>
-          {showShot && (
+          {shot && (
             <span className="shrink-0 rounded-sm bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
-              Now: Splunk Web
+              Now: {app}
             </span>
           )}
-          <span className="truncate">{browser.object}</span>
+          <span className="truncate">{shot?.object ?? browser.object}</span>
         </>
       }
       focused={published}
       className="min-[1100px]:h-[414px]"
     >
       <div className="relative flex-1 overflow-hidden">
-        {showShot ? (
+        {shot ? (
           // A stacked pane shows the whole screenshot; beside the terminal it fills the pane and crops the bottom.
           <img
-            src={entry.screenshotUrl}
-            alt={copy?.alt ?? 'The deployed dashboard in Splunk Web'}
+            src={shot.src}
+            alt={shot.alt}
             className="block h-auto w-full min-[1100px]:size-full min-[1100px]:object-cover min-[1100px]:object-top"
           />
         ) : (

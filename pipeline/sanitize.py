@@ -1,4 +1,4 @@
-"""Same-length replacements for stack hostnames, instance IDs, home paths, and private IPs (§6.3).
+"""Same-length replacements for stack hostnames, instance IDs, home paths, private IPs, and Jira identities (§6.3).
 
 Replacements keep the original length so TUI boxes and columns in a cast stay aligned.
 """
@@ -23,6 +23,24 @@ def find_replacements(text: str) -> dict[str, str]:
         reps[home] = "/Users/" + _same_length(home[len("/Users/"):], "demo")
     for ip in set(re.findall(r"\b(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", text)):
         reps[ip] = re.sub(r"\d", "0", ip)
+    for site in set(re.findall(r"[a-z0-9-]+\.atlassian\.net", text)):
+        reps[site] = _same_length(site[: -len(".example.net")], "jirademosite") + ".example.net"
+        # The site's bare name also appears on its own, such as the `name` in getAccessibleAtlassianResources.
+        name = site.split(".")[0]
+        if len(name) >= 5:
+            reps[name] = _same_length(name, "jirademosite")
+    for email in set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[a-z]{2,}", text)):
+        if not re.search(r"@example\.(?:com|net|org)$", email):
+            local = max(len(email) - len("@example.com"), 1)
+            reps[email] = _same_length("x" * local, "analyst") + "@example.com"
+    # Atlassian account IDs (new and legacy forms) and the site's cloudId.
+    for account in set(re.findall(r"\b\d{6}:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b|\b[0-9a-f]{24}\b", text)):
+        reps[account] = re.sub(r"[0-9a-f]", "0", account)
+    for cloud in set(re.findall(r"cloudId\W{1,6}([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})", text)):
+        reps[cloud] = re.sub(r"[0-9a-f]", "0", cloud)
+    for name in set(re.findall(r'(?:\\?"displayName\\?": \\?")([^\\"]+)(?:\\?")', text)):
+        if name not in {"Analyst", "admin"}:
+            reps[name] = _same_length(name, "Analyst")
     return reps
 
 
@@ -33,7 +51,8 @@ def apply(text: str, reps: dict[str, str]) -> str:
     return text
 
 
-LEFTOVER = re.compile(r"splunkcloud\.com|fedsearch|/Users/(?!Shared|demo)\w+|\b(?:sh|idx)-i-[1-9a-f]")
+LEFTOVER = re.compile(r"splunkcloud\.com|fedsearch|/Users/(?!Shared|demo)\w+|\b(?:sh|idx)-i-[1-9a-f]"
+                      r"|\.atlassian\.net|@(?:gmail|splunk|cisco)\.com")
 
 
 def leftovers(text: str) -> list[str]:

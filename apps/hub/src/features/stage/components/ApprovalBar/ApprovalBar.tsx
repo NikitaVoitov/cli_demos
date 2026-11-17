@@ -27,7 +27,7 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
               {copy.title}
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">
-              splunkctl blocked{' '}
+              {gate.command.split(' ')[0]} blocked{' '}
               <code className="rounded-sm border border-border-strong bg-terminal px-1.5 py-px font-mono text-[12px] text-foreground [overflow-wrap:anywhere]">
                 {gate.command}
               </code>{' '}
