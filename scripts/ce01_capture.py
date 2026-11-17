@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """CE-01 capture environment for Cursor CLI.
 
-  python3 scripts/ce01_capture.py setup   # build the neutral capture HOME (idempotent)
-  python3 scripts/ce01_capture.py login   # one-time Cursor CLI login inside the capture HOME
-  python3 scripts/ce01_capture.py shell   # open the pinned demo shell (dry runs, manual checks)
+  python3 scripts/ce01_capture.py setup            # build the neutral capture HOME (idempotent)
+  python3 scripts/ce01_capture.py jira             # after setup: add Jira (acli + Atlassian MCP) for SO-07
+  python3 scripts/ce01_capture.py login            # one-time Cursor CLI login inside the capture HOME
+  python3 scripts/ce01_capture.py atlassian-login  # one-time Atlassian MCP OAuth, as the demo-site account
+  python3 scripts/ce01_capture.py acli-login       # one-time acli login to the demo site with the .env token
+  python3 scripts/ce01_capture.py shell            # open the pinned demo shell (dry runs, manual checks)
 
 The capture HOME lives at /Users/Shared/splunk-demo so paths render as ~/payments and no
 username appears. Secrets are copied in with 0600 permissions and never printed.
@@ -55,6 +58,14 @@ PERMISSIONS = [
     "Mcp(splunk:*)",
 ]
 
+ATLASSIAN_MCP = "https://mcp.atlassian.com/v1/mcp"
+JIRA_READS = ["atlassianUserInfo", "getAccessibleAtlassianResources", "searchJiraIssuesUsingJql", "getJiraIssue",
+              "listJiraIssueComments", "discover", "executeRead"]
+# Jira writes go through the gated acli wrapper, so the MCP's own write tools are denied.
+JIRA_WRITES = ["createJiraIssue", "editJiraIssue", "addOrEditJiraIssueComment", "transitionJiraIssue",
+               "executeWrite", "executeDestructive"]
+JIRA_SHIMS = ("acli", "atlassian-mcp")
+
 
 def private_copy(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +104,9 @@ def setup(model: str = "") -> None:
     private_copy(REAL_HOME / ".cursor/mcp-secrets/splunk-mcp.env", h / ".config/splunk-mcp.env")
     private_copy(SECRETS / "web-state.json", h / ".config/splunk-web-state.json")
 
+    # Jira is opt-in per demo (`ce01_capture.py jira`); a plain setup leaves no trace of it.
+    for name in JIRA_SHIMS:
+        (h / "bin" / name).unlink(missing_ok=True)
     render(CLIENT / "mcp.json.tmpl", h / ".cursor/mcp.json")
     render(CLIENT / "splunk-mcp.tmpl", h / "bin/splunk-mcp")
     (h / "bin/splunk-mcp").chmod(0o700)
@@ -150,6 +164,68 @@ def setup(model: str = "") -> None:
     print(f"capture home ready: {h} (model {cfg['model']['modelId']})")
 
 
+def dotenv(key: str) -> str:
+    for line in (ROOT / ".env").read_text().splitlines():
+        if line.startswith(f"{key}="):
+            return line.split("=", 1)[1].strip().strip('"').strip("'")
+    raise SystemExit(f"{key} missing from .env")
+
+
+def jira_site() -> str:
+    site = dotenv("JIRA_SITE").removeprefix("https://").rstrip("/")
+    if site == "splunk.atlassian.net" or not site.endswith(".atlassian.net"):
+        raise SystemExit("JIRA_SITE must be the personal demo site, not a corporate one")
+    return site
+
+
+def jira() -> None:
+    """Add the gated acli wrapper and the Atlassian MCP server to a capture home that setup just built."""
+    h = CAPTURE_HOME
+    site = jira_site()
+    acli = h / "bin/acli"
+    acli.write_text((CLIENT / "acli.tmpl").read_text().replace("__JIRA_SITE__", site))
+    acli.chmod(0o755)
+    render(CLIENT / "atlassian-mcp.tmpl", h / "bin/atlassian-mcp")
+    (h / "bin/atlassian-mcp").chmod(0o700)
+
+    mcp_path = h / ".cursor/mcp.json"
+    mcp = json.loads(mcp_path.read_text())
+    mcp["mcpServers"]["atlassian"] = {"command": str(h / "bin/atlassian-mcp")}
+    mcp_path.write_text(json.dumps(mcp, indent=2))
+
+    cfg_path = h / ".cursor/cli-config.json"
+    cfg = json.loads(cfg_path.read_text())
+    allow = cfg["permissions"]["allow"]
+    allow += [p for p in ["Shell(acli)", *(f"Mcp(atlassian:{t})" for t in JIRA_READS)] if p not in allow]
+    cfg["permissions"]["deny"] = [f"Mcp(atlassian:{t})" for t in JIRA_WRITES]
+    cfg_path.write_text(json.dumps(cfg, indent=2))
+    cfg_path.chmod(0o600)
+
+    status = subprocess.run(["/opt/homebrew/bin/acli", "jira", "auth", "status"], env=demo_env(),
+                            capture_output=True, text=True).stdout
+    if f"Site: {site}" not in status:
+        raise SystemExit("acli in the capture home is not signed in to the demo site; run acli-login")
+    if not any((h / ".mcp-auth").rglob("*tokens.json")):
+        raise SystemExit("no Atlassian MCP token in the capture home; run atlassian-login")
+    print(f"jira ready in {h}: acli wrapper, Atlassian MCP, MCP write tools denied")
+
+
+def atlassian_login() -> None:
+    sys.exit(subprocess.call(["npx", "-y", "-p", "mcp-remote@0.16.6", "mcp-remote-client", ATLASSIAN_MCP],
+                             env=demo_env(), cwd=CAPTURE_HOME))
+
+
+def acli_login() -> None:
+    # acli keeps credentials in the login keychain, which the capture home shares with the real one, so this
+    # replaces the real home's entry for the same site and email. Sign the real home in with the same token.
+    site = jira_site()
+    proc = subprocess.run(["/opt/homebrew/bin/acli", "jira", "auth", "login", "--site", site,
+                           "--email", dotenv("JIRA_EMAIL"), "--token"],
+                          input=dotenv("JIRA_TOKEN"), text=True, env=demo_env(), capture_output=True)
+    print("acli signed in to the demo site" if proc.returncode == 0 else f"acli login failed: {proc.stderr.strip()[:200]}")
+    sys.exit(proc.returncode)
+
+
 def demo_env() -> dict:
     keep = {k: os.environ[k] for k in ("USER", "LOGNAME", "LANG", "TMPDIR") if k in os.environ}
     return {
@@ -170,8 +246,14 @@ def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "setup":
         setup(os.environ.get("MODEL", ""))
+    elif cmd == "jira":
+        jira()
     elif cmd == "login":
         sys.exit(subprocess.call(["agent", "login"], env=demo_env(), cwd=CAPTURE_HOME / "payments"))
+    elif cmd == "atlassian-login":
+        atlassian_login()
+    elif cmd == "acli-login":
+        acli_login()
     elif cmd == "shell":
         os.execve("/bin/zsh", ["zsh", "-i"], demo_env())
     else:

@@ -9,7 +9,7 @@ function GateAnnouncer() {
   const status = usePlaybackStore((state) => state.status)
   const message =
     status === 'gate'
-      ? 'Playback paused. splunkctl is waiting for your approval.'
+      ? 'Playback paused. The change is waiting for your approval.'
       : status === 'declined'
         ? 'Declined. No change was made.'
         : status === 'ended'
@@ -41,8 +41,10 @@ export function Stage({ entry }: { entry: DemoEntry }) {
     )
   }
 
-  const showAt = entry.chapters.find((chapter) => chapter.id === entry.scenario.browser?.showAt)?.t ?? Infinity
+  const chapterTime = (id?: string) => entry.chapters.find((chapter) => chapter.id === id)?.t
+  const showAt = chapterTime(entry.scenario.browser?.showAt) ?? Infinity
   const published = decision === 'approved' && (time >= showAt || status === 'ended')
+  const step = published || status === 'ended' ? undefined : entry.browserSteps?.find((s) => time >= s.from && time < s.until)
 
   return (
     <>
@@ -50,7 +52,7 @@ export function Stage({ entry }: { entry: DemoEntry }) {
       {entry.split ? (
         <div className="grid gap-3 min-[1100px]:grid-cols-2">
           <TerminalPane entry={entry} focused={!published} />
-          <SplunkWebPane entry={entry} published={published} declined={decision === 'declined'} />
+          <SplunkWebPane entry={entry} published={published} step={step} declined={decision === 'declined'} />
         </div>
       ) : (
         <TerminalPane entry={entry} focused={false} />

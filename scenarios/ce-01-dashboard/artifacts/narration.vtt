@@ -23,7 +23,7 @@ skills
 Cursor loads Agent Skills for Dashboard Studio and splunkctl, so it follows Splunk's conventions instead of guessing.
 
 discover
-00:00:38.800 --> 00:00:46.400
+00:00:38.800 --> 00:00:46.320
 Through the Splunk MCP Server, it finds the checkout index, samples the fields, and tests each search.
 
 numbers

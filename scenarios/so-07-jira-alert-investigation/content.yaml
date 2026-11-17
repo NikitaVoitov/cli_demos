@@ -1,0 +1,45 @@
+# What visitors read. Editable without a new capture.
+title: Investigate a Jira alert with Splunk ML
+summary: >
+  A spike in declined card payments lands in the SOC queue next to five other alerts. Cursor CLI reads them
+  through the Atlassian MCP, runs the team's AI Toolkit models through Splunk MCP, and traces three alerts to
+  the same three attacker IPs. The follow-up ticket to block them waits for your approval.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [SOC Analyst]
+  category: Security Operations
+  technologies: [Jira]
+  splunk: [Splunk MCP, AI Toolkit, Splunk Cloud]
+chapters:
+  prompt: The alert
+  correlate: Read the queue
+  analyze: Apply ML
+  confirm: Confirm IPs
+  approval: Approval
+  ticket: Follow-up ticket
+  verify: Jira check
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: No ticket was created.
+  declinedBody: The Atlassian CLI never ran the create, so Jira has no follow-up ticket.
+browser:
+  title: Jira
+  waiting: Waiting for the agent to open the follow-up ticket
+  steps:
+    alerts:
+      alt: >
+        Jira list of the six open alerts in the SOC project, from the high-priority spike in declined card
+        payments and brute-force logins down to settlement returns and an offline printer.
+    ml:
+      title: Splunk Web
+      alt: >
+        Splunk Web running the demo_ip_decline_outliers saved search, whose SPL applies the AI Toolkit model
+        demo_ip_decline_model, with three flagged source IPs of about 200 declined charges each.
+  alt: >
+    Jira showing the new follow-up ticket in the SOC project, asking to block the three attacker IP addresses,
+    with the evidence the agent found in Splunk.
+flow: { kind: jira, mcp: "searches, saved ML models" }
+display: { hidden: false, featured: false, order: 60 }

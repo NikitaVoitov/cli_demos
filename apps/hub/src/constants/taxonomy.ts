@@ -30,8 +30,8 @@ export const PERSONAS: Record<string, string> = {
 export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }[] = [
   { id: 'persona', label: 'Persona', values: Object.keys(PERSONAS) },
   { id: 'agent', label: 'Agent', values: ['Claude Code', 'Codex', 'Cursor CLI', 'Gemini CLI'] },
-  { id: 'splunk', label: 'Splunk', values: ['splunkctl', 'Splunk MCP', 'Agent Skills', 'Agentic SDK', 'Dashboard Studio', 'Splunk Cloud'] },
-  { id: 'technologies', label: 'Technologies', values: ['Python', 'Gemini', 'Playwright', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack'] },
+  { id: 'splunk', label: 'Splunk', values: ['splunkctl', 'Splunk MCP', 'Agent Skills', 'Agentic SDK', 'Dashboard Studio', 'AI Toolkit', 'Splunk Cloud'] },
+  { id: 'technologies', label: 'Technologies', values: ['Python', 'Gemini', 'Playwright', 'Jira', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack'] },
 ]
 
 /** Decorative dot color per agent client; the label always carries the meaning. */

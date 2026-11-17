@@ -98,6 +98,20 @@ function buildEntry(scenarioPath: string): DemoEntry {
     narrationUrl: assetUrls[artifact(scenario.narration?.audio) ?? ''],
     captions: loadCaptions(scenario, captionFiles[artifact(scenario.narration?.captions) ?? '']),
     screenshotUrl: assetUrls[artifact(scenario.browser?.screenshot) ?? ''],
+    browserSteps: (scenario.browser?.steps ?? []).map((step) => {
+      const at = (mark: string | number | undefined, fallback: number) => {
+        if (mark === undefined) return fallback
+        if (typeof mark === 'number') return mark
+        const chapter = chapters.find((c) => c.id === mark)
+        if (!chapter) throw new Error(`${scenario.id}: browser step "${step.id}" points at unknown chapter "${mark}"`)
+        return chapter.t
+      }
+      const url = assetUrls[artifact(step.screenshot) ?? '']
+      const copy = content.browser?.steps?.[step.id]
+      if (!url) throw new Error(`${scenario.id}: browser step "${step.id}" screenshot ${step.screenshot} is missing`)
+      if (!copy) throw new Error(`${scenario.id}: browser step "${step.id}" has no copy in content.yaml`)
+      return { id: step.id, url, object: step.object, from: at(step.from, 0), until: at(step.until, 0), ...copy }
+    }),
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],

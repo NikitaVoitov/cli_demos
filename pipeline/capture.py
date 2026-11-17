@@ -95,6 +95,8 @@ def prepare(recording: dict, home: Path) -> None:
     subprocess.run(["node", str(ROOT / "scripts/splunk_web_login.mjs")], check=True, cwd=ROOT / "apps/hub")
     # setup rewrites the workspace instructions from the base template, so hints are appended after it.
     subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "setup"], check=True, cwd=ROOT)
+    if "jira" in recording.get("integrations", []):
+        subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "jira"], check=True, cwd=ROOT)
     workspace = home / recording["workspace"]
     for path in workspace.iterdir():
         if path.name != "AGENTS.md":
@@ -113,6 +115,10 @@ def prepare(recording: dict, home: Path) -> None:
     if hints:
         host = urlparse((ROOT / ".captures/ce01/secrets/web_base").read_text().strip()).netloc
         extra = "\n\n".join(h.read_text().strip() for h in hints).replace("__SPLUNK_WEB_HOST__", host)
+        if "jira" in recording.get("integrations", []):
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from ce01_capture import jira_site
+            extra = extra.replace("__JIRA_SITE__", jira_site()).replace("__JIRA_PROJECT__", recording["jira"]["project"])
         with (workspace / "AGENTS.md").open("a") as fh:
             fh.write("\n\n" + extra + "\n")
 
@@ -143,7 +149,7 @@ def record(scenario_dir: Path, take: str) -> None:
             for cmd in beat_commands(beat, model):
                 send(run, cmd)
             if beat.get("require") == "gate" and recording["gateEvidence"] not in (run / "session.cast").read_text():
-                raise SystemExit("the client finished its turn without splunkctl refusing the write; review screen.txt")
+                raise SystemExit("the client finished its turn without a write being refused; review screen.txt")
         print(f"take recorded: {run / 'session.cast'}")
     finally:
         # Keep the client's session store even when a beat failed, so the take can still be inspected.

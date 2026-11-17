@@ -109,6 +109,62 @@ export function FlowDiagram({ browser = true, mcp = 'MCP · sourcetypes, SPL' }:
   )
 }
 
+// Same columns as FlowDiagram. Jira writes go through acli, which holds them for approval; both MCP servers only read.
+/** The Jira hand-off story: alerts come from Jira, evidence from Splunk, and the follow-up ticket waits for you. */
+export function JiraFlowDiagram({ mcp = 'searches, saved ML models' }: { mcp?: string }) {
+  return (
+    <svg viewBox="0 0 900 300" className="h-auto w-full font-sans" role="img" aria-labelledby="jira-flow-title jira-flow-desc">
+      <title id="jira-flow-title">How the pieces fit together</title>
+      <desc id="jira-flow-desc">
+        You prompt Cursor CLI. It reads alerts from Jira Cloud through the Atlassian MCP, and searches Splunk Cloud and applies
+        AI Toolkit models through Splunk MCP. Its only way to write to Jira is acli, which stops at CONFIRMATION_REQUIRED, so
+        Cursor asks you first.
+      </desc>
+      <defs>
+        <marker id="jira-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="jira-flow-arrow-warn" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
+        </marker>
+      </defs>
+      <Box x={0} y={112} w={116} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={180} y={112} w={170} h={76} title="Cursor CLI" sub="the agent" stroke="var(--text-primary)" />
+      <Box
+        x={410}
+        y={18}
+        w={260}
+        h={76}
+        title="acli"
+        sub="Shell · the follow-up ticket"
+        stroke="var(--status-success)"
+        note="writes stop at CONFIRMATION_REQUIRED"
+      />
+      <Box x={410} y={116} w={260} h={68} title="Atlassian MCP" sub="read alerts" stroke="var(--status-info)" />
+      <Box x={410} y={206} w={260} h={68} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
+      <Box x={750} y={18} w={140} h={166} title="Jira Cloud" sub="alerts and tickets" stroke="var(--border-strong)" />
+      <Box x={750} y={206} w={140} h={68} title="Splunk Cloud" sub="AI Toolkit" stroke="var(--border-strong)" />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#jira-flow-arrow)">
+        <path d="M116 138H178" />
+        <path d="M350 150C380 150 380 56 408 56" />
+        <path d="M350 150H408" />
+        <path d="M350 150C380 150 380 240 408 240" />
+        <path d="M670 56H748" />
+        <path d="M670 150H748" />
+        <path d="M670 240H748" />
+      </g>
+      <path d="M178 164H118" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#jira-flow-arrow-warn)" />
+      <Label x={147} y={130}>prompt</Label>
+      <Label x={147} y={182} warn>
+        asks first
+      </Label>
+      <Label x={709} y={48}>REST</Label>
+      <Label x={709} y={142}>MCP</Label>
+      <Label x={709} y={232}>MCP</Label>
+    </svg>
+  )
+}
+
 // Columns: You 0–100 · Cursor CLI 140–280 · agent.py 320–490 · model and tools 540–720 · Splunk 770–900.
 /** The Agentic SDK story: Cursor writes a script, and the script is the agent. No splunkctl, no approval. */
 export function SdkFlowDiagram({ mcp = '2 allowlisted tools' }: { mcp?: string }) {

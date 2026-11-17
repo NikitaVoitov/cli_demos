@@ -26,10 +26,27 @@ Use `.captures/venv/bin/python` (dependencies in `pipeline/requirements.txt`).
 
 1. Write `scenario.yaml` (beats, fixtures, `recording.hints`) and `content.yaml`. Copy the shape of an existing scenario.
 2. `python -m pipeline.capture scenarios/<id> <take>`. A person can watch; the take lands in `.captures/<id>/<take>/`.
-3. `python -m pipeline.post scenarios/<id> <take>` retimes and sanitizes into `artifacts/session.cast` and prints each beat's published time. Put chapter and gate times in `scenario.yaml`.
+3. `python -m pipeline.post scenarios/<id> <take>` retimes and sanitizes into `artifacts/session.cast` and prints each beat's published time. Put chapter and gate times in `scenario.yaml`. Compression cuts most waiting, so a key result can scroll past before narration explains it: add `post.holds` (a regex on screen plus seconds) to freeze on those moments, and rerun post.
 4. `python -m pipeline.transcript scenarios/<id> --client <client> --store <store.db>` writes `artifacts/transcript.json`.
 5. Narrate (below), if the demo is narrated.
 6. `cd apps/hub && npm run build`, then load the demo and play it through.
+
+## Design the demo before recording
+
+These come from owner reviews; skipping them cost SO-07 a full re-record. Details: §0.10 items 19–28.
+
+- **Story first.** Write down the situation, the pain, what gets detected, the decision, and the outcome before writing beats. The About section in `how-it-works.md` tells that story first, then the technology. Aim for 2–3 minutes published.
+- **The advertised technique must find the answer.** If the title says ML, seed data where the model flags the culprit. Check the feature's distribution with a search before you fit. A model that misses on purpose is fine only as a theory the agent rules out.
+- **Evidence has to be on screen.** Cursor CLI shows an MCP call as a bare tool name; Ctrl+O doesn't expand it, and hints asking the agent to "show evidence" get ignored. Use several short prompts, each with `wait: turn-end`, so each turn ends with an answer (a list, a result table, the key numbers). Put `require: gate` only on the turn that writes.
+- **Show the source and the proof, not only the result.** `browser.steps` puts screenshots in the pane before the final one, such as the source records the agent reads and the tool's own UI showing the key result. Copy for each step goes in `content.yaml` `browser.steps.<id>`.
+- **Writes outside Splunk get a wrapper.** Copy `recorder/clients/cursor-cli/acli.tmpl`: allow-list commands, answer writes without `--yes` with a short `CONFIRMATION_REQUIRED` line (Cursor truncates long output), and deny the MCP server's write tools in the capture config.
+- **SaaS data lives on a personal or demo tenant.** Scripts refuse the corporate host. Add sanitizer rules for the tenant's host, emails, account IDs, and display names before the first post.
+- **Interactive logins use real Chrome.** For SSO or passkeys, follow `scripts/jira_web_login.mjs`: launch the installed Chrome with its own profile, attach over CDP, and wait for the session cookie, not a URL.
+
+## Verify in the hub
+
+- Check state, not wall-clock time. Headless browsers play the narrated player unevenly. Confirm the gate (the Approve button stays until clicked), the pane steps (image alt text), and the ending from the DOM.
+- Render an exact moment from `artifacts/session.cast` with pyte when you need to see what the screen shows at a time.
 
 ## Narration
 
@@ -67,6 +84,7 @@ narration:
   - **Why it matters**, the value behind the step ("Every panel starts from a search that already returned real data").
   - **What to expect next** ("Region names in the bar chart prove the last panel has data too").
   Split a long stretch into two lines tied to the events inside it rather than one long sentence.
+- **Narrate the story, not the tool calls.** Each line should move the incident forward (what's wrong, what was found, what it means, what happens next). "Splunk MCP returns the knowledge objects" is a fact without a story.
 - **Use the run's real numbers,** rounded for speech ("about 480 milliseconds"), and only ones the transcript shows.
 - **Write speakable text.** No flags, paths, or code: "with your go-ahead", not `--yes`. Product names are fine. The caption shows exactly this text.
 - **Voice:** follow the Splunk voice guide: conversational, concise, positive, technically credible, and never salesy.
@@ -76,6 +94,9 @@ narration:
 
 - Keep the house voice in `recorder/voice.yaml` so every demo sounds like one product. Override per scenario only with a reason.
 - To audition voices, use `elevenlabs voices search` and `elevenlabs say --voice <id> "…"`, or the ElevenLabs MCP server (`creative_list_voices`, `creative_generate_speech`). Final audio always comes from `pipeline.narrate` through the CLI, so it can be rebuilt.
+- `eleven_v4` ignores `speed`; only spelling changes how a term sounds. Speech-to-text can't hear how an acronym was said (it writes back "SOC" either way), but its word timestamps show length. For a disputed term, write a few short clips to `.captures/audition/<id>/`, open the folder for the owner, and use the one they pick.
+- A house `pronounce` change touches every demo that uses the term: rerun `pipeline.narrate` for each, then `--check` them all.
+- Leave at least 0.4 s between lines; `narrate` rejects a gap of exactly 0.3 s.
 - Credentials: `elevenlabs auth login` locally. In CI, pipe the key in with `elevenlabs auth login --with-token` so it never appears on a command line.
 
 ## Don't

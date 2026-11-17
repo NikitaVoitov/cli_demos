@@ -9,7 +9,7 @@ commands over a Unix socket so a capture can be driven step by step:
 
 Commands (one JSON object each):
   {"type": "text", "cadence": [0.025, 0.06]}   type characters with human-like delays
-  {"key": "enter" | "esc" | "tab" | "ctrl-c" | "ctrl-d" | "up" | "down" | "shift-tab"}
+  {"key": "enter" | "esc" | "tab" | "ctrl-c" | "ctrl-d" | "ctrl-o" | "up" | "down" | "shift-tab"}
   {"wait": "<regex>", "timeout": 120}          wait until the screen matches
   {"idle": 3, "timeout": 300}                  wait until the screen stops changing for N s
   {"absent": "<regex>", "stable": 3}           wait until the regex has been off screen for N s
@@ -43,7 +43,7 @@ ROOT = Path(__file__).resolve().parent.parent
 COLS, ROWS = (int(n) for n in os.environ.get("DEMO_TERMINAL", "88x28").split("x"))
 KEYS = {
     "enter": "\r", "esc": "\x1b", "tab": "\t", "shift-tab": "\x1b[Z",
-    "ctrl-c": "\x03", "ctrl-d": "\x04", "up": "\x1b[A", "down": "\x1b[B",
+    "ctrl-c": "\x03", "ctrl-d": "\x04", "ctrl-o": "\x0f", "up": "\x1b[A", "down": "\x1b[B",
     "left": "\x1b[D", "right": "\x1b[C", "backspace": "\x7f",
 }
 

@@ -139,6 +139,7 @@ Abbreviations: `splunkctl` commands are written without the `splunkctl` prefix. 
 | SO-04 | Author a detection with an agent: hypothesis, CIM-aligned SPL, backtest, create in staging | Detection Eng | Interactive · Gated write | Skills `splunk-search`, `field-extraction-and-cim-mapping`, `data-model-and-search-acceleration`; `saved-search add`, `macro add`; ES (Detection Studio / Detection Builder agent as the in-product counterpart) | Any client | Caveats |
 | SO-05 | ES detections as code from a CI runner: PR, backtest SPL, deploy on merge, verify enabled and scheduled | Detection Eng, Platform/DevOps Eng | Pipeline · Merge-gated | Validation: `--yes search export` under a read-only token. Deploy, Cloud: content app whose `savedsearches.conf` carries `action.correlationsearch.*` / `action.notable.*`, installed with `acs apps install private` (runs AppInspect). Deploy, Enterprise: `app install --update 1`, or REST `POST /servicesNS/nobody/<app>/saved/searches`. Verify: MCP `splunk_list_alerts`. ES 8; contentctl (customer-managed) | GitLab CI, GitHub Actions | Caveats |
 | SO-06 | Compliance evidence pack: privileged access, auth failures, config changes | Governance Approver, SOC Analyst | Scheduled · Read | MCP `splunk_run_saved_search`, `splunk_run_query`; skills `report-authoring-specialist`, `vulnerability-remediation-and-compliance-readiness` | Jira/ServiceNow | Ready |
+| SO-07 | Jira alert investigation: correlate related alerts, apply the AI Toolkit model in a saved search, pivot to failure rates, and open a follow-up ticket to block the attacker's IPs after approval ([Lantern](https://lantern.splunk.com/Security_Use_Cases/Automation_and_Orchestration/Leveraging_LLM_reasoning_and_ML_capabilities_for_Jira_alert_investigations)) | SOC Analyst | Interactive · Gated write | MCP `splunk_run_saved_search`, `splunk_run_query` (`apply`); Atlassian MCP (read); `acli jira workitem create` behind a confirmation wrapper; AI Toolkit | Jira | Caveats |
 
 ### 3.3 Data Onboarding & Pipelines
 
@@ -253,7 +254,7 @@ Abbreviations: `splunkctl` commands are written without the `splunkctl` prefix. 
 | Environment | Linux hosts | DP-06, DP-08 |
 | Hand-off | Slack / Teams | IR-02, IR-05, IR-06, IR-07, SO-02, DP-09, CE-03 |
 | Hand-off | PagerDuty | IR-02, IR-06, DP-09, CE-03 |
-| Hand-off | ServiceNow / Jira | IR-02, IR-04, IR-07, SO-02, SO-06, PO-10, PO-12 |
+| Hand-off | ServiceNow / Jira | IR-02, IR-04, IR-07, SO-02, SO-06, SO-07, PO-10, PO-12 |
 | Verification | Playwright | CE-01, CE-02 |
 
 ### 4.4 uMELT headless journey coverage

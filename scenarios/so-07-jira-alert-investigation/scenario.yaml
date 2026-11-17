@@ -1,0 +1,188 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+# Modeled on the Lantern article "Leveraging LLM reasoning and ML capabilities for Jira alert investigations",
+# cut to one prompt so the published cast stays short.
+id: so-07-jira-alert-investigation
+useCase: SO-07
+source: captured
+change: Gated write
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor CLI
+  model: Auto Balance
+# Split demo: the terminal shares the stage with the Jira screenshot, like CE-01.
+terminal: { cols: 88, rows: 28 }
+
+capture:
+  status: captured
+  take: take-3
+  month: Nov 2026
+  splunkctl: 0.1.2
+  # The published cast keeps every command, output, and message, but waits where only the spinner moves
+  # are cut to 0.8 s, and it freezes on seven evidence screens (`post.holds`). The raw take ran 3 min 31 s.
+  timeCompressed: true
+  rawDuration: 210.9
+  notes: >
+    Recorded from the beats in this file in a neutral capture home with approvalMode unrestricted, so
+    acli's CONFIRMATION_REQUIRED is the only Jira write gate. Atlassian MCP write tools are denied.
+    Alerts live in Jira project SOC; Splunk data is index=demo_payments, with two AI Toolkit models behind
+    demo_ saved searches (scripts/seed_fraud.py). Cursor CLI truncates long shell output, so gateEvidence
+    is CONFIRMATION_REQUIRED rather than the full splunkctl phrase.
+
+cast:
+  src: artifacts/session.cast
+  duration: 141.2
+
+# Stable IDs; times are seconds on the published cast clock, set by hand after each capture.
+chapters:
+  - { id: prompt, t: 0 }
+  - { id: correlate, t: 21 }
+  - { id: analyze, t: 40.4 }
+  - { id: confirm, t: 79.7 }
+  - { id: approval, t: 105 }
+  - { id: ticket, t: 119 }
+  - { id: verify, t: 131.3 }
+
+gate:
+  t: 117.7
+  command: acli jira workitem create --project SOC --type Task --summary 'Block card-testing and brute-force source IPs'
+
+browser:
+  mode: agent
+  showAt: verify
+  object: follow-up ticket
+  screenshot: artifacts/jira-ticket.png   # scripts/so07_screenshot.mjs, right after the run
+  # Before the ticket: the open alerts the agent reads (scripts/so07_screenshot.mjs alerts), then the AI Toolkit
+  # result in Splunk Web while the agent shows the same rows (scripts/so07_splunk_screenshot.mjs).
+  steps:
+    - { id: alerts, screenshot: artifacts/jira-alerts.png, object: open alerts, until: analyze }
+    - { id: ml, screenshot: artifacts/splunk-ml.png, object: demo_ip_decline_outliers, from: 61.7, until: confirm }
+
+artifacts:
+  transcript: artifacts/transcript.json
+
+# Freeze frames on the evidence so narration can explain it (pipeline/post.py). Retimed captures cut waiting,
+# and the agent's answers stream in under a second, so without these the key rows scroll past unexplained.
+post:
+  holds:
+    - { id: story, text: "tell me which ones look related", seconds: 4 }
+    - { id: alerts, text: "SOC-6 \\(Low\\): Printer", seconds: 6, immediate: true }
+    - { id: related, text: "SOC-6 is unrelated", seconds: 5 }
+    - { id: ml-ip, text: "matches SOC-1 / SOC-3", seconds: 8, immediate: true }
+    - { id: ml-amount, text: "IP decline outliers do\\.", seconds: 6 }
+    - { id: confirm, text: "I am ready to open a follow-up", seconds: 7 }
+    - { id: created, text: "SOC-\\d+ created", seconds: 4 }
+
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/so-07-jira-alert-investigation` builds
+# the audio and captions; rerun it after changing a line, an anchor, a chapter time, or the voice.
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    # The situation
+    - id: intro
+      chapter: prompt
+      offset: 0.3
+      text: A payments company's SOC has a new high-priority alert. Declined card payments are spiking at two partner merchants.
+    - id: ask
+      t: 9.6
+      text: Five other alerts sit in the same queue. The analyst asks Cursor CLI which of them belong together.
+    - id: read
+      t: 17.8
+      text: Cursor reads the queue through the Atlassian MCP.
+    # What the queue says
+    - id: jira
+      chapter: correlate
+      offset: 1.1
+      text: These are the same six tickets open in Jira, on the right.
+    - id: alerts
+      t: 27.8
+      text: Card declines and brute-force logins are high priority. The printer outage is noise.
+    - id: related
+      t: 34.5
+      text: From the descriptions alone, Cursor links the declines, the card testing, and the login attacks. Only Splunk can confirm it.
+    # What the models detect
+    - id: ml-ask
+      t: 44.2
+      text: So the analyst asks for the machine learning models the team already saved in Splunk.
+    - id: ml-run
+      t: 50.4
+      text: Cursor finds two AI Toolkit models behind saved searches, and runs both through Splunk MCP.
+    - id: ml-ip-model
+      t: 58.2
+      text: The first, an AI Toolkit model, scores card declines per IP.
+    - id: ml-ip
+      t: 63.9
+      text: Splunk Web shows the same result. Three IPs, each with about 200 declined charges of around $13.
+    - id: ml-amount
+      t: 73.3
+      text: That's card testing. The second model, on purchase amounts, finds only large ordinary purchases, so it's ruled out.
+    # Confirm and decide
+    - id: confirm-ask
+      t: 83.0
+      text: Now the analyst asks Cursor to check the IPs against logins and sessions, and open a ticket if they're guilty.
+    - id: auth
+      t: 91.2
+      text: The same three IPs made almost 900 failed logins against online-banking accounts, and got into five of them.
+    - id: verdict
+      t: 99.9
+      text: The declines, the card testing, and the brute force are one attacker. Cursor drafts a ticket to block the IPs.
+    - id: why-stop
+      t: 108.9
+      text: The Atlassian CLI holds the ticket. Cursor lays out the evidence and waits for your approval.
+    # Outcome
+    - id: create
+      chapter: gate
+      offset: 0.8
+      text: Approved. Cursor runs the same command once, and the ticket is created.
+    - id: accounts
+      t: 124.6
+      text: The ticket names the alerts it follows up. Cursor also flags five breached accounts for a password reset.
+    - id: outro
+      chapter: verify
+      offset: 1.2
+      text: The follow-up ticket is live in Jira. From one alert to a named attacker, with one approval.
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/so-07-jira-alert-investigation <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  # Adds the gated acli wrapper and the Atlassian MCP server (read tools only) to the capture home.
+  integrations: [jira]
+  jira: { project: SOC }
+  hints: [jira]
+  # The acli wrapper refuses Jira writes the way splunkctl does, with the same wording.
+  # Cursor CLI truncates long shell output; match the short acli refusal, not the full splunkctl phrase.
+  gateEvidence: "CONFIRMATION_REQUIRED"
+  fixtures:
+    setup:
+      # Data and the ML model are seeded once with scripts/seed_fraud.py; refuse to record without them.
+      - .captures/venv/bin/python scripts/seed_fraud.py --check | grep -q merchant_transactions
+      - .captures/venv/bin/python scripts/so07_jira.py reset
+    teardown: []                  # the follow-up ticket has to stay for the screenshot
+  beats:
+    - { comment: "Investigate a Jira alert with Splunk MCP and the Atlassian MCP", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    # Three short turns, like the Lantern walkthrough: each ends with an answer on screen, which is what the
+    # narration explains. The terminal hides MCP results, so one long turn shows almost no evidence.
+    - prompt: >
+        I'm on the SOC team and just got an "abnormal user behavior" alert in Jira. List the open alerts
+        briefly and tell me which ones look related.
+      mark: prompt
+    - { wait: turn-end, timeout: 600, mark: alerts-done }
+    - prompt: >
+        Run the ML models in our saved searches against that Splunk data. For each one, say which model it
+        applies and show the top rows it flags.
+      mark: ml
+    - { wait: turn-end, timeout: 600, mark: ml-done }
+    - prompt: >
+        Check the flagged IPs against the login and session data. If they're behind this, open a follow-up
+        ticket to block them.
+      mark: confirm
+    - { wait: turn-end, timeout: 900, mark: gate-question, require: gate }
+    - { prompt: "Approved. Create it once.", mark: approve }
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    - shell: "acli jira workitem search --jql 'project = SOC AND labels = follow-up' --limit 1 --fields 'key,summary,status'"
+      waitFor: "SOC-"
+      mark: verify
+    - { exit: true, mark: outro }

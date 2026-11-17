@@ -1,0 +1,75 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:08.220
+A payments company's SOC has a new high-priority alert. Declined card payments are spiking at two partner merchants.
+
+ask
+00:00:09.600 --> 00:00:17.040
+Five other alerts sit in the same queue. The analyst asks Cursor CLI which of them belong together.
+
+read
+00:00:17.800 --> 00:00:21.720
+Cursor reads the queue through the Atlassian MCP.
+
+jira
+00:00:22.100 --> 00:00:26.260
+These are the same six tickets open in Jira, on the right.
+
+alerts
+00:00:27.800 --> 00:00:34.120
+Card declines and brute-force logins are high priority. The printer outage is noise.
+
+related
+00:00:34.500 --> 00:00:43.780
+From the descriptions alone, Cursor links the declines, the card testing, and the login attacks. Only Splunk can confirm it.
+
+ml-ask
+00:00:44.200 --> 00:00:49.560
+So the analyst asks for the machine learning models the team already saved in Splunk.
+
+ml-run
+00:00:50.400 --> 00:00:57.840
+Cursor finds two AI Toolkit models behind saved searches, and runs both through Splunk MCP.
+
+ml-ip-model
+00:00:58.200 --> 00:01:03.480
+The first, an AI Toolkit model, scores card declines per IP.
+
+ml-ip
+00:01:03.900 --> 00:01:12.940
+Splunk Web shows the same result. Three IPs, each with about 200 declined charges of around $13.
+
+ml-amount
+00:01:13.300 --> 00:01:22.580
+That's card testing. The second model, on purchase amounts, finds only large ordinary purchases, so it's ruled out.
+
+confirm-ask
+00:01:23.000 --> 00:01:30.760
+Now the analyst asks Cursor to check the IPs against logins and sessions, and open a ticket if they're guilty.
+
+auth
+00:01:31.200 --> 00:01:39.520
+The same three IPs made almost 900 failed logins against online-banking accounts, and got into five of them.
+
+verdict
+00:01:39.900 --> 00:01:48.540
+The declines, the card testing, and the brute force are one attacker. Cursor drafts a ticket to block the IPs.
+
+why-stop
+00:01:48.900 --> 00:01:56.020
+The Atlassian CLI holds the ticket. Cursor lays out the evidence and waits for your approval.
+
+create
+00:01:58.500 --> 00:02:04.180
+Approved. Cursor runs the same command once, and the ticket is created.
+
+accounts
+00:02:04.600 --> 00:02:12.040
+The ticket names the alerts it follows up. Cursor also flags five breached accounts for a password reset.
+
+outro
+00:02:12.500 --> 00:02:19.460
+The follow-up ticket is live in Jira. From one alert to a named attacker, with one approval.
