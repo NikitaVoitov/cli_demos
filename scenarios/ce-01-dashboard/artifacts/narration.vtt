@@ -1,0 +1,71 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:07.820
+Here, Cursor CLI builds a Splunk dashboard from one plain-language prompt on a real Splunk Cloud stack.
+
+health
+00:00:09.400 --> 00:00:13.480
+A quick splunkctl check first. The stack is green.
+
+ask
+00:00:15.400 --> 00:00:25.560
+The prompt asks for four panels, from p95 latency to latency by region, then a deploy and a check that every panel renders.
+
+plan
+00:00:26.100 --> 00:00:28.580
+Now Cursor plans the work.
+
+skills
+00:00:30.500 --> 00:00:38.500
+Cursor loads Agent Skills for Dashboard Studio and splunkctl, so it follows Splunk's conventions instead of guessing.
+
+discover
+00:00:38.800 --> 00:00:46.400
+Through the Splunk MCP Server, it finds the checkout index, samples the fields, and tests each search.
+
+numbers
+00:00:48.600 --> 00:00:56.680
+p95 latency is about 480 milliseconds, and half a percent of requests fail with a server error.
+
+real-data
+00:00:57.200 --> 00:01:04.000
+That's the difference from a template. Every panel starts from a search that already returned real data.
+
+existing
+00:01:05.300 --> 00:01:11.700
+It also lists the dashboards already in Splunk, to match how they're stored before writing its own.
+
+write
+00:01:13.600 --> 00:01:18.080
+With the data confirmed, it writes the Dashboard Studio definition.
+
+gate
+00:01:19.200 --> 00:01:24.640
+Deploying is a write, so splunkctl stops it and waits for your approval.
+
+deploy
+00:01:28.200 --> 00:01:34.920
+Approved. Cursor reruns the same command with your go-ahead, and the dashboard is created.
+
+render
+00:01:36.700 --> 00:01:43.100
+Next, it opens the dashboard in Splunk Web with Playwright and checks all four panels.
+
+read-page
+00:01:43.600 --> 00:01:52.160
+Instead of eyeballing a screenshot, it reads the live page and checks each panel for real values, not an empty chart.
+
+regions
+00:01:53.300 --> 00:01:57.940
+Region names in the bar chart prove the last panel has data too.
+
+result
+00:02:00.300 --> 00:02:04.220
+Every panel renders, with the numbers it found in the data.
+
+outro
+00:02:05.700 --> 00:02:13.620
+A final shell check confirms the dashboard is live. One prompt, one approval, and a verified dashboard.

@@ -1,0 +1,24 @@
+# House narration voice, shared by every narrated demo so the catalog sounds like one product.
+# A scenario's `narration.voice` overrides any field here. Changing anything in this file means rerunning
+# `python -m pipeline.narrate` for every narrated scenario.
+voice:
+  id: XrExE9yKIg1WjnnlVkGX        # ElevenLabs premade "Matilda": American, professional, informative
+  name: Matilda
+  model: eleven_v4
+  settings: { stability: 0.5, similarity_boost: 0.75, style: 0, speed: 1.0 }
+
+# Speaking rate used by `--estimate` and in fit reports. Measured for this voice and model.
+wordsPerSecond: 2.3
+
+# Longest silence allowed between lines while the cast plays (the gate pause doesn't count). A visitor hearing
+# nothing for longer assumes the narration broke; fill it with what the agent is doing, why, or what to expect.
+maxSilence: 3.0
+
+# Written form (captions) -> spoken form (sent to the voice). Whole words, case-sensitive.
+# Add a term when a speech-to-text check of the clip comes back wrong; captions keep the written form.
+# eleven_v4 already reads MCP, SDK, and JSON correctly. CLI is mapped because the model draws it out.
+pronounce:
+  splunkctl: splunk control
+  p95: P ninety-five
+  5xx: five-x-x
+  CLI: see-ell-eye

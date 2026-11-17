@@ -44,6 +44,53 @@ gate:
 artifacts:
   transcript: artifacts/transcript.json
 
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/ce-08-saved-search-repair` builds the audio and
+# captions; rerun it after changing a line, an anchor, a chapter time, or the voice (recorder/voice.yaml).
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    - id: intro
+      chapter: prompt
+      offset: 0.3
+      text: Here, Cursor CLI repairs a saved search that stopped working on a real Splunk Cloud stack.
+    - id: health
+      t: 9.8
+      text: A quick splunkctl check first. The stack is green.
+    - id: ask
+      t: 15.4
+      text: The prompt asks Cursor to fix a failing saved search without editing the search itself.
+    - id: run
+      chapter: diagnose
+      offset: 0.4
+      text: Cursor runs the failing search first, to get the real error.
+    - id: parser
+      t: 31.1
+      text: The parser error says the search calls a macro that Splunk can't find.
+    - id: context
+      t: 37.5
+      text: It checks the saved search and a sample of the checkout logs, so the fix matches the actual data.
+    - id: count
+      t: 46.5
+      text: Then it counts 5xx errors by region on the real checkout data, to confirm what the search should return.
+    - id: why-stop
+      chapter: approval
+      offset: 0.1
+      text: Splunkctl holds this change for approval.
+    - id: deploy
+      chapter: gate
+      offset: 0.8
+      text: Approved. Cursor runs the same command once, and the macro is created.
+    - id: rerun
+      chapter: rerun
+      text: Next, it reruns the saved search to prove the fix works.
+    - id: results
+      t: 72.9
+      text: All four regions return errors again.
+    - id: outro
+      t: 77.7
+      text: A final check confirms the macro is live, and the search works again.
+
 # How this demo is recorded: `python -m pipeline.capture scenarios/ce-08-saved-search-repair <take>`.
 recording:
   home: /Users/Shared/splunk-demo

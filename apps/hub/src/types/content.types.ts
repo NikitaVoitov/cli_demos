@@ -31,6 +31,23 @@ export interface Scenario {
   gate?: { t: number; command: string }
   browser?: { mode: 'agent'; showAt: string; object: string; screenshot: string }
   artifacts?: { dashboard?: string; source?: string; transcript?: string }
+  narration?: Narration
+}
+
+/** Spoken lines on the cast clock; `pipeline/narrate.py` turns them into `audio` and `captions`. */
+export interface Narration {
+  audio: string
+  captions: string
+  voice?: { id?: string; name?: string; model?: string }
+  lines: { id: string; text: string; t?: number; chapter?: string; offset?: number }[]
+}
+
+/** One narration line as synthesized: when it starts and ends on the cast clock, and its caption text. */
+export interface Caption {
+  id: string
+  start: number
+  end: number
+  text: string
 }
 
 export interface Content {
@@ -79,6 +96,9 @@ export interface DemoEntry {
   split: boolean
   chapters: Chapter[]
   castUrl?: string
+  /** Narration track for the player's audioUrl, with one caption per spoken line. */
+  narrationUrl?: string
+  captions?: Caption[]
   screenshotUrl?: string
   dashboardJson?: string
   /** The script the agent wrote, for demos whose output is code rather than a dashboard. */

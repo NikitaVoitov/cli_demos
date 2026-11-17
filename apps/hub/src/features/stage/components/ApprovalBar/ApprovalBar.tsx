@@ -28,7 +28,7 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">
               splunkctl blocked{' '}
-              <code className="rounded-sm border border-border-strong bg-terminal px-1.5 py-px font-mono text-[12px] text-foreground">
+              <code className="rounded-sm border border-border-strong bg-terminal px-1.5 py-px font-mono text-[12px] text-foreground [overflow-wrap:anywhere]">
                 {gate.command}
               </code>{' '}
               with{' '}
@@ -38,9 +38,11 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
               . {copy.body}
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Button onClick={approve}>{copy.approve}</Button>
-            <Button variant="outline" onClick={decline}>
+          <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+            <Button className="flex-1 sm:flex-none" onClick={approve}>
+              {copy.approve}
+            </Button>
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={decline}>
               {copy.decline}
             </Button>
           </div>
@@ -59,7 +61,7 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">{copy.declinedBody}</p>
           </div>
-          <Button variant="outline" onClick={replay}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={replay}>
             <RotateCcw aria-hidden />
             Replay
           </Button>

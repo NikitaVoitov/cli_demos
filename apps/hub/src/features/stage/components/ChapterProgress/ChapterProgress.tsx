@@ -36,11 +36,15 @@ export function ChapterProgress({ entry }: { entry: DemoEntry }) {
           const blocked = isBeyondGate(chapter.t, decision, gateT)
           const first = i === 0
           const last = i === entry.chapters.length - 1
+          const active = state === 'current' || state === 'gate'
           return (
-            <li key={chapter.id} className={cn('flex min-w-0 flex-1', !first && '-ml-1.5')}>
+            <li
+              key={chapter.id}
+              className={cn('flex min-w-0 flex-1', active && 'max-sm:flex-[3]', !first && '-ml-1.5')}
+            >
               <button
                 type="button"
-                aria-current={state === 'current' || state === 'gate' ? 'step' : undefined}
+                aria-current={active ? 'step' : undefined}
                 aria-disabled={blocked || undefined}
                 title={blocked ? 'Approve the deploy to continue' : undefined}
                 onClick={() => {
@@ -60,7 +64,7 @@ export function ChapterProgress({ entry }: { entry: DemoEntry }) {
                 )}
               >
                 <Icon aria-hidden className="size-3.5 shrink-0" />
-                <span className="truncate">{chapter.label}</span>
+                <span className={cn('truncate', !active && 'max-sm:sr-only')}>{chapter.label}</span>
                 <span className="sr-only">, {STATE_TEXT[state]}</span>
               </button>
             </li>
