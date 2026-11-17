@@ -43,7 +43,7 @@ export function CaptionOverlay({ entry, containerRef }: { entry: DemoEntry; cont
 
   return createPortal(
     <div aria-hidden className="demo-caption pointer-events-none absolute inset-x-10 bottom-14 z-10 flex justify-center">
-      <p className="max-w-[60ch] rounded-md bg-black/85 px-3 py-1.5 text-center text-[14px] leading-5 font-medium text-gate">
+      <p className="demo-caption-text max-w-[60ch] rounded-md bg-black/15 px-3 py-1.5 text-center text-[14px] leading-5 font-medium text-gate">
         {caption.text}
       </p>
     </div>,
