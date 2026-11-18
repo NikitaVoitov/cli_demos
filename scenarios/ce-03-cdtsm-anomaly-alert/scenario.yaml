@@ -1,0 +1,170 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+# The Cisco Deep Time Series Model (CDTSM) in the AI Toolkit, served from a self-hosted endpoint, finds a latency
+# anomaly that a fixed threshold missed, and the agent turns the check into a scheduled alert after approval.
+id: ce-03-cdtsm-anomaly-alert
+useCase: CE-03
+source: captured
+change: Gated write
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor
+  model: Auto Balance
+# Split demo: the terminal shares the stage with Splunk Web, like CE-01.
+terminal: { cols: 88, rows: 28 }
+
+capture:
+  status: captured
+  take: take-5
+  month: Nov 2026
+  splunkctl: 0.1.2
+  # The published cast keeps every command, output, and message, but waits where only the spinner moves
+  # are cut to 0.8 s, and it freezes on four evidence screens (`post.holds`). The raw take ran 3 min 41 s.
+  timeCompressed: true
+  rawDuration: 221.4
+  notes: >
+    Recorded from the beats in this file in a neutral capture home with approvalMode unrestricted, so
+    splunkctl's CONFIRMATION_REQUIRED is the only gate. Data: 86,400 synthetic events in index=demo_checkout
+    (scripts/seed_checkout.spl through splunkctl, the CE-01 data), with a two-hour eu-west-1 latency incident
+    three to five hours before the seed. Reseed within ~2 hours of a take so the incident stays in the detection
+    window. CDTSM runs on the AI Toolkit's self-hosted endpoint; its token credential is shared globally so
+    searches from the search app can use it.
+
+cast:
+  src: artifacts/session.cast
+  duration: 121.5
+
+# Stable IDs; times are seconds on the published cast clock, set by hand after each capture.
+chapters:
+  - { id: prompt, t: 0 }
+  - { id: detect, t: 25.5 }
+  - { id: alert, t: 61.1 }
+  - { id: approval, t: 80.5 }
+  - { id: verify, t: 102 }
+
+gate:
+  t: 88.2
+  command: splunkctl saved-search add demo_checkout_latency_anomaly --search '... | apply CDTSM p95 BY region mode=anomaly ...' --param cron_schedule='*/15 * * * *'
+
+browser:
+  mode: agent
+  showAt: verify
+  object: demo_checkout_latency_anomaly
+  screenshot: artifacts/splunk-alert.png   # scripts/ce03_screenshot.mjs alert, right after the run
+  # While the agent reports the anomaly, Splunk Web shows the same CDTSM result as an Anomaly Detection Chart
+  # (scripts/ce03_screenshot.mjs chart).
+  steps:
+    - { id: chart, screenshot: artifacts/cdtsm-anomaly.png, object: eu-west-1 p95 latency, from: 50.5, until: approval }
+
+artifacts:
+  transcript: artifacts/transcript.json
+
+post:
+  holds:
+    - { id: story, text: "no alert fired", seconds: 4 }
+    - { id: anomaly, text: "eu-west-1", seconds: 8, immediate: true }
+    - { id: confirm, text: "requires confirmatio", seconds: 5 }
+    - { id: verified, text: "\"cron_schedule\": \"\\*/15", seconds: 6, immediate: true }
+
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/ce-03-cdtsm-anomaly-alert` builds the
+# audio and captions; rerun it after changing a line, an anchor, a chapter time, or the voice.
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    # The situation
+    - id: intro
+      chapter: prompt
+      offset: 0.3
+      text: Cursor CLI uses the Cisco Deep Time Series Model to catch a slowdown a fixed threshold missed.
+    - id: ask
+      t: 8.0
+      text: Checkout felt slow in Europe this morning, yet no alert fired.
+    - id: why
+      t: 13.4
+      text: Latency follows daily traffic, so a fixed threshold is either noisy or blind.
+    - id: model
+      t: 20.1
+      text: The model is pretrained, and runs on a container the team hosts in Azure.
+    # Detect
+    - id: connect
+      t: 26.5
+      text: Cursor loads its Splunk skills and connects to the Splunk MCP Server.
+    - id: find
+      t: 32.2
+      text: It finds the checkout data, with its latency and region fields.
+    - id: series
+      t: 37.8
+      text: Then it builds a five-minute p95 latency series for every region.
+    - id: baseline
+      t: 43.7
+      text: Each series covers the full day, so the model sees the normal pattern first.
+    - id: result
+      t: 50.2
+      text: One anomaly, in EU West only. About two hours this morning, over four times the forecast.
+    - id: chart
+      t: 58.5
+      text: Splunk Web shows the same window, shaded red, far outside the forecast band.
+    # The alert
+    - id: ask-alert
+      t: 65.0
+      text: Next, the SRE asks for an alert that runs this check every 15 minutes.
+    - id: draft
+      t: 71.5
+      text: Cursor drafts a scheduled search with the same model call.
+    - id: trigger
+      t: 76.0
+      text: It fires on any anomaly in the last 30 minutes.
+    - id: why-stop
+      t: 80.8
+      text: Creating an alert is a write, so splunkctl waits for your approval.
+    # Outcome
+    - id: create
+      chapter: gate
+      offset: 0.8
+      text: Approved. Cursor reruns the same command, and the alert is created.
+    - id: schedule
+      t: 94.9
+      text: It runs every 15 minutes over the last day.
+    - id: verify
+      t: 98.9
+      text: A final splunkctl check confirms it's scheduled and enabled.
+    - id: rhythm
+      t: 106.0
+      text: The baseline follows the daily rhythm, so the next regional slowdown pages someone.
+    - id: outro
+      t: 113.0
+      text: From a vague complaint to a confirmed anomaly and a live alert, with one approval.
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/ce-03-cdtsm-anomaly-alert <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  hints: [cdtsm]
+  # The TUI truncates the error, so the check looks for the part that stays visible.
+  gateEvidence: "requires confirmatio"
+  fixtures:
+    setup:
+      # Refuse to record over an alert left by an earlier take, or without the seeded incident in the last 24 hours.
+      - "splunkctl --insecure saved-search list --name demo_checkout_latency_anomaly -o json 2>&1 | grep -q NOT_FOUND"
+      - "splunkctl --insecure --yes search 'index=demo_checkout region=eu-west-1 earliest=-6h latest=-2h | stats max(latency_ms) AS m | where m > 1500' -o json | grep -q '\"m\"'"
+    teardown: []                  # the alert has to stay for the screenshot
+  beats:
+    - { comment: "Find a checkout latency anomaly with the Cisco Deep Time Series Model and alert on it", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    - prompt: >
+        Customers say checkout felt slow in Europe this morning, but no alert fired. Use the Cisco Deep Time
+        Series Model to check the last 24 hours of checkout latency for anomalies in each region.
+      mark: prompt
+    - { wait: turn-end, timeout: 600, mark: detect-done }
+    - prompt: >
+        Make that an alert called demo_checkout_latency_anomaly: run it every 15 minutes and fire when the
+        model flags a latency anomaly in any region.
+      mark: alert
+    - { wait: turn-end, timeout: 900, mark: gate-question, require: gate }
+    - { prompt: "Approved. Create it once.", mark: approve }
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    - shell: "splunkctl saved-search list --name demo_checkout_latency_anomaly -o json | jq '.[0] | {name, cron_schedule, is_scheduled, alert_type, disabled}'"
+      waitFor: '"cron_schedule"'
+      mark: verify
+    - { exit: true, mark: outro }

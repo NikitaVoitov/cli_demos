@@ -1,0 +1,38 @@
+# What visitors read. Editable without a new capture.
+title: Catch a latency anomaly with the Cisco Deep Time Series Model
+summary: >
+  Checkout felt slow in Europe, but no alert fired. Cursor CLI runs the Cisco Deep Time Series Model in the
+  Splunk AI Toolkit through Splunk MCP, finds a two-hour anomaly in one region, and turns the check into a
+  scheduled alert that waits for your approval.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [SRE]
+  category: Content Authoring & Lifecycle
+  technologies: [Azure]
+  splunk: [Splunk AI Toolkit, CDTSM, Splunk MCP, splunkctl, Splunk Cloud]
+chapters:
+  prompt: The complaint
+  detect: Detect anomalies
+  alert: Draft the alert
+  approval: Approval
+  verify: Alert check
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: No alert was created.
+  declinedBody: splunkctl never ran the create, so Splunk has no new alert.
+browser:
+  title: Splunk Web
+  waiting: Waiting for the agent to create the alert
+  steps:
+    chart:
+      alt: >
+        Splunk Web showing the AI Toolkit Anomaly Detection Chart for eu-west-1 p95 checkout latency: the actual
+        line, the model's forecast band and thresholds, and a shaded two-hour anomaly region where latency runs
+        about four times the forecast.
+  alt: >
+    Splunk Web's Edit Alert dialog for the new demo_checkout_latency_anomaly alert: scheduled on the cron
+    expression every 15 minutes over the last 24 hours, triggering when the number of results is greater than 0.
+display: { hidden: false, featured: false, order: 70 }
