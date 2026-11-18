@@ -1,0 +1,79 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:07.420
+Cursor CLI uses the Cisco Deep Time Series Model to catch a slowdown a fixed threshold missed.
+
+ask
+00:00:08.000 --> 00:00:12.720
+Checkout felt slow in Europe this morning, yet no alert fired.
+
+why
+00:00:13.400 --> 00:00:19.640
+Latency follows daily traffic, so a fixed threshold is either noisy or blind.
+
+model
+00:00:20.100 --> 00:00:25.220
+The model is pretrained, and runs on a container the team hosts in Azure.
+
+connect
+00:00:26.500 --> 00:00:31.620
+Cursor loads its Splunk skills and connects to the Splunk MCP Server.
+
+find
+00:00:32.200 --> 00:00:36.680
+It finds the checkout data, with its latency and region fields.
+
+series
+00:00:37.800 --> 00:00:43.160
+Then it builds a five-minute p95 latency series for every region.
+
+baseline
+00:00:43.700 --> 00:00:48.980
+Each series covers the full day, so the model sees the normal pattern first.
+
+result
+00:00:50.200 --> 00:00:58.040
+One anomaly, in EU West only. About two hours this morning, over four times the forecast.
+
+chart
+00:00:58.500 --> 00:01:04.500
+Splunk Web shows the same window, shaded red, far outside the forecast band.
+
+ask-alert
+00:01:05.000 --> 00:01:11.000
+Next, the SRE asks for an alert that runs this check every 15 minutes.
+
+draft
+00:01:11.500 --> 00:01:15.500
+Cursor drafts a scheduled search with the same model call.
+
+trigger
+00:01:16.000 --> 00:01:19.760
+It fires on any anomaly in the last 30 minutes.
+
+why-stop
+00:01:20.800 --> 00:01:26.000
+Creating an alert is a write, so splunkctl waits for your approval.
+
+create
+00:01:29.000 --> 00:01:34.440
+Approved. Cursor reruns the same command, and the alert is created.
+
+schedule
+00:01:34.900 --> 00:01:38.420
+It runs every 15 minutes over the last day.
+
+verify
+00:01:38.900 --> 00:01:43.380
+A final splunkctl check confirms it's scheduled and enabled.
+
+rhythm
+00:01:46.000 --> 00:01:51.520
+The baseline follows the daily rhythm, so the next regional slowdown pages someone.
+
+outro
+00:01:53.000 --> 00:01:58.920
+From a vague complaint to a confirmed anomaly and a live alert, with one approval.

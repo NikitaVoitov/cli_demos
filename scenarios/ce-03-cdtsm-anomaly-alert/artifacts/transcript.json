@@ -1,0 +1,250 @@
+{
+  "placeholder": false,
+  "source": "cursor-cli session log",
+  "chapters": [
+    {
+      "id": "prompt",
+      "entries": [
+        {
+          "kind": "user",
+          "t": 11.7,
+          "text": "Customers say checkout felt slow in Europe this morning, but no alert fired. Use the Cisco Deep Time Series Model to check the last 24 hours of checkout latency for anomalies in each region."
+        }
+      ],
+      "summary": "Your prompt"
+    },
+    {
+      "id": "detect",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 26.3,
+          "text": "I'll load the Splunk and CDTSM skills, then search the last 24 hours of checkout latency by region."
+        },
+        {
+          "kind": "skill",
+          "t": 26.3,
+          "name": "splunkctl"
+        },
+        {
+          "kind": "skill",
+          "t": 26.3,
+          "name": "cisco-splunk-integration"
+        },
+        {
+          "kind": "skill",
+          "t": 26.3,
+          "name": "search-and-dashboard-troubleshooter"
+        },
+        {
+          "kind": "agent",
+          "t": 29.7,
+          "text": "Splunk MCP is ready. Next I’ll inspect `splunk_run_query` and find checkout latency fields so CDTSM can run per region."
+        },
+        {
+          "kind": "mcp",
+          "t": 31.9,
+          "tool": "saia_find_data_source",
+          "args": {
+            "query": "checkout service request logs latency by region",
+            "earliest_time": "-24h",
+            "include_sample_event": true,
+            "limit": 5
+          },
+          "result": "{\n  \"error\": \"Agent Mode must be enabled to use /data_discovery\"\n}"
+        },
+        {
+          "kind": "agent",
+          "t": 34.9,
+          "text": "Data-source discovery failed, so I’ll list indexes and sourcetypes and sample checkout events directly."
+        },
+        {
+          "kind": "mcp",
+          "t": 36.6,
+          "tool": "splunk_get_indexes",
+          "args": {
+            "count": 50
+          },
+          "result": "50 rows\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"94120\", \"totalEventCount\": \"1052511537\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"94117\", \"totalEventCount\": \"1052509018\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"94086\", \"totalEventCount\": \"1052509303\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_audit\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"135\", \"totalEventCount\": \"924973\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"135\", \"totalEventCount\": \"924973\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"135\", \"totalEventCount\": \"924984\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-st.example.com\"}\n{\"name\": \"_cmc_summary\", \"disabled\": \"0\", \"currentDBSizeMB\": \"1\", \"totalEventCount\": \"0\", \"splunk_server\": \"splunk-cloud-demo-stack-0001splunk-cloud-demo-s.example.com\"}\n… 42 more rows"
+        },
+        {
+          "kind": "mcp",
+          "t": 36.6,
+          "tool": "splunk_get_sourcetypes",
+          "args": {
+            "earliest_time": "-24h",
+            "count": 50
+          },
+          "result": "50 rows\n{\"sourcetype\": \"activate_versioning\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"11\", \"first_event_time\": \"2026-11-16T12:53:11Z\", \"last_event_time\": \"2026-11-17T17:15:39Z\", \"last_indexed_time\": \"2026-11-17T17:16:09Z\", \"definitions\": []}\n{\"sourcetype\": \"administrative_reload-2\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"603\", \"first_event_time\": \"2026-11-16T12:53:11Z\", \"last_event_time\": \"2026-11-18T11:15:41Z\", \"last_indexed_time\": \"2026-11-18T11:15:41Z\", \"definitions\": [{\"app\": \"learned\", \"description\": \"\", \"disabled\": false}]}\n{\"sourcetype\": \"app_imports_update\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"20\", \"first_event_time\": \"2026-11-16T12:53:12Z\", \"last_event_time\": \"2026-11-17T17:15:45Z\", \"last_indexed_time\": \"2026-11-17T17:16:09Z\", \"definitions\": []}\n{\"sourcetype\": \"app_permissions_manager\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"19721\", \"first_event_time\": \"2026-11-14T20:06:19Z\", \"last_event_time\": \"2026-11-18T11:15:40Z\", \"last_indexed_time\": \"2026-11-18T11:15:40Z\", \"definitions\": []}\n{\"sourcetype\": \"audit_ingest-3\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"273308\", \"first_event_time\": \"2026-11-14T20:05:46Z\", \"last_event_time\": \"2026-11-18T11:16:19Z\", \"last_indexed_time\": \"2026-11-18T11:16:22Z\", \"definitions\": []}\n{\"sourcetype\": \"audit_ingest.log\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"183578\", \"first_event_time\": \"2026-11-14T20:05:44Z\", \"last_event_time\": \"2026-11-18T11:16:19Z\", \"last_indexed_time\": \"2026-11-18T11:16:20Z\", \"definitions\": [{\"app\": \"learned\", \"description\": \"\", \"disabled\": false}]}\n{\"sourcetype\": \"audittrail\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"4292452\", \"first_event_time\": \"2026-11-14T20:02:22Z\", \"last_event_time\": \"2026-11-18T11:16:43Z\", \"last_indexed_time\": \"2026-11-18T11:16:43Z\", \"definitions\": [{\"app\": \"Splunk_SA_CIM\", \"description\": \"\", \"disabled\": false}]}\n{\"sourcetype\": \"audittrailv2\", \"index_scope\": [\"*\", \"_*\"], \"event_count\": \"1506035\", \"first_event_time\": \"2026-11-14T20:02:54Z\", \"last_event_time\": \"2026-11-18T11:16:41Z\", \"last_indexed_time\": \"2026-11-18T11:16:41Z\", \"definitions\": [{\"app\": \"audit_trail\", \"description\": \"\", \"disabled\": false}]}\n… 42 more rows"
+        },
+        {
+          "kind": "agent",
+          "t": 38.4,
+          "text": "Checkout logs are `sourcetype=checkout`. I’ll sample fields, then run CDTSM on p95 latency by region for the last 24 hours."
+        },
+        {
+          "kind": "mcp",
+          "t": 38.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "query": "sourcetype=checkout | head 3 | fields _time, region, latency_ms, *",
+            "earliest_time": "-1h",
+            "latest_time": "now",
+            "app": "search",
+            "row_limit": 5
+          },
+          "result": "0 rows\n"
+        },
+        {
+          "kind": "mcp",
+          "t": 38.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "sourcetype=checkout | stats count by region | sort -count",
+            "row_limit": 20
+          },
+          "result": "0 rows\n"
+        },
+        {
+          "kind": "mcp",
+          "t": 38.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=* sourcetype=checkout | stats count by index, sourcetype",
+            "row_limit": 20
+          },
+          "result": "1 rows\n{\"index\": \"demo_checkout\", \"sourcetype\": \"checkout\", \"count\": \"84509\"}"
+        },
+        {
+          "kind": "mcp",
+          "t": 38.4,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | fieldsummary maxvals=10 | table field, count, values",
+            "row_limit": 50
+          },
+          "result": "30 rows\n{\"field\": \"amount_usd\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"24.8\\\",\\\"count\\\":22},{\\\"value\\\":\\\"17.93\\\",\\\"count\\\":21},{\\\"value\\\":\\\"19.49\\\",\\\"count\\\":21},{\\\"value\\\":\\\"31.89\\\",\\\"count\\\":21},{\\\"value\\\":\\\"28.67\\\",\\\"count\\\":20},{\\\"value\\\":\\\"29.87\\\",\\\"count\\\":19},{\\\"value\\\":\\\"34.86\\\",\\\"count\\\":19},{\\\"value\\\":\\\"20.06\\\",\\\"count\\\":18},{\\\"value\\\":\\\"27.32\\\",\\\"count\\\":18},{\\\"value\\\":\\\"19.94\\\",\\\"count\\\":17}]\"}\n{\"field\": \"date_hour\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"0\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"1\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"12\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"13\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"14\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"15\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"17\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"18\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"19\\\",\\\"count\\\":3600},{\\\"value\\\":\\\"2\\\",\\\"count\\\":3600}]\"}\n{\"field\": \"date_mday\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"17\\\",\\\"count\\\":45753},{\\\"value\\\":\\\"18\\\",\\\"count\\\":38746}]\"}\n{\"field\": \"date_minute\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"18\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"19\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"20\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"21\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"22\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"23\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"24\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"25\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"26\\\",\\\"count\\\":1440},{\\\"value\\\":\\\"27\\\",\\\"count\\\":1440}]\"}\n{\"field\": \"date_month\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"november\\\",\\\"count\\\":84499}]\"}\n{\"field\": \"date_second\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"19\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"20\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"21\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"22\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"23\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"24\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"25\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"26\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"27\\\",\\\"count\\\":1409},{\\\"value\\\":\\\"28\\\",\\\"count\\\":1409}]\"}\n{\"field\": \"date_wday\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"tuesday\\\",\\\"count\\\":45753},{\\\"value\\\":\\\"wednesday\\\",\\\"count\\\":38746}]\"}\n{\"field\": \"date_year\", \"count\": \"84499\", \"values\": \"[{\\\"value\\\":\\\"2026\\\",\\\"count\\\":84499}]\"}\n… 22 more rows"
+        },
+        {
+          "kind": "agent",
+          "t": 47.8,
+          "text": "Checkout data is in `index=demo_checkout` with `latency_ms` and `region`. Running CDTSM anomaly detection on 5-minute p95 per region."
+        },
+        {
+          "kind": "mcp",
+          "t": 47.8,
+          "tool": "splunk_run_query",
+          "args": {
+            "app": "search",
+            "earliest_time": "-24h",
+            "latest_time": "now",
+            "query": "index=demo_checkout sourcetype=checkout | bin _time span=5m | stats perc95(latency_ms) AS p95 by _time region | apply CDTSM p95 BY region mode=anomaly detection_window_earliest=-8h | eval is_anom=if('_isAnomaly.p95'=1,1,0) | eval peak_ratio=if(is_anom=1,p95/'p95.forecast',null()) | stats sum(is_anom) AS anomalous_points, min(eval(if(is_anom=1,_time,null()))) AS first_anom, max(eval(if(is_anom=1,_time,null()))) AS last_anom, max(eval(if(is_anom=1,p95,null()))) AS peak_p95, max(peak_ratio) AS peak_vs_forecast by region | eval first_anom=strftime(first_anom,\"%Y-%m-%d %H:%M:%S\") | eval last_anom=strftime(last_anom,\"%Y-%m-%d %H:%M:%S\") | eval peak_p95=round(peak_p95,1) | eval peak_vs_forecast=round(peak_vs_forecast,2) | table region, anomalous_points, first_anom, last_anom, peak_p95, peak_vs_forecast | sort -anomalous_points",
+            "row_limit": 20
+          },
+          "result": "4 rows\n{\"region\": \"eu-west-1\", \"anomalous_points\": \"27\", \"first_anom\": \"2026-11-18 05:45:00\", \"last_anom\": \"2026-11-18 07:55:00\", \"peak_p95\": \"1535.2\", \"peak_vs_forecast\": \"4.63\"}\n{\"region\": \"ap-southeast-1\", \"anomalous_points\": \"0\"}\n{\"region\": \"us-east-1\", \"anomalous_points\": \"0\"}\n{\"region\": \"us-west-2\", \"anomalous_points\": \"0\"}"
+        },
+        {
+          "kind": "agent",
+          "t": 50.5,
+          "text": "**CDTSM found a Europe-only latency anomaly this morning.** Other regions stayed normal, which is why a global or US-centric alert would have stayed quiet.\n\n| Region | Anomalous 5-min points | Window (UTC) | Peak p95 (ms) | Peak vs forecast |\n|---|---|---|---|---|\n| eu-west-1 | 27 | 2026-11-18 05:45 – 07:55 | 1535.2 | 4.63× |\n| us-east-1 | 0 | — | — | — |\n| us-west-2 | 0 | — | — | — |\n| ap-southeast-1 | 0 | — | — | — |\n\nCheckout p95 in `eu-west-1` ran about **4.6× above the model forecast** for roughly two hours (05:45–07:55 UTC, morning in Europe). US and APAC series had no CDTSM anomaly flags in the last 24 hours."
+        }
+      ],
+      "summary": "3 skills · 8 MCP calls"
+    },
+    {
+      "id": "alert",
+      "entries": [
+        {
+          "kind": "user",
+          "t": 61.8,
+          "text": "Make that an alert called demo_checkout_latency_anomaly: run it every 15 minutes and fire when the model flags a latency anomaly in any region."
+        },
+        {
+          "kind": "agent",
+          "t": 69.9,
+          "text": "I'll look up `saved-search add` parameters, then create `demo_checkout_latency_anomaly` without `--yes` so we can confirm it."
+        },
+        {
+          "kind": "shell",
+          "t": 69.9,
+          "command": "splunkctl saved-search add --help && echo \"----DESCRIBE----\" && splunkctl saved-search add --describe",
+          "result": "Exit code: 0\n\nCommand output (truncated to 20000 characters):\n\n```\nCreate a saved search\n\nUsage:\n  splunkctl saved-search add <name> [flags]\n\nExamples:\n  splunkctl saved-search add \"My Search\" --search 'index=main error'\n  splunkctl saved-search add \"Hourly Errors\" --search 'index=main error | stats count' --param cron_schedule=\"0 * * * *\" --param is_scheduled=1\n\nFlags:\n  -h, --help            help for add\n      --name string     saved search name (positional or --name)\n      --search string   SPL search string (required)\n\nGlobal Flags:\n      --describe            Show available --param keys for this command (required and optional) then exit\n      --host string         Splunk REST endpoint (env: SPLUNKCTL_HOST)\n      --insecure            Skip TLS certificate verification\n  -o, --output string       Output format: json|table|text (default: table on TTY, json otherwise)\n      --param stringArray   Extra Splunk API parameter as key=value (repeatable, e.g. --param frozenTimePeriodInSecs=2592000)\n      --read-only           Block operations that can modify state\n      --timeout int         HTTP request timeout in seconds (default 30)\n      --token string        Splunk API bearer token (env: SPLUNKCTL_TOKEN)\n      --yes                 Skip write confirmation\n----DESCRIBE----\n{\n  \"optional\": [\n    \"action.action_history._command_backup\",\n    \"action.action_history.command\",\n    \"action.action_history.content\",\n    \"action.action_history.content_type\",\n    \"action.action_history.enabled\",\n    \"action.action_history.forceCsvResults\",\n    \"action.action_history.hostname\",\n    \"action.action_history.label\",\n    \"action.action_history.maxresults\",\n    \"action.action_history.maxtime\",\n    \"action.action_history.track_alert\",\n    \"action.action_history.ttl\",\n    \"action.add_events._command_backup\",\n    \"action.add_events.alert.execute.cmd\",\n    \"action.add_events.alert.execute.cmd.arg.1\",\n    \"action.add_events.command\",\n    \"action.add_events.forceCsvResults\",\n    \"action.add_events.hostname\",\n    \"action.add_events.icon_path\",\n    \"action.add_events.is_custom\",\n    \"action.add_events.label\",\n    \"action.add_events.maxresults\",\n    \"action.add_events.maxtime\",\n    \"action.add_events.payload_format\",\n    \"action.add_events.python.required\",\n    \"action.add_events.python.version\",\n    \"action.add_events.track_alert\",\n    \"action.add_events.ttl\",\n    \"action.copy_events._command_backup\",\n    \"action.copy_events.alert.execute.cmd\",\n    \"action.copy_events.alert.execute.cmd.arg.1\",\n    \"action.copy_events.alert.execute.cmd.arg.2\",\n    \"action.copy_events.command\",\n    \"action.copy_events.forceCsvResults\",\n    \"action.copy_events.hostname\",\n    \"action.copy_events.icon_path\",\n    \"action.copy_events.is_custom\",\n    \"action.copy_events.label\",\n    \"action.copy_events.maxresults\",\n    \"action.copy_events.maxtime\",\n    \"action.copy_events.payload_format\",\n    \"action.copy_events.python.required\",\n    \"action.copy_events.python.version\",\n    \"action.copy_events.track_alert\",\n    \"action.copy_events.ttl\",\n    \"action.correlationsearch._command_backup\",\n    \"action.correlationsearch.annotations\",\n    \"action.correlationsearch.command\",\n    \"action.correlationsearch.enabled\",\n    \"action.correlationsearch.forceCsvResults\",\n    \"action.correlationsearch.hostname\",\n    \"action.correlationsearch.label\",\n    \"action.correlationsearch.maxresults\",\n    \"action.correlationsearch.maxtime\",\n    \"action.correlationsearch.metadata\",\n    \"action.correlationsearch.related_searches\",\n    \"action.correlationsearch.track_alert\",\n    \"action.correlationsearch.ttl\",\n    \"action.customsearchbuilder._command_backup\",\n    \"action.customsearchbuilder.command\",\n    \"action.customsearchbuilder.enabled\",\n    \"action.customsearchbuilder.forceCsvResults\",\n    \"action.customsearchbuilder.hostname\",\n    \"action.customsearchbuilder.maxresults\",\n    \"action.customsearchbuilder.maxtime\",\n    \"action.customsearchbuilder.namespace\",\n    \"action.customsearchbuilder.routine\",\n    \"action.customsearchbuilder.spec\",\n    \"action.customsearchbuilder.track_alert\",\n    \"action.customsearchbuilder.ttl\",\n    \"action.email._command_backup\",\n    \"action.email.allow_empty_attachment\",\n    \"action.email.allowedDomainList\",\n    \"action.email.auth_password\",\n    \"action.email.auth_username\",\n    \"action.email.bcc\",\n    \"action.email.cc\",\n    \"action.email.cipherSuite\",\n    \"action.email.command\",\n    \"action.email.content_type\",\n    \"action.email.description\",\n    \"action.email.footer.text\",\n    \"action.email.forceCsvResults\",\n    \"action.email.format\",\n    \"action.email.from\",\n    \"action.email.hostname\",\n    \"action.email.icon_path\",\n    \"action.email.include.results_link\",\n    \"action.email.include.search\",\n    \"action.email.include.trigger\",\n    \"action.email.include.trigger_time\",\n    \"action.email.include.view_link\",\n    \"action.email.inline\",\n    \"action.email.label\",\n    \"action.email.mailserver\",\n    \"action.email.maxresults\",\n    \"action.email.maxtime\",\n    \"action.email.message.alert\",\n    \"action.email.message.report\",\n    \"action.email.oauth_client_id\",\n    \"action.email.oauth_client_secret\",\n    \"action.email.oauth_scope\",\n    \"action.email.oauth_url\",\n    \"action.email.pdf.footer_center\",\n    \"action.email.pdf.footer_enabled\",\n    \"action.email.pdf.footer_left\",\n    \"action.email.pdf.footer_right\",\n    \"action.email.pdf.header_center\",\n    \"action.email.pdf.header_enabled\",\n    \"action.email.pdf.header_left\",\n    \"action.email.pdf.header_right\",\n    \"action.email.pdf.html_image_rendering\",\n    \"action.email.pdf.logo_path\",\n    \"action.email.pdfview\",\n    \"action.email.preprocess_results\",\n    \"action.email.priority\",\n    \"action.email.reportCIDFontList\",\n    \"action.email.reportFileName\",\n    \"action.email.reportIncludeSplunkLogo\",\n    \"action.email.reportPaperOrientation\",\n    \"action.email.reportPaperSize\",\n    \"action.email.sendcsv\",\n    \"action.email.sendpdf\",\n    \"action.email.sendpng\",\n    \"action.email.sendresults\",\n    \"action.email.sslVersions\",\n    \"action.email.subject\",\n    \"action.email.subject.alert\",\n    \"action.email.subject.report\",\n    \"action.email.to\",\n    \"action.email.track_alert\",\n    \"action.email.ttl\",\n    \"action.email.useNSSubject\",\n    \"action.email.use_ssl\",\n    \"action.email.use_tls\",\n    \"action.email.width_sort_columns\",\n    \"action.keyindicator._command_backup\",\n    \"action.keyindicator.command\",\n    \"action.keyindicator.delta\",\n    \"action.keyindicator.delta_qual\",\n    \"action.keyindicator.doc_link\",\n    \"action.keyindicator.drilldown_uri\",\n    \"action.keyindicator.error_message\",\n    \"action.keyindicator.forceCsvResults\",\n    \"action.keyindicator.hostname\",\n    \"action.keyindicator.invert\",\n    \"action.keyindicator.maxresults\",\n    \"action.keyindicator.maxtime\",\n    \"action.keyindicator.related_searches\",\n    \"action.keyindicator.subtitle\",\n    \"action.keyindicator.threshold\",\n    \"action.keyindicator.title\",\n    \"action.keyindicator.track_alert\",\n    \"action.keyindicator.ttl\",\n    \"action.keyindicator.value\",\n    \"action.keyindicator.value_qual\",\n    \"action.keyindicator.value_suffix\",\n    \"action.logevent._command_backup\",\n    \"action.logevent.command\",\n    \"action.logevent.description\",\n    \"action.logevent.forceCsvResults\",\n    \"action.logevent.hostname\",\n    \"action.logevent.icon_path\",\n    \"action.logevent.is_custom\",\n    \"action.logevent.label\",\n    \"action.logevent.maxresults\",\n    \"action.logevent.maxtime\",\n    \"action.logevent.param.event\",\n    \"action.logevent.param.host\",\n    \"action.logevent.param.index\",\n    \"action.logevent.param.source\",\n    \"action.logevent.param.sourcetype\",\n    \"action.logevent.payload_format\",\n    \"action.logevent.python.required\",\n    \"action.logevent.track_alert\",\n    \"action.logevent.ttl\",\n    \"action.lookup._command_backup\",\n    \"action.lookup.append\",\n    \"action.lookup.command\",\n    \"action.lookup.description\",\n    \"action.lookup.filename\",\n    \"action.lookup.forceCsvResults\",\n    \"action.lookup.hostname\",\n    \"action.lookup.icon_path\",\n    \"action.lookup.label\",\n    \"action.lookup.maxresults\",\n    \"action.lookup.maxtime\",\n    \"action.lookup.track_alert\",\n    \"action.lookup.ttl\",\n    \"action.makestreams._command_backup\",\n    \"action.makestreams.command\",\n    \"action.makestreams.description\",\n    \"action.makestreams.forceCsvResults\",\n    \"action.makestreams.hostname\",\n    \"action.makestreams.icon_path\",\n    \"action.makestreams.is_custom\",\n    \"action.makestreams.label\",\n    \"action.makestreams.maxresults\",\n    \"action.makestreams.maxtime\",\n    \"action.makestreams.param._cam\",\n    \"action.makestreams.param.category\",\n    \"action.makestreams.param.description\",\n    \"action.makestreams.param.duration\",\n    \"action.makestreams.param.fields\",\n    \"action.makestreams.param.limit\",\n    \"action.makestreams.param.protocols\",\n    \"action.makestreams.param.verbose\",\n    \"action.makestreams.payload_format\",\n    \"action.makestreams.python.required\",\n    \"action.makestreams.python.version\",\n    \"action.makestreams.track_alert\",\n    \"action.makestreams.ttl\",\n    \"action.mscs_stop_azure_vm._command_backup\",\n    \"action.mscs_stop_azure_vm.command\",\n    \"action.mscs_stop_azure_vm.description\",\n    \"action.mscs_stop_azure_vm.forceCsvResults\",\n    \"action.mscs_stop_azure_vm.hostname\",\n    \"action.mscs_stop_azure_vm.icon_path\",\n    \"action.mscs_stop_azure_vm.is_custom\",\n    \"action.mscs_stop_azure_vm.label\",\n    \"action.mscs_stop_azure_vm.maxresults\",\n    \"action.mscs_stop_azure_vm.maxtime\",\n    \"action.mscs_stop_azure_vm.param.account\",\n    \"action.mscs_stop_azure_vm.param.resource_group\",\n    \"action.mscs_stop_azure_vm.param.subscription_id\",\n    \"action.mscs_stop_azure_vm.param.vm_name\",\n    \"action.mscs_stop_azure_vm.payload_format\",\n    \"action.mscs_stop_azure_vm.python.required\",\n    \"action.mscs_stop_azure_vm.python.version\",\n    \"action.mscs_stop_azure_vm.track_alert\",\n    \"action.mscs_stop_azure_vm.ttl\",\n    \"action.nbtstat._command_backup\",\n    \"action.nbtstat.command\",\n    \"action.nbtstat.description\",\n    \"action.nbtstat.forceCsvResults\",\n    \"action.nbtstat.hostnam\n\n... (output truncated) ...\n\nion.threat_add.track_alert\",\n    \"action.threat_add.ttl\",\n    \"action.threat_outputlookup._command_backup\",\n    \"action.threat_outputlookup.collections\",\n    \"action.threat_outputlookup.command\",\n    \"action.threat_outputlookup.forceCsvResults\",\n    \"action.threat_outputlookup.hostname\",\n    \"action.threat_outputlookup.maxresults\",\n    \"action.threat_outputlookup.maxtime\",\n    \"action.threat_outputlookup.track_alert\",\n    \"action.threat_outputlookup.ttl\",\n    \"action.webhook._command_backup\",\n    \"action.webhook.command\",\n    \"action.webhook.description\",\n    \"action.webhook.enable_allowlist\",\n    \"action.webhook.forceCsvResults\",\n    \"action.webhook.hostname\",\n    \"action.webhook.icon_path\",\n    \"action.webhook.is_custom\",\n    \"action.webhook.label\",\n    \"action.webhook.maxresults\",\n    \"action.webhook.maxtime\",\n    \"action.webhook.param.user_agent\",\n    \"action.webhook.payload_format\",\n    \"action.webhook.python.required\",\n    \"action.webhook.track_alert\",\n    \"action.webhook.ttl\",\n    \"actions\",\n    \"alert.digest_mode\",\n    \"alert.expires\",\n    \"alert.managedBy\",\n    \"alert.severity\",\n    \"alert.suppress\",\n    \"alert.suppress.fields\",\n    \"alert.suppress.group_name\",\n    \"alert.suppress.period\",\n    \"alert.track\",\n    \"alert_comparator\",\n    \"alert_condition\",\n    \"alert_threshold\",\n    \"alert_type\",\n    \"allow_data_time_skew\",\n    \"allow_skew\",\n    \"auto_summarize\",\n    \"auto_summarize.command\",\n    \"auto_summarize.cron_schedule\",\n    \"auto_summarize.dispatch.earliest_time\",\n    \"auto_summarize.dispatch.latest_time\",\n    \"auto_summarize.dispatch.time_format\",\n    \"auto_summarize.dispatch.ttl\",\n    \"auto_summarize.max_concurrent\",\n    \"auto_summarize.max_disabled_buckets\",\n    \"auto_summarize.max_summary_ratio\",\n    \"auto_summarize.max_summary_size\",\n    \"auto_summarize.max_time\",\n    \"auto_summarize.suspend_period\",\n    \"auto_summarize.timespan\",\n    \"auto_summarize.workload_pool\",\n    \"calculate_alert_required_fields_in_search\",\n    \"cron_schedule\",\n    \"defer_scheduled_searchable_idxc\",\n    \"description\",\n    \"disabled\",\n    \"dispatch.allow_partial_results\",\n    \"dispatch.auto_cancel\",\n    \"dispatch.auto_pause\",\n    \"dispatch.buckets\",\n    \"dispatch.earliest_time\",\n    \"dispatch.index_earliest\",\n    \"dispatch.index_latest\",\n    \"dispatch.indexedRealtime\",\n    \"dispatch.indexedRealtimeMinSpan\",\n    \"dispatch.indexedRealtimeOffset\",\n    \"dispatch.latest_time\",\n    \"dispatch.lookups\",\n    \"dispatch.max_count\",\n    \"dispatch.max_time\",\n    \"dispatch.rate_limit_retry\",\n    \"dispatch.reduce_freq\",\n    \"dispatch.rt_backfill\",\n    \"dispatch.rt_maximum_span\",\n    \"dispatch.sample_ratio\",\n    \"dispatch.spawn_process\",\n    \"dispatch.time_format\",\n    \"dispatch.ttl\",\n    \"dispatchAs\",\n    \"display.events.fields\",\n    \"display.events.list.drilldown\",\n    \"display.events.list.wrap\",\n    \"display.events.maxLines\",\n    \"display.events.raw.drilldown\",\n    \"display.events.rowNumbers\",\n    \"display.events.table.drilldown\",\n    \"display.events.table.wrap\",\n    \"display.events.type\",\n    \"display.general.enablePreview\",\n    \"display.general.migratedFromViewState\",\n    \"display.general.timeRangePicker.show\",\n    \"display.general.type\",\n    \"display.page.search.mode\",\n    \"display.page.search.patterns.sensitivity\",\n    \"display.page.search.showFields\",\n    \"display.page.search.tab\",\n    \"display.page.search.timeline.format\",\n    \"display.page.search.timeline.scale\",\n    \"display.statistics.drilldown\",\n    \"display.statistics.overlay\",\n    \"display.statistics.percentagesRow\",\n    \"display.statistics.rowNumbers\",\n    \"display.statistics.show\",\n    \"display.statistics.totalsRow\",\n    \"display.statistics.wrap\",\n    \"display.visualizations.chartHeight\",\n    \"display.visualizations.charting.axisLabelsX.majorLabelStyle.overflowMode\",\n    \"display.visualizations.charting.axisLabelsX.majorLabelStyle.rotation\",\n    \"display.visualizations.charting.axisLabelsX.majorUnit\",\n    \"display.visualizations.charting.axisLabelsY.majorUnit\",\n    \"display.visualizations.charting.axisLabelsY2.majorUnit\",\n    \"display.visualizations.charting.axisTitleX.text\",\n    \"display.visualizations.charting.axisTitleX.visibility\",\n    \"display.visualizations.charting.axisTitleY.text\",\n    \"display.visualizations.charting.axisTitleY.visibility\",\n    \"display.visualizations.charting.axisTitleY2.text\",\n    \"display.visualizations.charting.axisTitleY2.visibility\",\n    \"display.visualizations.charting.axisX.abbreviation\",\n    \"display.visualizations.charting.axisX.maximumNumber\",\n    \"display.visualizations.charting.axisX.minimumNumber\",\n    \"display.visualizations.charting.axisX.scale\",\n    \"display.visualizations.charting.axisY.abbreviation\",\n    \"display.visualizations.charting.axisY.maximumNumber\",\n    \"display.visualizations.charting.axisY.minimumNumber\",\n    \"display.visualizations.charting.axisY.scale\",\n    \"display.visualizations.charting.axisY2.abbreviation\",\n    \"display.visualizations.charting.axisY2.enabled\",\n    \"display.visualizations.charting.axisY2.maximumNumber\",\n    \"display.visualizations.charting.axisY2.minimumNumber\",\n    \"display.visualizations.charting.axisY2.scale\",\n    \"display.visualizations.charting.chart\",\n    \"display.visualizations.charting.chart.bubbleMaximumSize\",\n    \"display.visualizations.charting.chart.bubbleMinimumSize\",\n    \"display.visualizations.charting.chart.bubbleSizeBy\",\n    \"display.visualizations.charting.chart.nullValueMode\",\n    \"display.visualizations.charting.chart.overlayFields\",\n    \"display.visualizations.charting.chart.rangeValues\",\n    \"display.visualizations.charting.chart.showDataLabels\",\n    \"display.visualizations.charting.chart.sliceCollapsingThreshold\",\n    \"display.visualizations.charting.chart.stackMode\",\n    \"display.visualizations.charting.chart.style\",\n    \"display.visualizations.charting.drilldown\",\n    \"display.visualizations.charting.fieldColors\",\n    \"display.visualizations.charting.fieldDashStyles\",\n    \"display.visualizations.charting.gaugeColors\",\n    \"display.visualizations.charting.layout.splitSeries\",\n    \"display.visualizations.charting.layout.splitSeries.allowIndependentYRanges\",\n    \"display.visualizations.charting.legend.labelStyle.overflowMode\",\n    \"display.visualizations.charting.legend.mode\",\n    \"display.visualizations.charting.legend.placement\",\n    \"display.visualizations.charting.lineWidth\",\n    \"display.visualizations.custom.drilldown\",\n    \"display.visualizations.custom.height\",\n    \"display.visualizations.custom.type\",\n    \"display.visualizations.mapHeight\",\n    \"display.visualizations.mapping.choroplethLayer.colorBins\",\n    \"display.visualizations.mapping.choroplethLayer.colorMode\",\n    \"display.visualizations.mapping.choroplethLayer.maximumColor\",\n    \"display.visualizations.mapping.choroplethLayer.minimumColor\",\n    \"display.visualizations.mapping.choroplethLayer.neutralPoint\",\n    \"display.visualizations.mapping.choroplethLayer.shapeOpacity\",\n    \"display.visualizations.mapping.choroplethLayer.showBorder\",\n    \"display.visualizations.mapping.data.maxClusters\",\n    \"display.visualizations.mapping.drilldown\",\n    \"display.visualizations.mapping.legend.placement\",\n    \"display.visualizations.mapping.map.center\",\n    \"display.visualizations.mapping.map.panning\",\n    \"display.visualizations.mapping.map.scrollZoom\",\n    \"display.visualizations.mapping.map.zoom\",\n    \"display.visualizations.mapping.markerLayer.markerMaxSize\",\n    \"display.visualizations.mapping.markerLayer.markerMinSize\",\n    \"display.visualizations.mapping.markerLayer.markerOpacity\",\n    \"display.visualizations.mapping.showTiles\",\n    \"display.visualizations.mapping.tileLayer.maxZoom\",\n    \"display.visualizations.mapping.tileLayer.minZoom\",\n    \"display.visualizations.mapping.tileLayer.tileOpacity\",\n    \"display.visualizations.mapping.tileLayer.url\",\n    \"display.visualizations.mapping.type\",\n    \"display.visualizations.show\",\n    \"display.visualizations.singlevalue.afterLabel\",\n    \"display.visualizations.singlevalue.beforeLabel\",\n    \"display.visualizations.singlevalue.colorBy\",\n    \"display.visualizations.singlevalue.colorMode\",\n    \"display.visualizations.singlevalue.drilldown\",\n    \"display.visualizations.singlevalue.numberPrecision\",\n    \"display.visualizations.singlevalue.rangeColors\",\n    \"display.visualizations.singlevalue.rangeValues\",\n    \"display.visualizations.singlevalue.showSparkline\",\n    \"display.visualizations.singlevalue.showTrendIndicator\",\n    \"display.visualizations.singlevalue.trendColorInterpretation\",\n    \"display.visualizations.singlevalue.trendDisplayMode\",\n    \"display.visualizations.singlevalue.trendInterval\",\n    \"display.visualizations.singlevalue.underLabel\",\n    \"display.visualizations.singlevalue.unit\",\n    \"display.visualizations.singlevalue.unitPosition\",\n    \"display.visualizations.singlevalue.useColors\",\n    \"display.visualizations.singlevalue.useThousandSeparators\",\n    \"display.visualizations.singlevalueHeight\",\n    \"display.visualizations.trellis.enabled\",\n    \"display.visualizations.trellis.scales.shared\",\n    \"display.visualizations.trellis.size\",\n    \"display.visualizations.trellis.splitBy\",\n    \"display.visualizations.type\",\n    \"displayview\",\n    \"durable.backfill_type\",\n    \"durable.lag_time\",\n    \"durable.max_backfill_intervals\",\n    \"durable.track_time_type\",\n    \"federated_providers\",\n    \"is_scheduled\",\n    \"is_visible\",\n    \"max_concurrent\",\n    \"next_scheduled_time\",\n    \"precalculate_required_fields_for_alerts\",\n    \"qualifiedSearch\",\n    \"realtime_schedule\",\n    \"request.ui_dispatch_app\",\n    \"request.ui_dispatch_view\",\n    \"restart_on_searchpeer_add\",\n    \"run_n_times\",\n    \"run_on_startup\",\n    \"schedule_as\",\n    \"schedule_priority\",\n    \"schedule_window\",\n    \"skip_scheduled_realtime_idxc\",\n    \"vsid\",\n    \"workload_pool\"\n  ],\n  \"required\": [\n    \"name\",\n    \"search\"\n  ],\n  \"wildcard\": [\n    \"action\\\\..*\",\n    \"args\\\\..*\",\n    \"dispatch\\\\..*\",\n    \"display\\\\.statistics\\\\.format\\\\..*\",\n    \"display\\\\.visualizations\\\\.custom\\\\..*\",\n    \"durable\\\\..*\"\n  ]\n}\n\n```\n\nCommand completed in 1362 ms.\n\nShell state (cwd, env vars) persists for subsequent calls."
+        },
+        {
+          "kind": "shell",
+          "t": 74.6,
+          "command": "splunkctl saved-search --help",
+          "result": "Manage saved searches and alerts\n\nUsage:\n  splunkctl saved-search [command]\n\nAvailable Commands:\n  add         Create a saved search\n  dispatch    Run a saved search manually and return the job ID\n  edit        Edit a saved search\n  list        List saved searches\n  remove      Delete a saved search\n\nFlags:\n  -h, --help   help for saved-search\n\nGlobal Flags:\n      --describe            Show available --param keys for this command (required and optional) then exit\n      --host string         Splunk REST endpoint (env: SPLUNKCTL_HOST)\n      --insecure            Skip TLS certificate verification\n  -o, --output string       Output format: json|table|text (default: table on TTY, json otherwise)\n      --param stringArray   Extra Splunk API parameter as key=value (repeatable, e.g. --param frozenTimePeriodInSecs=2592000)\n      --read-only           Block operations that can modify state\n      --timeout int         HTTP request timeout in seconds (default 30)\n      --token string        Splunk API bearer token (env: SPLUNKCTL_TOKEN)\n      --yes                 Skip write confirmation\n\nUse \"splunkctl saved-search [command] --help\" for more information about a command."
+        },
+        {
+          "kind": "agent",
+          "t": 78.0,
+          "text": "Creating the scheduled alert without `--yes` so Splunk can require confirmation first."
+        },
+        {
+          "kind": "shell",
+          "t": 78.0,
+          "command": "splunkctl saved-search add demo_checkout_latency_anomaly --search 'index=demo_checkout sourcetype=checkout | bin _time span=5m | stats perc95(latency_ms) AS p95 by _time region | apply CDTSM p95 BY region mode=anomaly detection_window_earliest=-8h | where '\\''_isAnomaly.p95'\\''=1 AND _time>=relative_time(now(), \"-30m\")' --param is_scheduled=1 --param 'cron_schedule=*/15 * * * *' --param 'dispatch.earliest_time=-24h' --param 'dispatch.latest_time=now' --param 'alert_type=number of events' --param 'alert_comparator=greater than' --param alert_threshold=0 --param alert.track=1 --param 'description=Fires when CDTSM flags checkout p95 latency anomaly in any region in the last 30 minutes' --param request.ui_dispatch_app=search --timeout 60",
+          "result": "{\"error\":\"write operation for \\\"splunkctl saved-search add\\\" requires confirmation; rerun with --yes after user approval\",\"code\":\"CONFIRMATION_REQUIRED\"}",
+          "blocked": true
+        }
+      ],
+      "summary": "3 shell commands"
+    },
+    {
+      "id": "approval",
+      "entries": [
+        {
+          "kind": "agent",
+          "t": 80.8,
+          "text": "**Alert ready to create (needs your approval).** I ran the create without `--yes`; Splunk stopped with `CONFIRMATION_REQUIRED`.\n\n- **Name:** `demo_checkout_latency_anomaly` (search app)\n- **Schedule:** every 15 minutes (`*/15 * * * *`), search window `-24h` to `now`\n- **Fires when:** result count **> 0**, meaning CDTSM set `'_isAnomaly.p95'=1` on a 5-minute p95 point in **any region** in the **last 30 minutes**\n\nReply **yes** and I will rerun that exact command with `--yes`."
+        },
+        {
+          "kind": "user",
+          "t": 88.6,
+          "text": "Approved. Create it once."
+        },
+        {
+          "kind": "agent",
+          "t": 91.8,
+          "text": "Rerunning the approved create with `--yes` now."
+        },
+        {
+          "kind": "shell",
+          "t": 91.8,
+          "command": "splunkctl saved-search add demo_checkout_latency_anomaly --search 'index=demo_checkout sourcetype=checkout | bin _time span=5m | stats perc95(latency_ms) AS p95 by _time region | apply CDTSM p95 BY region mode=anomaly detection_window_earliest=-8h | where '\\''_isAnomaly.p95'\\''=1 AND _time>=relative_time(now(), \"-30m\")' --param is_scheduled=1 --param 'cron_schedule=*/15 * * * *' --param 'dispatch.earliest_time=-24h' --param 'dispatch.latest_time=now' --param 'alert_type=number of events' --param 'alert_comparator=greater than' --param alert_threshold=0 --param alert.track=1 --param 'description=Fires when CDTSM flags checkout p95 latency anomaly in any region in the last 30 minutes' --param request.ui_dispatch_app=search --timeout 60 --yes",
+          "result": "Exit code: 0\n\nCommand output has been written to: /Users/Shared/splunk-demo/.cursor/projects/Users-Shared-splunk-demo-payments/agent-tools/ba53a636-b38e-40d0-8842-18e9d9d26759.txt (50.4 KB, 844 lines)\n\nCommand completed in 1110 ms.\n\nShell state (cwd, env vars) persists for subsequent calls."
+        },
+        {
+          "kind": "agent",
+          "t": 98.9,
+          "text": "**`demo_checkout_latency_anomaly` is created** in the search app and scheduled.\n\n- **Schedule:** every 15 minutes (`*/15 * * * *`), dispatch `-24h` to `now`\n- **Fires when:** number of events **greater than 0**, after CDTSM flags `'_isAnomaly.p95'=1` in any region in the last 30 minutes\n- Tracking is on (`alert.track=1`); no other write was run."
+        }
+      ],
+      "summary": "The write stopped at CONFIRMATION_REQUIRED until you approved",
+      "gate": true
+    },
+    {
+      "id": "verify",
+      "entries": [
+        {
+          "kind": "shell",
+          "t": 103.5,
+          "command": "splunkctl saved-search list --name demo_checkout_latency_anomaly -o json | jq '.[0] | {name, cron_schedule, is_scheduled, alert_type, disabled}'",
+          "result": "{\n  \"name\": \"demo_checkout_latency_anomaly\",\n  \"cron_schedule\": \"*/15 * * * *\",\n  \"is_scheduled\": true,\n  \"alert_type\": \"number of events\",\n  \"disabled\": false\n}",
+          "by": "user"
+        }
+      ],
+      "summary": "1 shell command"
+    }
+  ]
+}

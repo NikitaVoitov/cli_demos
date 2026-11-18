@@ -40,8 +40,9 @@ export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }
       'Agentic Splunk SDK',
       'Splunk Dashboard Studio',
       'Splunk AI Toolkit',
+      'CDTSM',
       'Splunk Cloud',
     ],
   },
-  { id: 'technologies', label: 'Technologies', values: ['Python', 'Gemini', 'Playwright', 'Jira', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack'] },
+  { id: 'technologies', label: 'Technologies', values: ['Python', 'Gemini', 'Playwright', 'Jira', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack', 'Azure'] },
 ]

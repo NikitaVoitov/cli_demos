@@ -1,3 +1,4 @@
+import azure from '@/assets/brands/azure.svg'
 import claude from '@/assets/brands/claude.svg'
 import cursor from '@/assets/brands/cursor.svg'
 import geminiCli from '@/assets/brands/gemini-cli.svg'
@@ -17,6 +18,7 @@ import terraform from '@/assets/brands/terraform.svg'
  */
 export const BRAND_ICON: Record<string, string> = {
   // Claude Code shows the Claude app mark; Codex shows its maker's, OpenAI.
+  Azure: azure,
   'Claude Code': claude,
   Codex: openai,
   Cursor: cursor,
