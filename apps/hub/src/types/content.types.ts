@@ -75,7 +75,7 @@ export interface Content {
     steps?: Record<string, { title?: string; alt: string }>
   }
   /** Labels for the architecture diagram; the browser boxes appear only for demos with a browser pane. */
-  flow?: { mcp?: string; kind?: 'sdk' | 'jira' }
+  flow?: { mcp?: string; kind?: 'sdk' | 'jira' | 'cdtsm' }
   display: { hidden: boolean; featured: boolean; order: number }
 }
 

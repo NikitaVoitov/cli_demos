@@ -165,6 +165,73 @@ export function JiraFlowDiagram({ mcp = 'searches, saved ML models' }: { mcp?: s
   )
 }
 
+// Columns: You 0–100 · Cursor CLI 164–280 · tools 330–580 · Splunk Cloud 640–900, with the AI Toolkit inside it and the
+// self-hosted model below. Tool boxes are 250 wide so the splunkctl note fits.
+/** The CDTSM story: the agent runs the AI Toolkit's CDTSM through Splunk MCP, and the model is served from Azure. */
+export function CdtsmFlowDiagram({ mcp = 'search, apply CDTSM' }: { mcp?: string }) {
+  return (
+    <svg viewBox="0 0 900 300" className="h-auto w-full font-sans" role="img" aria-labelledby="cdtsm-flow-title cdtsm-flow-desc">
+      <title id="cdtsm-flow-title">How the pieces fit together</title>
+      <desc id="cdtsm-flow-desc">
+        You prompt Cursor CLI. It searches Splunk Cloud through Splunk MCP and runs apply CDTSM, the Splunk AI Toolkit command that
+        sends each time series to the Cisco Deep Time Series Model, self-hosted on Azure Container Apps. It creates the alert with
+        splunkctl over REST port 8089, where the write stops at CONFIRMATION_REQUIRED and Cursor asks you first.
+      </desc>
+      <defs>
+        <marker id="cdtsm-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="cdtsm-flow-arrow-warn" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
+        </marker>
+      </defs>
+      <Box x={0} y={112} w={100} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={164} y={112} w={116} h={76} title="Cursor CLI" sub="the agent" stroke="var(--text-primary)" />
+      <Box
+        x={330}
+        y={18}
+        w={250}
+        h={76}
+        title="splunkctl"
+        sub="Shell · create the alert"
+        stroke="var(--status-success)"
+        note="writes stop at CONFIRMATION_REQUIRED"
+      />
+      <Box x={330} y={116} w={250} h={68} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
+      <Box x={640} y={18} w={260} h={166} title="Splunk Cloud" sub="REST :8089 and MCP" stroke="var(--border-strong)" />
+      <Box x={656} y={96} w={228} h={72} title="Splunk AI Toolkit" sub="apply CDTSM, the alert search" stroke="var(--action-primary)" />
+      <Box
+        x={640}
+        y={214}
+        w={260}
+        h={72}
+        title="Cisco Deep Time Series Model"
+        sub="CDTSM · Azure Container Apps"
+        stroke="var(--status-info)"
+        dashed
+      />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#cdtsm-flow-arrow)">
+        <path d="M100 138H162" />
+        <path d="M280 150C305 150 305 56 328 56" />
+        <path d="M280 150H328" />
+        <path d="M580 56H638" />
+        <path d="M580 150H654" />
+        <path d="M770 168V212" />
+      </g>
+      <path d="M162 164H102" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#cdtsm-flow-arrow-warn)" />
+      <Label x={132} y={130}>prompt</Label>
+      <Label x={132} y={182} warn>
+        asks first
+      </Label>
+      <Label x={609} y={48}>REST</Label>
+      <Label x={609} y={142}>MCP</Label>
+      <text x={780} y={195} fontSize={11} fill="var(--text-muted)">
+        HTTPS · bearer token
+      </text>
+    </svg>
+  )
+}
+
 // Columns: You 0–100 · Cursor CLI 140–280 · agent.py 320–490 · model and tools 540–720 · Splunk 770–900.
 /** The Agentic SDK story: Cursor writes a script, and the script is the agent. No splunkctl, no approval. */
 export function SdkFlowDiagram({ mcp = '2 allowlisted tools' }: { mcp?: string }) {

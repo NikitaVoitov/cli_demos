@@ -35,4 +35,5 @@ browser:
   alt: >
     Splunk Web's Edit Alert dialog for the new demo_checkout_latency_anomaly alert: scheduled on the cron
     expression every 15 minutes over the last 24 hours, triggering when the number of results is greater than 0.
+flow: { kind: cdtsm, mcp: "search, apply CDTSM" }
 display: { hidden: false, featured: false, order: 70 }
