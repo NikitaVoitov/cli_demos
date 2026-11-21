@@ -1,5 +1,12 @@
 import type { DemoEntry } from '@/types/content.types'
-import { CdtsmFlowDiagram, FlowDiagram, JiraFlowDiagram, SdkFlowDiagram } from '../FlowDiagram/FlowDiagram'
+import {
+  CdtsmFlowDiagram,
+  FlowDiagram,
+  JiraFlowDiagram,
+  NotebookFlowDiagram,
+  PhishingFlowDiagram,
+  SdkFlowDiagram,
+} from '../FlowDiagram/FlowDiagram'
 
 // Each column is a sub-tile: the intro reads as prose, the details sit beside it.
 const proseClass = [
@@ -39,6 +46,10 @@ export function HowItWorksPanel({ entry }: { entry: DemoEntry }) {
             <JiraFlowDiagram mcp={entry.content.flow.mcp} />
           ) : entry.content.flow?.kind === 'cdtsm' ? (
             <CdtsmFlowDiagram mcp={entry.content.flow.mcp} />
+          ) : entry.content.flow?.kind === 'notebook' ? (
+            <NotebookFlowDiagram mcp={entry.content.flow.mcp} />
+          ) : entry.content.flow?.kind === 'phishing' ? (
+            <PhishingFlowDiagram />
           ) : (
             <FlowDiagram browser={entry.split} mcp={entry.content.flow?.mcp} />
           )}

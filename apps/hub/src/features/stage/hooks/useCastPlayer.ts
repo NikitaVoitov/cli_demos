@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from 'react'
 import type { Player } from 'asciinema-player'
 import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { DemoEntry } from '@/types/content.types'
+import { gatesOf } from '@/lib/gates'
 import { isBeyondGate } from '../utils/timeline'
 
 /** The player has no time-update event, so the stage polls its clock. */
@@ -32,13 +33,13 @@ export function useCastPlayer(
     const el = containerRef.current
     if (!el || !entry.castUrl) return
     const store = usePlaybackStore.getState
-    const gateT = entry.scenario.gate?.t
+    const gates = gatesOf(entry.scenario)
     let player: Player | undefined
     let interval: number | undefined
     let audioUrl: string | undefined
     let disposed = false
 
-    store().reset()
+    store().reset(gates.length)
 
     Promise.all([
       import('asciinema-player'),
@@ -70,7 +71,7 @@ export function useCastPlayer(
         p.addEventListener('play', () => {
           const { status, setStatus } = store()
           // Playing again after the end restarts the story, so the visitor decides at the gate again.
-          if (status === 'ended') usePlaybackStore.setState({ decision: 'pending' })
+          if (status === 'ended') usePlaybackStore.setState({ decision: 'pending', gateIndex: 0 })
           if (status !== 'declined') setStatus('playing')
         })
         p.addEventListener('pause', () => {
@@ -95,9 +96,11 @@ export function useCastPlayer(
 
         interval = window.setInterval(() => {
           const time = p.getCurrentTime()
-          const { decision, status, setStatus, setTime } = store()
+          const { decision, status, gateIndex, setStatus, setTime } = store()
+          // The next unapproved gate; after the last approval there is none.
+          const gateT = decision === 'approved' ? undefined : gates[gateIndex]?.t
 
-          if (gateT !== undefined && decision !== 'approved') {
+          if (gateT !== undefined) {
             const reachedGate = time >= gateT - 0.02
             if (reachedGate && decision === 'pending' && status !== 'gate') {
               void p.pause()

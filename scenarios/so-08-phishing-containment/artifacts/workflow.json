@@ -1,0 +1,153 @@
+{
+  "name": "Closed-loop phishing containment",
+  "nodes": [
+    {
+      "id": "67050ba7-d3a5-4b86-8038-55950cb7cf3d",
+      "name": "Start containment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        208
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contain-phishing",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "535b7e62-8c62-45d4-9b66-f7ddbf5e1081",
+      "name": "Purge email from inboxes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        288,
+        128
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://service.example.com/services/collector/event",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ $json.body.recipients.map(r => JSON.stringify({ sourcetype: 'containment:audit', source: 'n8n', event: { case_id: $json.body.case_id, action: 'message_purged', system: 'mail', target: r, internet_message_id: $json.body.internet_message_id, execution_id: $execution.id } })).join('\\n') }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "c810d5c4-291d-4fff-9276-f1954231388a",
+      "name": "Wait for results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        208
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "f26d76ed-e958-49fe-b4bc-5c99317db0f1",
+      "name": "Block sender domain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        288,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://service.example.com/services/collector/event",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ JSON.stringify({ sourcetype: 'containment:audit', source: 'n8n', event: { case_id: $json.body.case_id, action: 'domain_blocked', system: 'mail-gateway', target: $json.body.sender_domain, execution_id: $execution.id } }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "9eb22ff8-5c3f-4386-9983-778603ed04ef",
+      "name": "Notify analyst in Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        208
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "00000000000",
+          "cachedResultName": "phishing-response"
+        },
+        "text": "=:white_check_mark: *Phishing containment done* for case {{ $('Start containment').item.json.body.case_id }}\n• Purged the email from {{ $('Start containment').item.json.body.recipients.length }} inboxes\n• Blocked {{ $('Start containment').item.json.body.sender_domain }}\nAsk Cursor to verify the result in Splunk.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Purge email from inboxes": {
+      "main": [
+        [
+          {
+            "node": "Wait for results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Block sender domain": {
+      "main": [
+        [
+          {
+            "node": "Wait for results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Start containment": {
+      "main": [
+        [
+          {
+            "node": "Purge email from inboxes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Block sender domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for results": {
+      "main": [
+        [
+          {
+            "node": "Notify analyst in Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

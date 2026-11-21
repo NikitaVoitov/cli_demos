@@ -1,0 +1,50 @@
+# What visitors read. Editable without a new capture.
+title: Triage and contain a reported phishing email
+summary: >
+  An employee forwards a suspicious invoice email to the security inbox. Cursor CLI reads it through Outlook,
+  hands it to a Splunk Agent Launchpad agent that finds who received it, who clicked, and who tried to sign in
+  from where, then contains it through an n8n workflow after your approval. The same agent confirms in Splunk
+  that the containment held.
+taxonomy:
+  personas: [SOC Analyst]
+  category: Security Operations
+  technologies: [n8n, Outlook, Slack]
+  splunk: [splunkctl, Splunk AI Toolkit, Splunk Cloud]
+chapters:
+  report: The report
+  triage: Agent triage
+  approval: Approval
+  contain: n8n containment
+  verify: Verify in Splunk
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: Nothing was contained.
+  declinedBody: n8n-contain never called the workflow, so the email stays in every mailbox and the domain stays open.
+browser:
+  title: Slack
+  waiting: Waiting for n8n to post the result
+  alt: >
+    Slack channel #phishing-response with the SOC Automation app's message: phishing containment done for case
+    PH-1042, the email purged from 14 inboxes and northwind-billing.example blocked.
+  steps:
+    report:
+      title: Outlook
+      alt: >
+        Outlook reading pane with Dana Lee's forwarded report to the security team: she doesn't recognize
+        Northwind Billing, and the forwarded invoice email asks her to sign in at northwind-billing.example.
+workflow:
+  title: n8n
+  object: Closed-loop phishing containment
+  alt: >
+    The n8n workflow Cursor starts after approval: a webhook starts containment, two steps purge the email from
+    every mailbox and block the sender's domain, a merge waits for both results, and a last step notifies the
+    analyst in Slack.
+  callouts:
+    purge: Removes the email from all 14 mailboxes
+    block: Blocks new mail from the sender's domain
+    slack: Tells the analyst containment is done
+flow: { kind: phishing }
+display: { hidden: false, featured: false, order: 70 }

@@ -8,10 +8,15 @@ Beat types, shared by every demo:
   run       a shell command, e.g. launching the client (`agent` gets --model when one is set)
   shell     a command typed in the client's shell mode
   prompt    text typed to the client, then a wait until it starts working
-  wait      wait until the client's turn ends; `require: gate` checks the cast shows the refusal
+  wait      wait until the client's turn ends; `require: gate` checks the cast shows the refusal (recording.gateEvidence,
+            or the beat's own `evidence`, which a demo with several gates sets per gate)
   exit      leave the client and end the recording
 
-Before the beats: fixture setup commands, a fresh Splunk Web login, and the capture home.
+Before the beats: fixture setup commands, a fresh Splunk Web login, and the capture home. Optional recording keys:
+  stackProfile: <name>        capture against another stack (scripts/stack_profile.py builds .captures/ce01/stacks/<name>)
+  integrations: [jira]        Jira tools (acli, Atlassian MCP)
+  integrations: [notebook]    the gated jpterm and euporie-preview; `notebook.gated` lists the held cell IDs
+  fixtures.stage: [commands]  run after the workspace is cleaned and the hints are written, to put files in it
 After them: the client's session store is copied into the take, which is what the transcript is built from.
 """
 
@@ -23,7 +28,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urlparse
 
 import yaml
 
@@ -88,15 +92,31 @@ def stop_stray_clients(home: Path) -> None:
     time.sleep(3)
 
 
-def prepare(recording: dict, home: Path) -> None:
+def prepare(recording: dict, home: Path) -> dict[str, str]:
     stop_stray_clients(home)
+    # Every script below reads CAPTURE_STACK, so a demo on another stack never touches the CO2 stack's secrets.
+    if recording.get("stackProfile"):
+        os.environ["CAPTURE_STACK"] = recording["stackProfile"]
+    else:
+        os.environ.pop("CAPTURE_STACK", None)
     for command in recording.get("fixtures", {}).get("setup", []):
         subprocess.run(command, shell=True, check=True, cwd=ROOT)
-    subprocess.run(["node", str(ROOT / "scripts/splunk_web_login.mjs")], check=True, cwd=ROOT / "apps/hub")
+    # Per-take values, such as a case ID no earlier take used: each command prints one value for __NAME__ in hints.
+    values = {name: subprocess.run(command, shell=True, check=True, cwd=ROOT, capture_output=True, text=True).stdout.strip()
+              for name, command in recording.get("vars", {}).items()}
+    for name, value in values.items():
+        print(f"{name} = {value}")
+    # A demo with no Splunk Web screenshots on an SSO stack opts out; playwright-cli then starts logged out.
+    if recording.get("splunkWebLogin", True):
+        subprocess.run(["node", str(ROOT / "scripts/splunk_web_login.mjs")], check=True, cwd=ROOT / "apps/hub")
     # setup rewrites the workspace instructions from the base template, so hints are appended after it.
     subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "setup"], check=True, cwd=ROOT)
-    if "jira" in recording.get("integrations", []):
-        subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "jira"], check=True, cwd=ROOT)
+    for integration in ("jira", "n8n", "outlook", "search-reads"):
+        if integration in recording.get("integrations", []):
+            subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), integration], check=True, cwd=ROOT)
+    if "notebook" in recording.get("integrations", []):
+        gated = ",".join(recording["notebook"]["gated"])
+        subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "notebook", gated], check=True, cwd=ROOT)
     workspace = home / recording["workspace"]
     for path in workspace.iterdir():
         if path.name != "AGENTS.md":
@@ -113,14 +133,21 @@ def prepare(recording: dict, home: Path) -> None:
     if missing:
         raise SystemExit(f"unknown hints: {missing}")
     if hints:
-        host = urlparse((ROOT / ".captures/ce01/secrets/web_base").read_text().strip()).netloc
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from ce01_capture import web_host
+        host = web_host()
         extra = "\n\n".join(h.read_text().strip() for h in hints).replace("__SPLUNK_WEB_HOST__", host)
         if "jira" in recording.get("integrations", []):
-            sys.path.insert(0, str(ROOT / "scripts"))
             from ce01_capture import jira_site
             extra = extra.replace("__JIRA_SITE__", jira_site()).replace("__JIRA_PROJECT__", recording["jira"]["project"])
+        for name, value in values.items():
+            extra = extra.replace(f"__{name}__", value)
         with (workspace / "AGENTS.md").open("a") as fh:
             fh.write("\n\n" + extra + "\n")
+    # The workspace was emptied above, so files a demo starts from are put in last.
+    for command in recording.get("fixtures", {}).get("stage", []):
+        subprocess.run(command, shell=True, check=True, cwd=ROOT)
+    return values
 
 
 def record(scenario_dir: Path, take: str) -> None:
@@ -131,8 +158,10 @@ def record(scenario_dir: Path, take: str) -> None:
     model = os.environ.get("MODEL", recording.get("model", ""))
     prompt = next(b["prompt"] for b in recording["beats"] if "prompt" in b)
 
-    prepare(recording, home)
+    values = prepare(recording, home)
     run.mkdir(parents=True, exist_ok=True)
+    if values:
+        (run / "vars.json").write_text(json.dumps(values, indent=2) + "\n")
     size = scenario.get("terminal", {"cols": 88, "rows": 28})
     env = {**os.environ, "DEMO_TERMINAL": f"{size['cols']}x{size['rows']}"}
     driver = subprocess.Popen([str(PY), str(ROOT / "scripts/ce01_drive.py"), "serve", str(run)], cwd=ROOT, env=env)
@@ -148,8 +177,9 @@ def record(scenario_dir: Path, take: str) -> None:
         for beat in recording["beats"]:
             for cmd in beat_commands(beat, model):
                 send(run, cmd)
-            if beat.get("require") == "gate" and recording["gateEvidence"] not in (run / "session.cast").read_text():
-                raise SystemExit("the client finished its turn without a write being refused; review screen.txt")
+            evidence = beat.get("evidence", recording.get("gateEvidence", ""))
+            if beat.get("require") == "gate" and evidence not in (run / "session.cast").read_text():
+                raise SystemExit(f"the client finished its turn without {evidence!r} on screen; review screen.txt")
         print(f"take recorded: {run / 'session.cast'}")
     finally:
         # Keep the client's session store even when a beat failed, so the take can still be inspected.
@@ -177,8 +207,11 @@ def record(scenario_dir: Path, take: str) -> None:
 def plan(scenario_dir: Path) -> None:
     scenario = yaml.safe_load((scenario_dir / "scenario.yaml").read_text())
     recording = scenario["recording"]
+    print(f"stack profile: {recording.get('stackProfile', '(shared CO2 stack)')}")
     print(f"setup: {recording.get('fixtures', {}).get('setup', [])}")
+    print(f"stage: {recording.get('fixtures', {}).get('stage', [])}")
     print(f"hints: {recording.get('hints', [])}")
+    print(f"vars: {recording.get('vars', {})}")
     for beat in recording["beats"]:
         print(f"-- {list(beat)[:2]}")
         for cmd in beat_commands(beat, os.environ.get("MODEL", "")):

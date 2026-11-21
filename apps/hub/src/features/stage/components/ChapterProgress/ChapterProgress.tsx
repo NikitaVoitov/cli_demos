@@ -1,4 +1,5 @@
 import { Circle, CircleCheck, CircleDot, CirclePause, CircleX } from 'lucide-react'
+import { gatesOf } from '@/lib/gates'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { DemoEntry } from '@/types/content.types'
@@ -23,8 +24,8 @@ const STATE_TEXT: Record<StepState, string> = {
 const STATE_ICON = { done: CircleCheck, current: CircleDot, gate: CirclePause, declined: CircleX, upcoming: Circle }
 
 export function ChapterProgress({ entry }: { entry: DemoEntry }) {
-  const { time, status, decision, controller } = usePlaybackStore()
-  const gateT = entry.scenario.gate?.t
+  const { time, status, decision, gateIndex, controller } = usePlaybackStore()
+  const gateT = gatesOf(entry.scenario)[gateIndex]?.t
   const states = stepStates(entry.chapters, { time, status, decision, gateT })
 
   return (
@@ -46,7 +47,7 @@ export function ChapterProgress({ entry }: { entry: DemoEntry }) {
                 type="button"
                 aria-current={active ? 'step' : undefined}
                 aria-disabled={blocked || undefined}
-                title={blocked ? 'Approve the deploy to continue' : undefined}
+                title={blocked ? 'Approve the step to continue' : undefined}
                 onClick={() => {
                   if (blocked || !controller) return
                   controller.seek(chapter.t)

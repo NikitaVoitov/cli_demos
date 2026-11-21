@@ -78,6 +78,9 @@ def _skill_name(path: str, output: str) -> str:
 
 def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock) -> list[dict]:
     dashboard = Path((scenario.get("artifacts") or {}).get("dashboard", "")).name
+    # The shell command that starts the n8n workflow; the workflow follows it as an artifact, like a dashboard file.
+    started_by = (scenario.get("workflow") or {}).get("startedBy")
+    workflow_file = scenario.get("_workflow_file", "workflow.json")
     entries: list[dict] = []
     skills_seen: set[str] = set()
     last_browser: dict | None = None
@@ -97,6 +100,10 @@ def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock
             if event.by_user:
                 entry["by"] = "user"
             entries.append(entry)
+            if kind == "shell" and started_by and re.search(started_by, command) and not entry.get("blocked") \
+                    and out["exit"] in (0, None):
+                entries.append({"kind": "file", "t": entry["t"], "name": workflow_file, "tag": "n8n workflow",
+                                "artifact": "workflow"})
             last_browser = entry if kind == "browser" else None
         elif action == "mcp":
             entries.append({"kind": "mcp", "t": clock.at(f"{data['server']} {data['tool']}"), "tool": data["tool"],
@@ -131,15 +138,16 @@ def _summary(entries: list[dict]) -> str:
 def group(entries: list[dict], scenario: dict) -> list[dict]:
     chapters = sorted(scenario["chapters"], key=lambda c: c["t"])
     starts = [c["t"] for c in chapters]
-    gate_t = (scenario.get("gate") or {}).get("t")
+    gates = scenario.get("gates") or ([scenario["gate"]] if scenario.get("gate") else [])
     out = [{"id": c["id"], "entries": []} for c in chapters]
     for entry in entries:
         out[max(bisect_right(starts, entry["t"]) - 1, 0)]["entries"].append(entry)
     for chapter, start, end in zip(out, starts, starts[1:] + [float("inf")]):
         chapter["summary"] = _summary(chapter["entries"])
-        if gate_t is not None and start <= gate_t < end:
+        inside = [g for g in gates if start <= g["t"] < end]
+        if inside:
             chapter["gate"] = True
-            chapter["summary"] = "The write stopped at CONFIRMATION_REQUIRED until you approved"
+            chapter["summary"] = inside[0].get("summary") or "The write stopped at CONFIRMATION_REQUIRED until you approved"
     return out
 
 
@@ -154,6 +162,11 @@ def main() -> None:
     adapter = ADAPTERS[args.client]
     events = adapter.load_session(args.store)
     cast = args.scenario / scenario["cast"]["src"]
+    workflow = args.scenario / ((scenario.get("workflow") or {}).get("src") or "artifacts/workflow.json")
+    if workflow.exists():
+        # Named the way n8n names a downloaded workflow.
+        name = json.loads(workflow.read_text()).get("name", "workflow")
+        scenario = {**scenario, "_workflow_file": re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".json"}
     entries = build_entries(events, adapter, scenario, CastClock(cast))
 
     transcript = {"placeholder": False, "source": f"{args.client} session log", "chapters": group(entries, scenario)}

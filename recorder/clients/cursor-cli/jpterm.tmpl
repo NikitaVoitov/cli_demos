@@ -1,0 +1,50 @@
+#!/bin/bash
+# jpterm in the capture home. The agent runs a notebook one cell at a time. Cells listed in ~/.config/jpterm-gates
+# stop the way splunkctl's writes do: run without --yes and the cell is held until the same command is rerun with
+# --yes. Only kernel, execute, and write are available, and write only edits the parameter cell, with literals.
+VENV="__NB_VENV__"
+GATES="$HOME/.config/jpterm-gates"
+
+args=()
+yes=0
+for a in "$@"; do
+  if [ "$a" = "--yes" ]; then yes=1; else args+=("$a"); fi
+done
+
+refuse() { echo "Error: $1" >&2; exit 2; }
+
+cell=""
+for ((i = 1; i < ${#args[@]}; i++)); do
+  case "${args[i]}" in
+    --cell) cell="${args[i+1]}" ;;
+    --cell=*) cell="${args[i]#--cell=}" ;;
+    --source) source="${args[i+1]}" ;;
+  esac
+done
+
+case "${args[0]}" in
+  kernel) ;;
+  execute)
+    [ -n "$cell" ] || refuse "run one cell at a time: jpterm execute NOTEBOOK --cell ID"
+    if [ "$yes" -ne 1 ] && grep -qxF -- "$cell" "$GATES" 2>/dev/null; then
+      cat >&2 <<MSG
+CONFIRMATION_REQUIRED: cell $cell requires confirmation.
+Rerun the same command with --yes after approval.
+MSG
+      exit 3
+    fi ;;
+  write)
+    [ "$cell" = "params" ] || refuse "only the params cell can be edited here"
+    [ -n "${source:-}" ] || refuse "pass the new cell text with --source"
+    # Parameters are plain assignments of numbers and strings, so the cell cannot run anything else.
+    if printf '%s\n' "$source" | grep -vqE '^([A-Z_]+ *= *("[^"]*"|[0-9.]+) *(#.*)?|#.*)?$'; then
+      refuse "the params cell takes NAME = number-or-string lines only"
+    fi ;;
+  *) refuse "only 'jpterm kernel', 'jpterm execute', and 'jpterm write' are available here" ;;
+esac
+
+set -a
+[ -f "$HOME/.config/hunt.env" ] && . "$HOME/.config/hunt.env"
+set +a
+export PATH="$VENV/bin:$PATH"
+exec "$VENV/bin/jpterm" "${args[@]}"

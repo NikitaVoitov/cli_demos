@@ -1,0 +1,15 @@
+# The read-only n8n canvas the hub serves at /n8n-preview/, built by scripts/n8n_preview_snapshot.py.
+# Nothing of n8n runs at view time: the snapshot copies the editor from this pinned image and freezes the few
+# responses its demo page reads. Change the image only together with a fresh snapshot and a hub check.
+image: n8nio/n8n:2.48.7
+digest: sha256:fabce3e9678a07d2dde83bd8f5124017f3ec457d0a3fc6b63bb4cec465d63861
+# Must match N8N_PREVIEW_BASE in apps/hub/src/features/stage/utils/workflowCanvas.ts.
+basePath: /n8n-preview/
+# Workflow artifacts whose node types the snapshot keeps; every other node type is dropped from types/nodes.json.
+workflows:
+  - scenarios/*/artifacts/workflow.json
+  - apps/hub/tests/fixtures/scenarios/*/artifacts/workflow.json
+# Node icons replaced in the snapshot, relative to recorder/n8n-preview/.
+icons:
+  n8n-nodes-base.splunk: icons/splunk-app.png
+  n8n-nodes-base.splunkTool: icons/splunk-app.png

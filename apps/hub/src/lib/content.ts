@@ -1,5 +1,6 @@
 import { CATEGORIES, FACET_GROUPS, type FacetGroupId } from '@/constants/taxonomy'
-import type { Caption, Content, DemoEntry, Scenario, Transcript } from '@/types/content.types'
+import { gateCopy, gatesOf } from '@/lib/gates'
+import type { Caption, Chapter, Content, DemoEntry, DemoWorkflow, N8nWorkflow, Scenario, Transcript } from '@/types/content.types'
 
 const scenarios = import.meta.glob<Scenario>('@scenarios/*/scenario.yaml', { eager: true, import: 'default' })
 const contents = import.meta.glob<Content>('@scenarios/*/content.yaml', { eager: true, import: 'default' })
@@ -37,7 +38,7 @@ function loadCaptions(scenario: Scenario, vtt: string | undefined): Caption[] {
   if (!narration) return []
   if (!vtt) throw new Error(`${scenario.id}: ${narration.captions} is missing; ${rerun}`)
   const anchors: Record<string, number> = Object.fromEntries((scenario.chapters ?? []).map((c) => [c.id, c.t]))
-  if (scenario.gate) anchors.gate = scenario.gate.t
+  for (const gate of gatesOf(scenario)) anchors[gate.id] = gate.t
   const captions = parseCaptions(vtt)
   const byId = new Map(captions.map((caption) => [caption.id, caption]))
   for (const line of narration.lines) {
@@ -50,6 +51,50 @@ function loadCaptions(scenario: Scenario, vtt: string | undefined): Caption[] {
   }
   if (captions.length !== narration.lines.length) throw new Error(`${scenario.id}: ${narration.captions} has extra cues; ${rerun}`)
   return captions
+}
+
+/** A step that never ends on its own (the last one) lights its node for this long. */
+const LAST_STEP_SECONDS = 1.5
+
+/** The `workflow` block, checked against the n8n export and content.yaml, with every time on the published clock. */
+function resolveWorkflow(scenario: Scenario, content: Content, chapters: Chapter[], raw: string | undefined): DemoWorkflow | undefined {
+  const block = scenario.workflow
+  if (!block) return undefined
+  const fail = (message: string): never => {
+    throw new Error(`${scenario.id}: workflow ${message}`)
+  }
+  if (!raw) fail(`${block.src} is missing; run \`python -m pipeline.workflow scenarios/${scenario.id} <export.json>\``)
+  const copy = content.workflow ?? fail('has no copy in content.yaml')
+  const json = JSON.parse(raw!) as N8nWorkflow
+  const idByName = new Map(json.nodes.map((node) => [node.name, node.id]))
+  const anchors = new Map<string, number>([
+    ...chapters.map((c) => [c.id, c.t] as [string, number]),
+    ...gatesOf(scenario).map((g) => [g.id, g.t] as [string, number]),
+  ])
+  const at = (mark: string | number) =>
+    typeof mark === 'number' ? mark : (anchors.get(mark) ?? fail(`step time "${mark}" is not a chapter or gate`))
+
+  const starts = block.steps.map((step) => at(step.at))
+  const steps = block.steps.map((step, i) => {
+    const from = starts[i]
+    const later = starts.filter((t) => t > from)
+    const until = step.until === undefined ? (later.length ? Math.min(...later) : from + LAST_STEP_SECONDS) : at(step.until)
+    const nodeId = idByName.get(step.node) ?? fail(`step names unknown node "${step.node}"`)
+    if (until <= from) fail(`step "${step.node}" ends before it starts`)
+    const callout = step.callout && (copy.callouts?.[step.callout] ?? fail(`callout "${step.callout}" has no text in content.yaml`))
+    return { nodeId, node: step.node, from, until, status: step.status ?? 'success', callout: callout || undefined }
+  })
+  const edges = Object.entries(json.connections).flatMap(([source, outputs]) =>
+    Object.values(outputs).flatMap((ports) =>
+      ports.flatMap((port) => (port ?? []).map((c) => [idByName.get(source)!, idByName.get(c.node)!] as [string, string])),
+    ),
+  )
+  const show = {
+    from: block.show ? at(block.show.from) : 0,
+    until: block.show?.until === undefined ? Infinity : at(block.show.until),
+  }
+  if (show.until <= show.from) fail('show.until is not after show.from')
+  return { json, title: copy.title ?? 'n8n', object: copy.object ?? json.name, alt: copy.alt, edges, steps, show }
 }
 
 function assertVocabulary(id: string, group: string, values: string[], allowed: readonly string[]) {
@@ -83,6 +128,18 @@ function buildEntry(scenarioPath: string): DemoEntry {
     return { ...chapter, label }
   })
 
+  if (scenario.gate && scenario.gates) throw new Error(`${scenario.id}: use either gate or gates, not both`)
+  for (const gate of gatesOf(scenario)) {
+    if (!gateCopy(content, gate.id)) throw new Error(`${scenario.id}: gate "${gate.id}" has no copy in content.yaml`)
+    if (gate.id !== 'gate' && chapters.some((c) => c.id === gate.id)) {
+      throw new Error(`${scenario.id}: gate id "${gate.id}" is also a chapter id; narration anchors must be unique`)
+    }
+  }
+
+  if (scenario.browser && scenario.workflow && !scenario.workflow.show) {
+    throw new Error(`${scenario.id}: a demo with screenshots and a workflow needs workflow.show to share the pane`)
+  }
+
   const playable = scenario.source === 'captured' && Boolean(scenario.cast)
   const artifact = (relative?: string) => (relative ? `${dir}/${relative}` : undefined)
 
@@ -92,7 +149,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
     content,
     facets,
     playable,
-    split: Boolean(scenario.browser),
+    split: Boolean(scenario.browser || scenario.workflow),
     chapters,
     castUrl: assetUrls[artifact(scenario.cast?.src) ?? ''],
     narrationUrl: assetUrls[artifact(scenario.narration?.audio) ?? ''],
@@ -112,6 +169,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
       if (!copy) throw new Error(`${scenario.id}: browser step "${step.id}" has no copy in content.yaml`)
       return { id: step.id, url, object: step.object, from: at(step.from, 0), until: at(step.until, 0), ...copy }
     }),
+    workflow: resolveWorkflow(scenario, content, chapters, rawJson[artifact(scenario.workflow?.src) ?? '']),
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],

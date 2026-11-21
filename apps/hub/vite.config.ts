@@ -3,11 +3,13 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { contentPlugin } from './plugins/content.ts'
+import { n8nPreviewPlugin } from './plugins/n8nPreview.ts'
 
-const scenarios = path.resolve(import.meta.dirname, '../../scenarios')
+// Tests point this at tests/fixtures/scenarios; everything else uses the real catalog.
+const scenarios = path.resolve(import.meta.dirname, process.env.DEMO_SCENARIOS ?? '../../scenarios')
 
 export default defineConfig({
-  plugins: [contentPlugin(scenarios), react(), tailwindcss()],
+  plugins: [contentPlugin(scenarios), n8nPreviewPlugin(scenarios), react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

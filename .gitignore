@@ -21,6 +21,9 @@ _bmad-output/
 .agents/skills/*
 !.agents/skills/demo-author/
 skills-lock.json
+# Local Cursor plugin toggles and Firecrawl scrape output
+.cursor/
+.firecrawl/
 .playwright/
 .playwright-mcp/
 .wrangler/
@@ -32,6 +35,8 @@ scripts/gemini_frame.py
 # Build, test, and dependency output
 node_modules/
 dist/
+# Generated from the pinned n8n image by scripts/n8n_preview_snapshot.py
+apps/hub/public/n8n-preview/
 playwright-report/
 test-results/
 .venv/

@@ -15,6 +15,9 @@ const CAPTIONS_KEY = 'demo-hub:captions'
 interface PlaybackState {
   status: PlaybackStatus
   decision: GateDecision
+  /** Which approval the demo waits at next, and how many it has; one for a demo with a single gate. */
+  gateIndex: number
+  gateCount: number
   time: number
   controller: PlayerController | null
   /** Narration captions over the terminal; the visitor's choice survives demo switches and reloads. */
@@ -29,12 +32,14 @@ interface PlaybackState {
   approve: () => void
   decline: () => void
   replay: () => void
-  reset: () => void
+  reset: (gateCount?: number) => void
 }
 
 export const usePlaybackStore = create<PlaybackState>((set, get) => ({
   status: 'loading',
   decision: 'pending',
+  gateIndex: 0,
+  gateCount: 0,
   time: 0,
   controller: null,
   captionsOn: localStorage.getItem(CAPTIONS_KEY) !== 'off',
@@ -49,7 +54,9 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
   setTime: (time) => set({ time }),
   setController: (controller) => set({ controller }),
   approve: () => {
-    set({ decision: 'approved', status: 'playing' })
+    // Each approval opens the way to the next gate; after the last one nothing stops the demo.
+    const gateIndex = get().gateIndex + 1
+    set({ gateIndex, decision: gateIndex >= get().gateCount ? 'approved' : 'pending', status: 'playing' })
     get().controller?.play()
   },
   decline: () => {
@@ -60,7 +67,8 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => ({
     const { controller } = get()
     controller?.pause()
     controller?.seek(0)
-    set({ decision: 'pending', status: 'idle', time: 0 })
+    set({ decision: 'pending', gateIndex: 0, status: 'idle', time: 0 })
   },
-  reset: () => set({ status: 'loading', decision: 'pending', time: 0, controller: null, muted: false }),
+  reset: (gateCount = 0) =>
+    set({ status: 'loading', decision: 'pending', gateIndex: 0, gateCount, time: 0, controller: null, muted: false }),
 }))

@@ -1,0 +1,126 @@
+{
+  "name": "Closed-loop phishing containment",
+  "nodes": [
+    {
+      "id": "n-trigger",
+      "name": "Start containment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        210
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contain-phishing"
+      }
+    },
+    {
+      "id": "n-purge",
+      "name": "Purge email from inboxes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        280,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://splunk-hec.example.com/services/collector/event"
+      }
+    },
+    {
+      "id": "n-block",
+      "name": "Block sender domain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        280,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://splunk-hec.example.com/services/collector/event"
+      }
+    },
+    {
+      "id": "n-merge",
+      "name": "Wait for results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        210
+      ],
+      "parameters": {
+        "numberInputs": 2
+      }
+    },
+    {
+      "id": "n-slack",
+      "name": "Notify analyst in Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        820,
+        210
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Start containment": {
+      "main": [
+        [
+          {
+            "node": "Purge email from inboxes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Block sender domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purge email from inboxes": {
+      "main": [
+        [
+          {
+            "node": "Wait for results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Block sender domain": {
+      "main": [
+        [
+          {
+            "node": "Wait for results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait for results": {
+      "main": [
+        [
+          {
+            "node": "Notify analyst in Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

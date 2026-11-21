@@ -1,0 +1,45 @@
+# What visitors read. Editable without a new capture.
+title: Hunt a password spray in a notebook
+summary: >
+  A slow password spray never trips the alert on 100 failed sign-ins in 5 minutes. Cursor CLI finds the suspect IP
+  in the hot index through Splunk MCP, then works through a hunt notebook: it searches the Machine Data Lake for
+  the IP's full history, loads a shared analytics table into pandas, and backtests a detection over 90 days. You
+  approve each of the three cells that read the lake.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [Detection Engineer]
+  category: Security Operations
+  technologies: [Python, Jupyter, pandas]
+  splunk: [Splunk MCP, Machine Data Lake, Splunk Cloud]
+chapters:
+  triage: Hot index
+  notebook: Open notebook
+  lake: Lake search
+  table: Shared table
+  backtest: Backtest
+  detection: Detection
+# One entry per scenario.yaml `gates` id. The bar reads "jpterm blocked <command> with CONFIRMATION_REQUIRED. <body>".
+gates:
+  gate-lake:
+    title: Searching the lake needs your approval
+    body: Raw search in the Machine Data Lake is costly, so the notebook asks first. This one pulls the suspect IP's whole history, 120 days back.
+    approve: Approve the lake search
+    decline: Decline
+    declinedTitle: The lake was not searched.
+    declinedBody: The cell never ran, so the hunt has only the 14 days the hot index keeps and cannot say how long the IP has been active.
+  gate-table:
+    title: Loading the shared table needs your approval
+    body: This reads 90 days of sign-ins from the analytics table shared with Open Sharing into the kernel's memory.
+    approve: Approve the load
+    decline: Decline
+    declinedTitle: The table was not loaded.
+    declinedBody: The data stayed in the lake, so there is nothing in the kernel to backtest a rule against.
+  gate-backtest:
+    title: The backtest needs your approval
+    body: It runs the detection rule over every sign-in in the table, inside the kernel. It reads data already loaded and changes nothing in Splunk.
+    approve: Approve the backtest
+    decline: Decline
+    declinedTitle: The rule was not tested.
+    declinedBody: Without a backtest there is no evidence it would have caught the spray, or that it would stay quiet for the busy VPN address.
+flow: { kind: notebook, mcp: "hot index, triage" }
+display: { hidden: false, featured: false, order: 45 }
