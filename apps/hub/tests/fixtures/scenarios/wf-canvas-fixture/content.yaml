@@ -1,0 +1,31 @@
+title: Workflow canvas fixture
+summary: Synthetic run that drives the n8n canvas pane through an approval and a containment workflow.
+taxonomy:
+  personas: [SOC Analyst]
+  category: Security Operations
+  technologies: [Slack]
+  splunk: [Splunk MCP, Splunk Cloud]
+chapters:
+  report: The report
+  investigate: Investigate
+  approval: Approval
+  contain: Containment
+  verify: Verify
+gate:
+  title: Waiting for your approval
+  body: Choose what happens next.
+  approve: Approve
+  decline: Decline
+  declinedTitle: Nothing was contained.
+  declinedBody: The containment workflow never ran.
+workflow:
+  object: Closed-loop phishing containment
+  alt: >
+    n8n workflow that Cursor CLI starts after the analyst approves containment. It purges the email from every
+    inbox, blocks the sender domain, and signs out the users who clicked, all at once, waits for the three to
+    finish, and tells the analyst in Slack.
+  callouts:
+    purge: Removes the email from 14 inboxes
+    block: Blocks new mail from the sender's domain
+    slack: Tells the analyst containment is done
+display: { hidden: false, featured: true, order: 1 }

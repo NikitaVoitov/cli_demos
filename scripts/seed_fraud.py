@@ -130,20 +130,20 @@ def dotenv(key: str) -> str:
     raise SystemExit(f"{key} missing from .env")
 
 
-def create_index() -> None:
+def create_index(index: str = INDEX) -> None:
     config = (Path.home() / ".splunkctl/config.yaml").read_text()
     host = re.search(r"^\s*host:\s*['\"]?([^'\"\s]+)", config, re.M).group(1).rstrip("/")
     if not host.startswith("http"):
         host = f"https://{host}"
     if not re.search(r":\d+$", host):
         host += ":8089"
-    splunkctl("index", "remove", INDEX, check=False)
+    splunkctl("index", "remove", index, check=False)
     auth = base64.b64encode(f"{dotenv('SPLUNK_WEB_USER')}:{dotenv('SPLUNK_WEB_PASSWORD')}".encode()).decode()
     manager = f"{host}/servicesNS/nobody/search/cluster_blaster_indexes/sh_indexes_manager"
     ctx = ssl._create_unverified_context()
     headers = {"Authorization": f"Basic {auth}"}
     try:
-        urllib.request.urlopen(urllib.request.Request(f"{manager}/{INDEX}?output_mode=json", headers=headers),
+        urllib.request.urlopen(urllib.request.Request(f"{manager}/{index}?output_mode=json", headers=headers),
                                context=ctx, timeout=60).close()
         exists = True
     except urllib.error.HTTPError as error:
@@ -151,21 +151,21 @@ def create_index() -> None:
             raise SystemExit(f"index manager lookup failed: HTTP {error.code} {error.read().decode()[:300]}")
         exists = False
     if exists:
-        drop = urllib.request.Request(f"{manager}/{INDEX}?output_mode=json", method="DELETE", headers=headers)
+        drop = urllib.request.Request(f"{manager}/{index}?output_mode=json", method="DELETE", headers=headers)
         try:
             urllib.request.urlopen(drop, context=ctx, timeout=60).close()
         except urllib.error.HTTPError as error:
-            raise SystemExit(f"index manager could not remove {INDEX}: HTTP {error.code} {error.read().decode()[:300]}")
-        print(f"index {INDEX} removed (its buckets stay, so recreating this name restores the old events)")
+            raise SystemExit(f"index manager could not remove {index}: HTTP {error.code} {error.read().decode()[:300]}")
+        print(f"index {index} removed (its buckets stay, so recreating this name restores the old events)")
         return
-    body = urllib.parse.urlencode({"name": INDEX, "datatype": "event", "maxGlobalDataSizeMB": 500, "maxGlobalRawDataSizeMB": 0,
+    body = urllib.parse.urlencode({"name": index, "datatype": "event", "maxGlobalDataSizeMB": 500, "maxGlobalRawDataSizeMB": 0,
                                    "frozenTimePeriodInSecs": 2592000}).encode()
     req = urllib.request.Request(f"{manager}?output_mode=json", data=body, headers=headers)
     try:
         with urllib.request.urlopen(req, context=ctx, timeout=60):
-            print(f"index {INDEX} created across the indexer cluster")
+            print(f"index {index} created across the indexer cluster")
     except urllib.error.HTTPError as error:
-        raise SystemExit(f"index manager rejected {INDEX}: HTTP {error.code} {error.read().decode()[:300]}")
+        raise SystemExit(f"index manager rejected {index}: HTTP {error.code} {error.read().decode()[:300]}")
 
 
 def counts() -> dict:

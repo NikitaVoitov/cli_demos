@@ -3,6 +3,10 @@
 
   python3 scripts/ce01_capture.py setup            # build the neutral capture HOME (idempotent)
   python3 scripts/ce01_capture.py jira             # after setup: add Jira (acli + Atlassian MCP) for SO-07
+  python3 scripts/ce01_capture.py notebook A,B,C   # after setup: add the gated jpterm wrapper for SO-03; A,B,C are the held cells
+  python3 scripts/ce01_capture.py n8n              # after setup: add the gated n8n-contain wrapper for SO-08
+  python3 scripts/ce01_capture.py outlook          # after setup: load the Outlook plugin, read tools only, for SO-08
+  python3 scripts/ce01_capture.py search-reads     # after setup: splunkctl runs read-only searches without confirmation
   python3 scripts/ce01_capture.py login            # one-time Cursor CLI login inside the capture HOME
   python3 scripts/ce01_capture.py atlassian-login  # one-time Atlassian MCP OAuth, as the demo-site account
   python3 scripts/ce01_capture.py acli-login       # one-time acli login to the demo site with the .env token
@@ -10,6 +14,9 @@
 
 The capture HOME lives at /Users/Shared/splunk-demo so paths render as ~/payments and no
 username appears. Secrets are copied in with 0600 permissions and never printed.
+
+CAPTURE_STACK=<name> points setup at another Splunk stack: its web address and login state, splunkctl config, and
+MCP token come from .captures/ce01/stacks/<name>/ (built by scripts/stack_profile.py) instead of the shared CO2 stack.
 """
 
 import json
@@ -25,7 +32,11 @@ ROOT = Path(__file__).resolve().parent.parent
 REAL_HOME = Path.home()
 CAPTURE_HOME = Path("/Users/Shared/splunk-demo")
 CLIENT = ROOT / "recorder/clients/cursor-cli"
-SECRETS = ROOT / ".captures/ce01/secrets"
+STACK = os.environ.get("CAPTURE_STACK", "")
+PROFILE = ROOT / ".captures/ce01/stacks" / STACK if STACK else None
+SECRETS = PROFILE / "secrets" if PROFILE else ROOT / ".captures/ce01/secrets"
+SPLUNKCTL_CONFIG = PROFILE / "splunkctl.yaml" if PROFILE else REAL_HOME / ".splunkctl/config.yaml"
+MCP_ENV = PROFILE / "splunk-mcp.env" if PROFILE else REAL_HOME / ".cursor/mcp-secrets/splunk-mcp.env"
 TOOL_PATH = f"{REAL_HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin"
 # Every published demo runs on the CLI default. A take recorded with `--model` is remembered by the CLI,
 # so setup writes this back before each take.
@@ -39,6 +50,8 @@ AUTO_BALANCE = {
 }
 
 PUBLIC_SKILLS = ["search-and-dashboard-troubleshooter"]
+# Some stacks' MCP servers register tools that write; writes go through splunkctl's confirmation instead.
+SPLUNK_MCP_WRITES = ["Mcp(splunk:search_create_splunk_alert)", "Mcp(splunk:search_record_containment_action)"]
 TOOL_SKILLS = {"playwright-cli": REAL_HOME / ".agents/skills/playwright-cli"}
 
 PERMISSIONS = [
@@ -65,6 +78,22 @@ JIRA_READS = ["atlassianUserInfo", "getAccessibleAtlassianResources", "searchJir
 JIRA_WRITES = ["createJiraIssue", "editJiraIssue", "addOrEditJiraIssueComment", "transitionJiraIssue",
                "executeWrite", "executeDestructive"]
 JIRA_SHIMS = ("acli", "atlassian-mcp")
+# The notebook demo (SO-03): a gated jpterm and a plain euporie-preview over a private Python environment.
+NOTEBOOK_SHIMS = ("jpterm", "euporie-preview")
+NOTEBOOK_ALLOW = ["Shell(jpterm)", "Shell(euporie-preview)"]
+NOTEBOOK_VENV = CAPTURE_HOME / "nb"
+# The phishing demo (SO-08): containment goes through the gated n8n-contain wrapper to the n8n webhook.
+N8N_SHIMS = ("n8n-contain",)
+N8N_WEBHOOK_PATH = "webhook/contain-phishing"
+# The Outlook plugin's MCP server is Cursor-hosted and signs in to Microsoft with `/mcp` > Log in in the capture
+# HOME. Cursor CLI only loads a plugin passed with --plugin-dir, so an `agent` shim adds it. The agent reads the
+# report; nothing in the story writes mail.
+OUTLOOK_SERVER = "plugin-outlook-outlook"
+OUTLOOK_READS = ["get_me", "list_mail_folders", "list_mail_messages", "get_mail_message", "get_next_page"]
+OUTLOOK_WRITES = ["send_mail", "send_draft", "create_draft", "update_draft", "reply_to_mail_message",
+                  "forward_mail_message", "move_mail_message", "update_mail_message", "delete_mail_message",
+                  "create_mail_folder", "delete_mail_folder"]
+OUTLOOK_SHIMS = ("agent",)
 
 
 def private_copy(src: Path, dst: Path) -> None:
@@ -100,13 +129,27 @@ def setup(model: str = "") -> None:
     shim.write_text('#!/bin/sh\nexec /usr/local/bin/splunkctl --insecure "$@"\n')
     shim.chmod(0o755)
 
-    private_copy(REAL_HOME / ".splunkctl/config.yaml", h / ".splunkctl/config.yaml")
-    private_copy(REAL_HOME / ".cursor/mcp-secrets/splunk-mcp.env", h / ".config/splunk-mcp.env")
-    private_copy(SECRETS / "web-state.json", h / ".config/splunk-web-state.json")
+    for path in (SPLUNKCTL_CONFIG, MCP_ENV):
+        if not path.exists():
+            raise SystemExit(f"{path.relative_to(ROOT) if path.is_relative_to(ROOT) else path.name} is missing"
+                             + (f"; build the profile with scripts/stack_profile.py init {STACK}" if STACK else ""))
+    private_copy(SPLUNKCTL_CONFIG, h / ".splunkctl/config.yaml")
+    private_copy(MCP_ENV, h / ".config/splunk-mcp.env")
+    web_state = SECRETS / "web-state.json"
+    if web_state.exists():
+        private_copy(web_state, h / ".config/splunk-web-state.json")
+    else:
+        # Demos without Splunk Web screenshots (SO-08 on an SSO stack) don't need a saved login.
+        print("no saved Splunk Web login: playwright-cli opens Splunk Web logged out "
+              f"(run scripts/splunk_web_login.mjs{f' with CAPTURE_STACK={STACK}' if STACK else ''} if the demo needs it)")
+        (h / ".config/splunk-web-state.json").write_text('{"cookies": [], "origins": []}\n')
+        (h / ".config/splunk-web-state.json").chmod(0o600)
 
     # Jira is opt-in per demo (`ce01_capture.py jira`); a plain setup leaves no trace of it.
-    for name in JIRA_SHIMS:
+    for name in (*JIRA_SHIMS, *NOTEBOOK_SHIMS, *N8N_SHIMS, *OUTLOOK_SHIMS):
         (h / "bin" / name).unlink(missing_ok=True)
+    for name in ("jpterm-gates", "hunt.env", "n8n-contain.env"):
+        (h / ".config" / name).unlink(missing_ok=True)
     render(CLIENT / "mcp.json.tmpl", h / ".cursor/mcp.json")
     render(CLIENT / "splunk-mcp.tmpl", h / "bin/splunk-mcp")
     (h / "bin/splunk-mcp").chmod(0o700)
@@ -149,7 +192,7 @@ def setup(model: str = "") -> None:
         return
     cfg = json.loads(cfg_path.read_text())
     cfg.update({
-        "permissions": {"allow": PERMISSIONS, "deny": []},
+        "permissions": {"allow": PERMISSIONS, "deny": SPLUNK_MCP_WRITES},
         # Run Everything: the only approval in the story is splunkctl's CONFIRMATION_REQUIRED.
         "approvalMode": "unrestricted",
         "hints": False,
@@ -176,6 +219,85 @@ def jira_site() -> str:
     if site == "splunk.atlassian.net" or not site.endswith(".atlassian.net"):
         raise SystemExit("JIRA_SITE must be the personal demo site, not a corporate one")
     return site
+
+
+def notebook(gated: list[str]) -> None:
+    """Add the notebook tools to a capture home that setup just built: the environment, the gated jpterm, the viewer."""
+    h = CAPTURE_HOME
+    if not (NOTEBOOK_VENV / "bin/jpterm").exists():
+        subprocess.run(["uv", "venv", "--python", "3.12", str(NOTEBOOK_VENV)], check=True)
+        subprocess.run(["uv", "pip", "install", "--python", str(NOTEBOOK_VENV / "bin/python"), "-q",
+                        "-r", str(ROOT / "recorder/notebook/requirements.txt")], check=True)
+    for name in NOTEBOOK_SHIMS:
+        shim = h / "bin" / name
+        shim.write_text((CLIENT / f"{name}.tmpl").read_text().replace("__NB_VENV__", str(NOTEBOOK_VENV)))
+        shim.chmod(0o755)
+    (h / ".config/jpterm-gates").write_text("".join(f"{cell}\n" for cell in gated))
+
+    cfg_path = h / ".cursor/cli-config.json"
+    if cfg_path.exists():
+        cfg = json.loads(cfg_path.read_text())
+        allow = cfg["permissions"]["allow"]
+        allow += [p for p in NOTEBOOK_ALLOW if p not in allow]
+        cfg_path.write_text(json.dumps(cfg, indent=2))
+        cfg_path.chmod(0o600)
+    print(f"notebook tools ready; held cells: {', '.join(gated)}")
+
+
+def n8n() -> None:
+    """Add the gated n8n-contain wrapper to a capture home that setup just built."""
+    h = CAPTURE_HOME
+    shim = h / "bin/n8n-contain"
+    shim.write_text((CLIENT / "n8n-contain.tmpl").read_text())
+    shim.chmod(0o755)
+    env = h / ".config/n8n-contain.env"
+    env.write_text(f"N8N_CONTAIN_URL={dotenv('N8N_URL').rstrip('/')}/{N8N_WEBHOOK_PATH}\n"
+                   f"N8N_WEBHOOK_TOKEN={dotenv('N8N_WEBHOOK_TOKEN')}\n")
+    env.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+    cfg_path = h / ".cursor/cli-config.json"
+    cfg = json.loads(cfg_path.read_text())
+    allow = cfg["permissions"]["allow"]
+    allow += [p for p in ["Shell(n8n-contain)"] if p not in allow]
+    cfg_path.write_text(json.dumps(cfg, indent=2))
+    cfg_path.chmod(0o600)
+    print(f"n8n ready in {h}: gated n8n-contain wrapper")
+
+
+def search_reads() -> None:
+    """Swap the splunkctl shim for one that confirms read-only searches, for demos gated somewhere else.
+
+    SO-08 runs the Agent Launchpad agent with `| aiagent` through splunkctl: the run takes over a minute, longer
+    than Cursor CLI waits for an MCP tool call."""
+    shim = CAPTURE_HOME / "bin/splunkctl"
+    shim.write_text((CLIENT / "splunkctl-reads.tmpl").read_text())
+    shim.chmod(0o755)
+    print(f"search-reads ready in {CAPTURE_HOME}: splunkctl confirms searches without write commands")
+
+
+def outlook() -> None:
+    """Load the Outlook plugin in a capture home that setup just built, with only its read tools allowed."""
+    h = CAPTURE_HOME
+    cached = sorted((REAL_HOME / ".cursor/plugins/cache/cursor-public/outlook").glob("*/.cursor-plugin"),
+                    key=lambda p: p.stat().st_mtime)
+    if not cached:
+        raise SystemExit("install the Outlook plugin in Cursor first; its folder is copied from the plugin cache")
+    plugin = h / ".cursor/plugins-local/outlook"
+    shutil.rmtree(plugin, ignore_errors=True)
+    shutil.copytree(cached[-1].parent, plugin)
+    shim = h / "bin/agent"
+    shim.write_text(f'#!/bin/sh\nexec {REAL_HOME}/.local/bin/agent --plugin-dir "$HOME/.cursor/plugins-local/outlook" "$@"\n')
+    shim.chmod(0o755)
+
+    cfg_path = h / ".cursor/cli-config.json"
+    cfg = json.loads(cfg_path.read_text())
+    allow, deny = cfg["permissions"]["allow"], cfg["permissions"]["deny"]
+    allow += [p for p in (f"Mcp({OUTLOOK_SERVER}:{t})" for t in OUTLOOK_READS) if p not in allow]
+    deny += [p for p in (f"Mcp({OUTLOOK_SERVER}:{t})" for t in OUTLOOK_WRITES) if p not in deny]
+    cfg_path.write_text(json.dumps(cfg, indent=2))
+    cfg_path.chmod(0o600)
+    print(f"outlook ready in {h}: plugin loaded through the agent shim, MCP write tools denied; "
+          "sign in once with `/mcp` > Outlook > Log in if it reports needsAuth")
 
 
 def jira() -> None:
@@ -248,6 +370,14 @@ def main() -> None:
         setup(os.environ.get("MODEL", ""))
     elif cmd == "jira":
         jira()
+    elif cmd == "n8n":
+        n8n()
+    elif cmd == "outlook":
+        outlook()
+    elif cmd == "search-reads":
+        search_reads()
+    elif cmd == "notebook":
+        notebook([c for c in (sys.argv[2] if len(sys.argv) > 2 else "").split(",") if c])
     elif cmd == "login":
         sys.exit(subprocess.call(["agent", "login"], env=demo_env(), cwd=CAPTURE_HOME / "payments"))
     elif cmd == "atlassian-login":

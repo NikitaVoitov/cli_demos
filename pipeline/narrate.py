@@ -4,13 +4,13 @@
   .captures/venv/bin/python -m pipeline.narrate scenarios/<id> --estimate   # check fit from word counts, no API calls
   .captures/venv/bin/python -m pipeline.narrate scenarios/<id> --check      # fail if audio/captions are stale, no API calls
 
-Each line in `scenario.yaml` `narration.lines` starts at a chapter (`chapter: <id>` or `chapter: gate`, plus an
-optional `offset`) or at an absolute `t`. Clips come from the ElevenLabs CLI with the voice in recorder/voice.yaml
+Each line in `scenario.yaml` `narration.lines` starts at a chapter (`chapter: <id>` or `chapter: gate`, or a `gates` id,
+plus an optional `offset`) or at an absolute `t`. Clips come from the ElevenLabs CLI with the voice in recorder/voice.yaml
 (a scenario can override it) and are cached in .captures/<id>/narration/ by a hash of the spoken text, voice, and
 model, so editing one line only re-synthesizes that line.
 
 A track is written only when every line fits: lines don't overlap, none runs past the end of the cast, none is
-still playing when the player pauses at the gate, and no stretch of silence is longer than `maxSilence`
+still playing when the player pauses at a gate, and no stretch of silence is longer than `maxSilence`
 (recorder/voice.yaml, overridable in `narration`). Otherwise nothing is written and the report says how many words
 to cut or how far to move each line, and lists the transcript entries that happen during each long silence. Outputs are `narration.audio` (one mono MP3 as long as the cast, for
 the player's audioUrl) and `narration.captions` (WebVTT, one cue per line, the cue id is the line id).
@@ -44,10 +44,18 @@ def load(scenario_dir: Path) -> tuple[dict, dict, dict]:
     return scenario, narration, {**house, "voice": voice}
 
 
+def gate_list(scenario: dict) -> list[dict]:
+    """The approvals in time order: `gate` is one (id `gate`), `gates` lists several (a notebook's approved cells)."""
+    if scenario.get("gate") and scenario.get("gates"):
+        raise SystemExit(f"{scenario['id']}: use either gate or gates, not both")
+    gates = scenario.get("gates") or ([{"id": "gate", **scenario["gate"]}] if scenario.get("gate") else [])
+    return sorted(gates, key=lambda g: g["t"])
+
+
 def resolve_starts(scenario: dict, lines: list[dict]) -> list[float]:
     anchors = {c["id"]: c["t"] for c in scenario.get("chapters", [])}
-    if scenario.get("gate"):
-        anchors["gate"] = scenario["gate"]["t"]
+    for gate in gate_list(scenario):
+        anchors[gate["id"]] = gate["t"]
     starts = []
     for line in lines:
         if "t" in line:
@@ -96,7 +104,7 @@ def synthesize(text: str, voice: dict, cache: Path, previous: str | None, follow
     return clip
 
 
-def fit_problems(lines, starts, lengths, cast_end: float, gate_t: float | None, wps: float) -> dict[str, str]:
+def fit_problems(lines, starts, lengths, cast_end: float, gate_ts: list[float], wps: float) -> dict[str, str]:
     problems: dict[str, str] = {}
 
     def cut(over: float) -> str:
@@ -109,8 +117,9 @@ def fit_problems(lines, starts, lengths, cast_end: float, gate_t: float | None, 
         if pos + 1 < len(order):
             j = order[pos + 1]
             limits.append((starts[j] - GAP, f"line {lines[j]['id']!r}"))
-        if gate_t is not None and starts[i] < gate_t:
-            limits.append((gate_t - GAP, "the gate, where the player pauses"))
+        upcoming = [g for g in gate_ts if starts[i] < g]
+        if upcoming:
+            limits.append((min(upcoming) - GAP, "the gate, where the player pauses"))
         limit, what = min(limits)
         if starts[i] < 0:
             problems[lines[i]["id"]] = "starts before the cast does"
@@ -132,18 +141,18 @@ def describe(entry: dict) -> str:
     return f"{entry['t']:.1f} {kind}: {what}"
 
 
-def silence_problems(lines, starts, lengths, cast_end: float, gate_t: float | None, max_silence: float,
+def silence_problems(lines, starts, lengths, cast_end: float, gate_ts: list[float], max_silence: float,
                      events: list[dict]) -> dict[str, str]:
     """Silent stretches longer than max_silence, attributed to the line before them (or the first line).
 
-    The gate splits a stretch in two, because the player sits paused there, not silent. Each problem lists what
+    Each gate splits a stretch in two, because the player sits paused there, not silent. Each problem lists what
     the transcript shows happening during the silence, which is what the missing narration should cover.
     """
     order = sorted(range(len(lines)), key=lambda i: starts[i])
     spans = [(None, 0.0, starts[order[0]])]
     spans += [(i, starts[i] + lengths[i], starts[j]) for i, j in zip(order, order[1:])]
     spans.append((order[-1], starts[order[-1]] + lengths[order[-1]], cast_end))
-    if gate_t is not None:
+    for gate_t in gate_ts:
         spans = [part for owner, a, b in spans
                  for part in ([(owner, a, gate_t), (owner, gate_t, b)] if a < gate_t < b else [(owner, a, b)])]
     problems: dict[str, str] = {}
@@ -236,7 +245,7 @@ def narrate(scenario_dir: Path, estimate: bool, check: bool) -> int:
         return 1 if reasons else 0
 
     cast_end = scenario["cast"]["duration"]
-    gate_t = scenario.get("gate", {}).get("t")
+    gate_ts = [g["t"] for g in gate_list(scenario)]
     texts = [spoken(line["text"], pronounce) for line in lines]
     max_silence = float(narration.get("maxSilence", house.get("maxSilence", 3.0)))
     transcript = scenario_dir / scenario.get("artifacts", {}).get("transcript", "artifacts/transcript.json")
@@ -246,8 +255,8 @@ def narrate(scenario_dir: Path, estimate: bool, check: bool) -> int:
     )
 
     def problems_for(lengths: list[float]) -> dict[str, str]:
-        found = fit_problems(lines, starts, lengths, cast_end, gate_t, wps)
-        for key, note in silence_problems(lines, starts, lengths, cast_end, gate_t, max_silence, events).items():
+        found = fit_problems(lines, starts, lengths, cast_end, gate_ts, wps)
+        for key, note in silence_problems(lines, starts, lengths, cast_end, gate_ts, max_silence, events).items():
             found[key] = f"{found[key]}; {note}" if key in found else note
         return found
 

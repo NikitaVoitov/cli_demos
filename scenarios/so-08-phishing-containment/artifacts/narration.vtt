@@ -1,0 +1,75 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:07.180
+An employee forwards a suspicious invoice to the security inbox. Cursor CLI takes it from here.
+
+ask
+00:00:07.800 --> 00:00:13.400
+The analyst asks Cursor to read Dana's report and have the Splunk agent triage it.
+
+outlook
+00:00:14.000 --> 00:00:17.120
+Dana's report is on the right, in Outlook.
+
+read
+00:00:17.600 --> 00:00:23.600
+Cursor reads it through the Outlook MCP and pulls out the original sender and link.
+
+launch
+00:00:26.200 --> 00:00:33.080
+Then it starts the Agent Launchpad triage agent in Splunk. The agent runs its own searches.
+
+sources
+00:00:33.500 --> 00:00:38.220
+It checks mail, proxy, endpoint, and sign-in data.
+
+recipients
+00:00:38.600 --> 00:00:45.640
+Fourteen people got the email. It failed SPF and DMARC, from a brand-new domain.
+
+clicks
+00:00:46.000 --> 00:00:55.040
+Three people clicked. Priya submitted the form, and later someone tried her account from the Netherlands. MFA stopped it.
+
+contain-ask
+00:00:55.400 --> 00:01:00.040
+Now the analyst asks Cursor to contain it with n8n.
+
+mailboxes
+00:01:01.300 --> 00:01:06.420
+Cursor finds all fourteen mailboxes and calls the containment command.
+
+why-stop
+00:01:06.900 --> 00:01:13.460
+The command holds the run. Cursor shows exactly what will happen and waits for your approval.
+
+approved
+00:01:15.800 --> 00:01:20.040
+Approved. Cursor reruns the command once.
+
+n8n
+00:01:20.400 --> 00:01:28.000
+n8n purges the email everywhere, blocks the sender's domain, and tells the analyst in Slack.
+
+follow-up
+00:01:28.400 --> 00:01:32.080
+Cursor flags the three people who clicked for follow-up.
+
+verify-ask
+00:01:33.500 --> 00:01:38.940
+The notice is in Slack. Now the same agent verifies it in Splunk.
+
+verify-run
+00:01:39.800 --> 00:01:44.280
+It checks every mailbox, and any activity since containment.
+
+verified
+00:01:44.800 --> 00:01:51.520
+No mailbox still holds it, and nothing touched the domain since. Containment is complete.
+
+outro
+00:01:51.900 --> 00:01:54.700
+One approval, and a verified fix.

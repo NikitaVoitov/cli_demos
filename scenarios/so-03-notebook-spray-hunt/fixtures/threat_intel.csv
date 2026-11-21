@@ -1,0 +1,4 @@
+indicator,category,first_reported,source
+198.51.100.22,password spraying,2026-09-04,community feed
+192.0.2.140,command and control,2026-08-17,community feed
+192.0.2.77,port scanning,2026-10-02,community feed

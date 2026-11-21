@@ -348,6 +348,15 @@ SO-07 (investigate a Jira alert with Splunk ML, after the [Lantern article](http
 27. **SaaS fixtures work within the plan's permissions.** The free Jira project can't delete issues, so `scripts/so07_jira.py reset` closes and labels leftover follow-ups, and keeps or recreates the six alerts. It also sets each alert's Jira priority, so the list reads like a triage queue.
 28. **Verify the hub by state, not by wall clock.** Headless Chromium plays the narrated player unevenly, about 2 s of cast in 10 s, so timed samples mislead. Check the gate, chapters, and pane steps from DOM state, such as the Approve button and image alt text. Read the player's own timer element, and render exact frames from the published cast with pyte.
 
+SO-03 (hunt a low-and-slow password spray in a Jupyter notebook that Cursor CLI drives through `jpterm`, with Machine Data Lake in the loop) was the fifth demo and the first with several approvals. It added:
+
+29. **A scenario can have several gates.** `scenario.yaml` takes `gates: [{ id, t, command, summary? }]` as an alternative to `gate` (using both is an error). Copy sits in `content.yaml` under `gates.<id>`, a gate ID must not equal a chapter ID, and a legacy `gate` is the gate with ID `gate`. The player pauses at each gate in turn, the approval bar reads "Approval n of N", and the demo counts as approved after the last one. Narration anchors take any gate ID, `narrate` checks that no line crosses any gate, and the transcript marks every chapter that holds one. Existing demos need no change.
+30. **A notebook cell is a gated write.** `recorder/clients/cursor-cli/jpterm.tmpl` allows only `kernel`, `execute --cell` and `write --cell params` (with a numeric or string assignment as its only source). Cells listed in `~/.config/jpterm-gates` answer without `--yes` with `CONFIRMATION_REQUIRED: cell <id> requires confirmation.`, the same trick as `acli`. `scenario.yaml` lists them under `recording.notebook.gated` and `integrations: [notebook]` makes `ce01_capture.py notebook` build the kernel venv (`uv`, Python 3.12, `recorder/notebook/requirements.txt`), the wrappers, and the allow-list.
+31. **A stack can have a capture profile.** `recording.stackProfile: mdl` sets `CAPTURE_STACK=mdl`, so `ce01_capture.py`, the web login and the Splunk MCP read `.captures/ce01/stacks/mdl/` instead of the default stack. `scripts/stack_profile.py init|check mdl` builds it from `.env` keys with the suffix `_MDL`. The sanitizer masks stack names listed in `stack_id` files.
+32. **A fixture can stage files after the workspace is cleaned.** The runner empties the workspace before recording, so `fixtures.stage` runs last and writes the notebook, helpers and CSVs. A beat's `evidence` overrides `recording.gateEvidence`, because each of three gates waits for a different cell.
+33. **A story can be synthetic and still deterministic.** `scripts/auth_hunt_data.py` generates 120 days of logins: a VPN egress with many harmless failures and an attacker spraying one attempt per account. Only the last 14 days sit in the hot index, so the lake is what shows the campaign three months back. `scripts/seed_auth.py --dry-run` prints the numbers and `--check` confirms the stack holds the story. `fixtures/MDL_SETUP.md` lists the stack-side steps.
+34. **`flow.kind: notebook` selects a third diagram.** Cursor CLI, `jpterm` and the kernel, then the lake and Splunk MCP on the Splunk Cloud side.
+
 ### 0.11 Narration
 
 Any demo can add a spoken voice-over that plays in sync with its cast through the player's [`audioUrl`](https://docs.asciinema.org/manual/player/options/#audiourl) option. CE-01 is the first narrated demo. Narration is one more pipeline step over the published cast; nothing in it is specific to a demo, a recorded client, or the authoring agent.
@@ -418,6 +427,44 @@ The final audio always comes from the CLI so it can be rebuilt. The ElevenLabs M
 **Playback.** `content.ts` imports the MP3 and the VTT at build time and checks every cue against the lines; a mismatch stops the page from loading, like a missing chapter label. `useCastPlayer` passes the track as `audioUrl`. The player then keeps it on its own clock through play, pause, seek, and the gate pause, and adds its speaker button. Workers static assets answer `Range` requests with a full 200, and Safari can't seek audio without a 206. The hub therefore fetches the track once and plays it from a Blob URL, which needs no Worker or R2. If the fetch fails, the demo plays silently. Narrated demos never autoplay, so the visitor's Play click allows sound. Captions are subtitles over the terminal, in the SDS-Web warning orange, toggled from the terminal header and hidden while the player is muted. They are `aria-hidden` because screen-reader users hear the audio, and the Transcript tab stays the accessible text alternative.
 
 **What changes need a rerun.** A changed line, anchor, chapter or gate time, cast duration, voice, or pronunciation entry means rerunning `pipeline.narrate` and committing `narration.mp3` and `narration.vtt` with the scenario change. A `content.yaml` edit never does.
+
+### 0.12 n8n workflow canvas
+
+A demo where the agent hands work to n8n can show the real n8n canvas beside the terminal, alone or sharing the pane with screenshots: with `workflow.show: { from, until }` the canvas holds the pane over that stretch and `browser.steps` screenshots show the rest, then the final screenshot appears at `browser.showAt` after approval (SO-08: Outlook report, canvas, Slack notice). Both layers stay mounted so the canvas never reloads. The nodes light up as the cast reaches them: the running node pulses in the primary pink, finished nodes and the path between them turn the status green, and untaken branches stay grey. Short notes say what a node found: once a step starts, its node gets a pink info icon, and hovering the node shows the note with a pointer to it. Notes never open on their own. No n8n server runs when the page is viewed.
+
+```text
+n8n export ─→ python -m pipeline.workflow ─→ scenarios/<id>/artifacts/workflow.json (sanitized, committed)
+recorder/n8n-preview.yaml ─→ scripts/n8n_preview_snapshot.py ─→ apps/hub/public/n8n-preview/ (generated, git-ignored)
+scenario.yaml workflow.steps + content.yaml workflow.callouts ─→ hub WorkflowPane, on the player's clock
+```
+
+**How it works.** n8n's read-only demo page (`/workflows/demo`, the page behind n8n's own workflow previews) needs only its prebuilt editor plus four small responses: public settings, node types, node icons, and an empty community-node list. `scripts/n8n_preview_snapshot.py` runs the pinned image from `recorder/n8n-preview.yaml` in preview mode once, copies the editor it serves (`~/.cache/n8n/public`, base path already applied), strips the per-request CSP nonces, freezes those responses, keeps only the node types the demo workflows use (the full catalog is 18 MB), and replaces icons listed in the config, such as the Splunk app logo. The result is about 29 MB of static files at `/n8n-preview/`, served from the hub's own origin. The pane loads the workflow with n8n's documented `openWorkflow` message, then writes one stylesheet into the same-origin iframe as the clock moves. Rules match n8n's node and edge attributes (`.vue-flow__node[data-id]`, edges labeled by source and target ID), so they keep applying through pan, zoom, fit view, and a workflow reload. Sticky notes, note cards, and highlights use the hub's SDS tokens, read from the hub's theme at runtime. n8n draws nothing in the node wrapper's and inner node's pseudo-elements, so the info icon, card, and pointer live there, and `:hover` opens the card. Every 150 ms the pane follows the canvas zoom (cards and icons keep their screen size) and makes the hovered card lean away from the canvas edge its node is near.
+
+**Authoring.** Export the workflow from n8n, then `python -m pipeline.workflow scenarios/<id> <export.json>`. It keeps each node's full configuration (names, types, positions, connections, parameters, non-empty sticky notes), so the artifact is importable n8n JSON. It drops credentials, webhook IDs, pinned data, and instance metadata, replaces URL hosts with `service.example.com`, zeroes resource-locator IDs (a Slack channel) while keeping their names, runs the house sanitizer, and checks the steps against the nodes (`--check` validates without rewriting). `workflow.startedBy` (a regex on a shell command) makes `pipeline.transcript` add that JSON as an Artifact entry after the command that started the workflow. In `scenario.yaml`:
+
+```yaml
+workflow:
+  src: artifacts/workflow.json
+  steps:   # by node name; running from `at`, done at `until` (default: the next later step)
+    - { node: "contain_phishing called", at: contain, until: 21 }   # chapter ID, gate ID, or seconds
+    - { node: "Purge email from inboxes", at: 22, until: 25, callout: purge }
+```
+
+`content.yaml` gets `workflow: { title?, object?, alt, callouts: { purge: "Removes the email from 14 inboxes" } }`. Keep a note to one short sentence; it is a label on the canvas, not narration. `status: error` turns a finished node red. A demo has either a `browser` or a `workflow` pane. At the gate nothing after it has run; after Decline the pane header says the workflow never ran; at the end every step is done.
+
+**Checks.** `content.ts` refuses unknown node names, callouts without copy, and steps that end before they start. The Vite plugin `plugins/n8nPreview.ts` fails the build when a scenario draws a workflow and the snapshot is missing or lacks one of its node types, maps `/n8n-preview/workflows/demo` to `demo.html` in the dev and preview servers (Workers static assets do this themselves), and leaves the snapshot out of `dist/` unless some scenario uses it. `apps/hub/scripts/check-workflow-pane.mjs` checks the pane by DOM state against `apps/hub/tests/fixtures/scenarios/wf-canvas-fixture` (build with `DEMO_SCENARIOS=tests/fixtures/scenarios`): canvas loaded, nodes idle before the gate, running and done per chapter, the untaken branch idle, zoom, Decline, and the notes (info icons as steps start, nothing open on its own, hover opens one card with its pointer). It passed under `vite preview` and under `wrangler dev`, where Workers serve the extensionless `rest/settings` without a content type and answer n8n's two login probes with the hub's SPA fallback; the canvas tolerates both.
+
+**What we found on the way (Nov 20, 2026, n8n 2.48.7).**
+
+- n8n's own replay messages don't paint on this page. `executionEvent` and `openExecutionPreview` both update n8n's execution state, but the canvas keeps a reference to an earlier state store that `openWorkflow` disposes, so nothing renders. n8n moved its own in-app preview off this iframe route in 2026, so the path is probably untested. The stylesheet approach depends only on DOM attributes that n8n's end-to-end tests also use.
+- Back-to-back `postMessage` events can be handled out of order, which is another reason not to drive the canvas through n8n's execution pipeline.
+- The editor shows a credential warning on every node without credentials; the stylesheet hides it.
+- A live preview container takes about 40 s to answer the community-node list unless community packages are off, and preview mode turns off authentication for n8n's whole API. The static snapshot avoids both.
+- `N8N_PATH` makes n8n write its base path into the pages but expects a proxy to strip it from requests.
+
+**Upgrading n8n** means a new image and digest in `recorder/n8n-preview.yaml`, a fresh snapshot, and the pane check. The selectors and the `openWorkflow` contract are the things to watch.
+
+**Publishing.** The snapshot publishes n8n's frontend code on the hub. The build leaves it out when no scenario draws a workflow, so a hub without n8n demos ships none of it.
 
 ## 1. Target design at a glance
 

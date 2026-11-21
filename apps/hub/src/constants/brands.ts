@@ -6,7 +6,9 @@ import gemini from '@/assets/brands/gemini.svg'
 import githubActions from '@/assets/brands/github-actions.svg'
 import jira from '@/assets/brands/jira.svg'
 import kubernetes from '@/assets/brands/kubernetes.svg'
+import n8n from '@/assets/brands/n8n.svg'
 import openai from '@/assets/brands/openai.svg'
+import outlook from '@/assets/brands/outlook.svg'
 import playwright from '@/assets/brands/playwright.svg'
 import python from '@/assets/brands/python.svg'
 import slack from '@/assets/brands/slack.svg'
@@ -27,6 +29,8 @@ export const BRAND_ICON: Record<string, string> = {
   'GitHub Actions': githubActions,
   Jira: jira,
   Kubernetes: kubernetes,
+  n8n: n8n,
+  Outlook: outlook,
   Playwright: playwright,
   Python: python,
   Slack: slack,

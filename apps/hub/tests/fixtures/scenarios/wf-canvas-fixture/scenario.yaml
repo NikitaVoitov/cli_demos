@@ -1,0 +1,35 @@
+# Test fixture for the workflow canvas pane: a synthetic cast, one approval, and an n8n workflow.
+# The hub loads it only with DEMO_SCENARIOS=tests/fixtures/scenarios (scripts/check-workflow-pane.mjs).
+id: wf-canvas-fixture
+useCase: SO-08
+source: captured
+change: Gated write
+stack: co2
+client:
+  name: cursor-cli
+  label: Cursor
+terminal: { cols: 88, rows: 28 }
+cast:
+  src: artifacts/session.cast
+  duration: 38
+chapters:
+  - { id: report, t: 0 }
+  - { id: investigate, t: 6 }
+  - { id: approval, t: 14 }
+  - { id: contain, t: 20 }
+  - { id: verify, t: 28 }
+gate:
+  t: 17
+  command: n8n-contain --case PH-1042
+# Each step lights one node on the n8n canvas: running from `at`, done at `until` (default: the next later step).
+# Times are chapter IDs, gate IDs, or seconds on the published cast.
+workflow:
+  src: artifacts/workflow.json
+  steps:
+    - { node: "Start containment", at: contain, until: 21 }
+    - { node: "Purge email from inboxes", at: 21, until: 24, callout: purge }
+    - { node: "Block sender domain", at: 21, until: 23, callout: block }
+    - { node: "Wait for results", at: 24, until: 25 }
+    - { node: "Notify analyst in Slack", at: 25, until: 26.5, callout: slack }
+artifacts:
+  transcript: artifacts/transcript.json

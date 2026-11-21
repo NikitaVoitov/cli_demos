@@ -1,5 +1,6 @@
 import { CircleSlash, Pause, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { gateCopy, gatesOf } from '@/lib/gates'
 import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { DemoEntry } from '@/types/content.types'
 
@@ -8,8 +9,10 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
   const approve = usePlaybackStore((state) => state.approve)
   const decline = usePlaybackStore((state) => state.decline)
   const replay = usePlaybackStore((state) => state.replay)
-  const gate = entry.scenario.gate
-  const copy = entry.content.gate
+  const gateIndex = usePlaybackStore((state) => state.gateIndex)
+  const gates = gatesOf(entry.scenario)
+  const gate = gates[gateIndex]
+  const copy = gate && gateCopy(entry.content, gate.id)
   if (!gate || !copy) return null
 
   return (
@@ -24,6 +27,7 @@ export function ApprovalBar({ entry }: { entry: DemoEntry }) {
           </span>
           <div className="min-w-0 flex-1">
             <h2 id="gate-title" className="text-body-sm font-semibold text-gate">
+              {gates.length > 1 && <span className="mr-2 font-normal">Approval {gateIndex + 1} of {gates.length}</span>}
               {copy.title}
             </h2>
             <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">

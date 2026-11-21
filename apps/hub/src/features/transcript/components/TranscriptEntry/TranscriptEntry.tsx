@@ -127,6 +127,14 @@ function Body({ entry, demo }: { entry: Entry; demo: DemoEntry }) {
           {entry.artifact === 'source' && demo.sourceCode && (
             <CodeBlock code={demo.sourceCode.trim()} copyLabel="Copy script" accent="file" maxLines={40} />
           )}
+          {entry.artifact === 'workflow' && demo.workflow && (
+            <CodeBlock
+              code={JSON.stringify(demo.workflow.json, null, 2)}
+              copyLabel="Copy n8n workflow JSON"
+              accent="file"
+              maxLines={14}
+            />
+          )}
         </>
       )
   }
@@ -134,7 +142,12 @@ function Body({ entry, demo }: { entry: Entry; demo: DemoEntry }) {
 
 export function TranscriptEntry({ entry, demo }: { entry: Entry; demo: DemoEntry }) {
   const base = ACTORS[entry.kind]
-  const actor = entry.kind === 'shell' && entry.by === 'user' ? { ...base, verb: 'You ran' } : base
+  const actor =
+    entry.kind === 'shell' && entry.by === 'user'
+      ? { ...base, verb: 'You ran' }
+      : entry.kind === 'file' && entry.artifact === 'workflow'
+        ? { ...base, verb: 'Started in n8n' }
+        : base
   return (
     <li className="grid gap-2 border-b border-border-subtle py-3 last:border-b-0 md:grid-cols-[170px_minmax(0,1fr)] md:gap-4">
       <div className="flex items-start gap-2.5">

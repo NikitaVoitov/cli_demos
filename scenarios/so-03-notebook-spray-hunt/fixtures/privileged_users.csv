@@ -1,0 +1,4 @@
+user,role
+svc_backup,backup operator
+adm_ops,domain admin
+svc_deploy,deployment service

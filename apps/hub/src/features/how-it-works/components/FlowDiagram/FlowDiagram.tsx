@@ -109,6 +109,73 @@ export function FlowDiagram({ browser = true, mcp = 'MCP · sourcetypes, SPL' }:
   )
 }
 
+// Same columns as FlowDiagram, one more row. The loop: Splunk finds the threat, n8n acts after approval and writes
+// its audit records back to Splunk, Slack tells you, and the same agent proves the fix in Splunk.
+/** The closed-loop phishing story: Outlook report, Agent Launchpad triage, approved n8n containment, Slack, verify. */
+export function PhishingFlowDiagram() {
+  return (
+    <svg viewBox="0 0 900 380" className="h-auto w-full font-sans" role="img" aria-labelledby="phish-flow-title phish-flow-desc">
+      <title id="phish-flow-title">How the pieces fit together</title>
+      <desc id="phish-flow-desc">
+        You prompt Cursor CLI. It reads the reported email from Outlook through the Outlook MCP, and runs the Agent Launchpad
+        triage agent in Splunk Cloud with splunkctl. Containment goes through n8n-contain, which stops at
+        CONFIRMATION_REQUIRED, so Cursor asks you first. After approval, n8n purges the email and blocks the domain, writes
+        the audit records to Splunk over HEC, and tells you in Slack. The same agent then verifies the containment in Splunk.
+      </desc>
+      <defs>
+        <marker id="phish-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="phish-flow-arrow-warn" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
+        </marker>
+      </defs>
+      <Box x={0} y={112} w={116} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={180} y={112} w={170} h={76} title="Cursor CLI" sub="the agent" stroke="var(--text-primary)" />
+      <Box x={410} y={18} w={260} h={68} title="Outlook MCP" sub="read the reported email" stroke="var(--status-info)" />
+      <Box x={410} y={112} w={260} h={76} title="splunkctl" sub="Shell · run the Launchpad agent" stroke="var(--action-primary)" />
+      <Box
+        x={410}
+        y={214}
+        w={260}
+        h={76}
+        title="n8n-contain"
+        sub="Shell · start containment"
+        stroke="var(--status-success)"
+        note="stops at CONFIRMATION_REQUIRED"
+      />
+      <Box x={750} y={18} w={140} h={68} title="Outlook" sub="Phishing reports" stroke="var(--border-strong)" />
+      <Box x={750} y={112} w={140} h={76} title="Splunk Cloud" sub="Agent Launchpad" stroke="var(--border-strong)" note="triage, verify" />
+      <Box x={750} y={214} w={140} h={76} title="n8n" sub="purge, block" stroke="var(--border-strong)" />
+      <Box x={750} y={314} w={140} h={56} title="Slack" sub="#phishing-response" stroke="var(--border-strong)" />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#phish-flow-arrow)">
+        <path d="M116 138H178" />
+        <path d="M350 150C380 150 380 52 408 52" />
+        <path d="M350 150H408" />
+        <path d="M350 150C380 150 380 252 408 252" />
+        <path d="M670 52H748" />
+        <path d="M670 150H748" />
+        <path d="M670 252H748" />
+        <path d="M820 214V190" />
+        <path d="M820 290V312" />
+        <path d="M750 342H58V190" />
+      </g>
+      <path d="M178 164H118" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#phish-flow-arrow-warn)" />
+      <Label x={147} y={130}>prompt</Label>
+      <Label x={147} y={182} warn>
+        asks first
+      </Label>
+      <Label x={709} y={44}>MCP</Label>
+      <Label x={709} y={142}>aiagent</Label>
+      <Label x={709} y={244}>webhook</Label>
+      <text x={828} y={206} fontSize={11} fill="var(--text-muted)">
+        audit (HEC)
+      </text>
+      <Label x={404} y={334}>tells you it's done</Label>
+    </svg>
+  )
+}
+
 // Same columns as FlowDiagram. Jira writes go through acli, which holds them for approval; both MCP servers only read.
 /** The Jira hand-off story: alerts come from Jira, evidence from Splunk, and the follow-up ticket waits for you. */
 export function JiraFlowDiagram({ mcp = 'searches, saved ML models' }: { mcp?: string }) {
@@ -264,6 +331,61 @@ export function SdkFlowDiagram({ mcp = '2 allowlisted tools' }: { mcp?: string }
       <Label x={119} y={142}>prompt</Label>
       <Label x={299} y={142}>file</Label>
       <Label x={745} y={142}>read</Label>
+    </svg>
+  )
+}
+
+// Columns: You 0–100 · Cursor CLI 150–280 · tools 340–600 · Splunk Cloud 660–900, with the Machine Data Lake inside it.
+// The kernel box is dashed-green like the other gated tools; the notebook file sits under it.
+/** The notebook story: the agent runs notebook cells through jpterm, each one held for approval, and one cell reads the lake. */
+export function NotebookFlowDiagram({ mcp = 'hot index, triage' }: { mcp?: string }) {
+  return (
+    <svg viewBox="0 0 900 300" className="h-auto w-full font-sans" role="img" aria-labelledby="nb-flow-title nb-flow-desc">
+      <title id="nb-flow-title">How the pieces fit together</title>
+      <desc id="nb-flow-desc">
+        You prompt Cursor CLI. It triages the hot index through Splunk MCP, then works through a Jupyter notebook with jpterm.
+        Each cell the kernel runs stops at CONFIRMATION_REQUIRED, so Cursor asks you first. The approved cells search the Machine
+        Data Lake, load a shared table into the kernel, and backtest the detection over 90 days.
+      </desc>
+      <defs>
+        <marker id="nb-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="nb-flow-arrow-warn" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
+        </marker>
+      </defs>
+      <Box x={0} y={112} w={100} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={150} y={112} w={130} h={76} title="Cursor CLI" sub="the agent" stroke="var(--text-primary)" />
+      <Box
+        x={340}
+        y={18}
+        w={260}
+        h={76}
+        title="jpterm"
+        sub="Shell · run notebook cells"
+        stroke="var(--status-success)"
+        note="each cell stops at CONFIRMATION_REQUIRED"
+      />
+      <Box x={340} y={112} w={260} h={68} title="Jupyter kernel" sub="hunt.ipynb · Python, pandas" stroke="var(--status-info)" />
+      <Box x={340} y={206} w={260} h={68} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
+      <Box x={660} y={18} w={240} h={256} title="Splunk Cloud" sub="search head, MCP" stroke="var(--border-strong)" />
+      <Box x={676} y={104} w={208} h={80} title="Machine Data Lake" sub="raw table · shared table" stroke="var(--action-primary)" />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#nb-flow-arrow)">
+        <path d="M100 138H148" />
+        <path d="M280 150C310 150 310 56 338 56" />
+        <path d="M280 150C310 150 310 240 338 240" />
+        <path d="M470 94V110" />
+        <path d="M600 146H674" />
+        <path d="M600 240H658" />
+      </g>
+      <path d="M148 164H102" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#nb-flow-arrow-warn)" />
+      <Label x={125} y={130}>prompt</Label>
+      <Label x={125} y={182} warn>
+        asks first
+      </Label>
+      <Label x={632} y={138}>reads</Label>
+      <Label x={630} y={232}>MCP</Label>
     </svg>
   )
 }

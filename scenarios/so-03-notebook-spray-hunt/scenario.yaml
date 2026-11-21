@@ -1,0 +1,82 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+# A guided threat hunt in a Jupyter notebook that Cursor CLI runs through jpterm, on a stack with Machine Data Lake.
+# Not recorded yet: `source: metadata` keeps it a catalog placeholder. Fix the stack side first (fixtures/MDL_SETUP.md),
+# record, then follow "After the first capture" below.
+id: so-03-notebook-spray-hunt
+useCase: SO-03
+source: metadata
+change: Gated write
+stack: co2-mdl
+client:
+  name: cursor-cli
+  label: Cursor
+  model: Auto Balance
+terminal: { cols: 88, rows: 28 }
+
+# After the first capture (docs: .agents/skills/demo-author/SKILL.md):
+#   1. `python -m pipeline.capture scenarios/so-03-notebook-spray-hunt <take>`, then `pipeline.post` and `pipeline.transcript`.
+#   2. Change `source` to `captured` and add `capture:` and `cast:` like the other demos.
+#   3. Chapters: one per beat mark below, at the time post prints for it: triage, notebook, lake, table, backtest,
+#      detection. Their labels are already in content.yaml.
+#   4. Gates: three entries in `gates:` (not `gate:`), each `t` where its refusal is first on screen (the cast shows
+#      "cell <id> requires confirmation"). Their copy is already in content.yaml `gates`.
+#        gates:
+#          - { id: gate-lake, t: 0, command: jpterm execute hunt.ipynb --cell raw-search }
+#          - { id: gate-table, t: 0, command: jpterm execute hunt.ipynb --cell load-shared }
+#          - { id: gate-backtest, t: 0, command: jpterm execute hunt.ipynb --cell backtest }
+#   5. `post.holds` on the evidence screens (suspect IP, first seen date, rule hit table, SPL), then narrate. Narration
+#      anchors a line to a gate with `chapter: <gate id>`, and nothing may still be playing at any gate.
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/so-03-notebook-spray-hunt <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  # The MDL-enabled stack: its Splunk Web, splunkctl config, and MCP token come from .captures/ce01/stacks/mdl
+  # (python3 scripts/stack_profile.py init mdl).
+  stackProfile: mdl
+  # Adds the gated jpterm (the three cells below stop with CONFIRMATION_REQUIRED) and euporie-preview.
+  integrations: [notebook]
+  notebook:
+    gated: [raw-search, load-shared, backtest]
+  hints: [notebook-hunt]
+  # The wrapper's refusal is short on purpose: Cursor CLI truncates long shell output. Each gate also names its cell.
+  gateEvidence: "CONFIRMATION_REQUIRED"
+  fixtures:
+    setup:
+      # Refuses to record unless the profile exists and the stack holds the story (scripts/seed_auth.py).
+      - bash scenarios/so-03-notebook-spray-hunt/fixtures/setup.sh
+    stage:
+      # Puts hunt.ipynb, lake.py, the lake credentials, and two lookup files in the emptied workspace.
+      - bash scenarios/so-03-notebook-spray-hunt/fixtures/stage.sh
+    teardown:
+      - bash scenarios/so-03-notebook-spray-hunt/fixtures/teardown.sh
+  beats:
+    - { comment: "Hunt a password spray in a notebook, with Splunk MCP and the Machine Data Lake", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    # Short turns, so each one ends with an answer on screen. The terminal truncates tool output, which is why the
+    # hint asks for a short message after every step. The three approvals are the turns that end at a refusal.
+    - prompt: >
+        Our alert on 100 failed sign-ins in 5 minutes has been quiet, but I suspect someone is spraying passwords
+        slowly. Check the last 14 days of index demo_auth and tell me which source IP looks like it.
+      mark: triage
+    - { wait: turn-end, timeout: 600, mark: triage-done }
+    - prompt: >
+        Good. Open hunt.ipynb: start its kernel, put that IP in the params cell, run setup, then run raw-search to
+        see the IP's full history in the lake.
+      mark: notebook
+    - { wait: turn-end, timeout: 600, mark: gate-lake, require: gate, evidence: "cell raw-search requires" }
+    - prompt: "Approved. Run it and tell me what the lake shows. Then run load-shared."
+      mark: lake
+    - { wait: turn-end, timeout: 600, mark: gate-table, require: gate, evidence: "cell load-shared requires" }
+    - prompt: "Approved. Load it, tell me what is in the table, then run backtest."
+      mark: table
+    - { wait: turn-end, timeout: 600, mark: gate-backtest, require: gate, evidence: "cell backtest requires" }
+    - prompt: >
+        Approved. Run the backtest, then enrich and detection, and tell me what we found and what to do next.
+      mark: backtest
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    # The closing beat is the viewer typing in shell mode: the executed notebook, outputs and all.
+    - shell: "euporie-preview hunt.ipynb"
+      waitFor: "\\[\\d+\\] Daily saved search"
+      mark: detection
+    - { exit: true, mark: outro }

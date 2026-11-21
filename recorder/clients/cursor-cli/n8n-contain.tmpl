@@ -1,0 +1,60 @@
+#!/usr/bin/python3
+"""n8n-contain in the capture home: starts the n8n phishing-containment workflow for one case.
+
+  n8n-contain --case PH-1042 --message-id '<id>' --domain bad.example --recipients a@x,b@x [--yes]
+
+Containment is a write, so it stops the way splunkctl and acli do: without --yes it prints CONFIRMATION_REQUIRED
+and runs nothing. The webhook address and its secret come from ~/.config/n8n-contain.env.
+"""
+
+import argparse
+import json
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+CONFIG = Path.home() / ".config/n8n-contain.env"
+
+
+def config() -> dict:
+    pairs = (line.split("=", 1) for line in CONFIG.read_text().splitlines() if "=" in line)
+    return {k.strip(): v.strip() for k, v in pairs}
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="n8n-contain", description="Start the n8n phishing-containment workflow.")
+    p.add_argument("--case", required=True, help="case ID, for example PH-1042")
+    p.add_argument("--message-id", required=True, help="internet message ID of the phishing email")
+    p.add_argument("--domain", required=True, help="sender domain to block")
+    p.add_argument("--recipients", required=True, help="comma-separated mailboxes to purge")
+    p.add_argument("--yes", action="store_true", help="run after approval")
+    args = p.parse_args()
+
+    recipients = [r.strip() for r in args.recipients.split(",") if r.strip()]
+    if not args.yes:
+        # Cursor CLI shows one line of a shell result, so the refusal stays short.
+        print("CONFIRMATION_REQUIRED: n8n-contain needs approval; rerun with --yes", file=sys.stderr)
+        return 3
+
+    cfg = config()
+    body = {"case_id": args.case, "internet_message_id": args.message_id, "sender_domain": args.domain,
+            "recipients": recipients}
+    request = urllib.request.Request(cfg["N8N_CONTAIN_URL"], data=json.dumps(body).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "X-Demo-Token": cfg["N8N_WEBHOOK_TOKEN"]})
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            result = json.loads(response.read() or b"{}")
+    except urllib.error.HTTPError as error:
+        print(f"Error: n8n answered HTTP {error.code}: {error.read().decode()[:200]}", file=sys.stderr)
+        return 1
+    except urllib.error.URLError as error:
+        print(f"Error: n8n is unreachable: {error.reason}", file=sys.stderr)
+        return 1
+    slack = "analyst notified in Slack" if result.get("ok") else "Slack notice not confirmed"
+    print(f"Contained {args.case}: purged {len(recipients)} mailboxes, blocked {args.domain}; {slack}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

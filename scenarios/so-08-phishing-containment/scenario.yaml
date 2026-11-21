@@ -1,0 +1,196 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+# Closed-loop phishing triage: Outlook report -> Splunk Agent Launchpad triage -> approved containment in n8n ->
+# Slack notice -> Launchpad verifies in Splunk. Setup: fixtures/LAUNCHPAD_SETUP.md and fixtures/N8N_SETUP.md.
+id: so-08-phishing-containment
+useCase: SO-08
+source: captured
+change: Gated write
+stack: mdl
+client:
+  name: cursor-cli
+  label: Cursor
+  model: Auto Balance
+# Split demo: the terminal shares the stage with the real n8n canvas.
+terminal: { cols: 88, rows: 28 }
+
+capture:
+  status: captured
+  take: take-1
+  month: Nov 2026
+  splunkctl: 0.1.2
+  # Waits where only the spinner moves are cut; six holds freeze the evidence screens. The raw take ran 4 min 4 s.
+  timeCompressed: true
+  rawDuration: 244.0
+  notes: >
+    Recorded from the beats in this file in a neutral capture home on the MDL stack (stack profile mdl) with
+    approvalMode unrestricted, so n8n-contain's CONFIRMATION_REQUIRED is the only write gate. splunkctl runs
+    searches without write commands unprompted (search-reads); Outlook MCP and Splunk MCP write tools are
+    denied. Data is index=demo_soc (scripts/seed_phishing.py); the report is Dana Lee's email in the demo-soc
+    Phishing reports folder (scripts/seed_phishing.py --report-eml).
+
+cast:
+  src: artifacts/session.cast
+  duration: 115.4
+
+# Stable IDs; times are seconds on the published cast clock, set by hand after each capture.
+chapters:
+  - { id: report, t: 0 }
+  - { id: triage, t: 27.4 }
+  - { id: approval, t: 54.5 }
+  - { id: contain, t: 76 }
+  - { id: verify, t: 92.9 }
+
+gate:
+  t: 75
+  command: n8n-contain --case PH-1042
+
+# The side pane follows the story: Dana's report in Outlook while Cursor reads it and the agent triages, the real
+# n8n canvas from the approval through containment, then the Slack notice n8n posted. Screenshots come from the
+# Outlook and Slack desktop apps (screencapture -l <window id>), cropped to the reading pane and the channel.
+browser:
+  mode: agent
+  showAt: verify
+  object: "#phishing-response"
+  screenshot: artifacts/slack-notice.png
+  steps:
+    - { id: report, screenshot: artifacts/outlook-report.png, object: Phishing reports, until: approval }
+
+# Nodes light up from Cursor's approved n8n-contain run; the canvas holds the pane from approval to verify.
+workflow:
+  src: artifacts/workflow.json
+  show: { from: approval, until: verify }
+  # The approved run; its transcript entry shows this workflow's JSON.
+  startedBy: 'n8n-contain .*--yes'
+  steps:
+    # The approved n8n-contain starts at 78.1 and prints its result at 82.7 (the n8n hold stretches it).
+    - { node: "Start containment", at: 78.1, until: 78.9 }
+    - { node: "Purge email from inboxes", at: 78.9, until: 81, callout: purge }
+    - { node: "Block sender domain", at: 78.9, until: 80.5, callout: block }
+    - { node: "Wait for results", at: 81, until: 81.6 }
+    - { node: "Notify analyst in Slack", at: 81.6, until: 82.6, callout: slack }
+
+artifacts:
+  transcript: artifacts/transcript.json
+
+# Freeze frames on the evidence so narration can explain it (pipeline/post.py). The retimed cast cuts the agent
+# runs to a blink, so without these the answers scroll past unexplained.
+post:
+  holds:
+    - { id: report, text: "Starting PhishingTriageAgent in Splunk", seconds: 5 }
+    - { id: triage, text: "I can start containment for case PH-1042", seconds: 10 }
+    - { id: gate, text: "Do you approve\\?", seconds: 5 }
+    # The approved n8n run takes under 2 s; hold while the canvas lights up node by node.
+    - { id: n8n, text: "--yes 2ms", seconds: 3, immediate: true }
+    - { id: contained, text: "The command ran once\\.", seconds: 6 }
+    - { id: verified, text: "Containment is complete: Yes", seconds: 7 }
+
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/so-08-phishing-containment` builds the audio
+# and captions; rerun it after changing a line, an anchor, a chapter time, or the voice.
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    # The report
+    - id: intro
+      chapter: report
+      offset: 0.3
+      text: An employee forwards a suspicious invoice to the security inbox. Cursor CLI takes it from here.
+    - id: ask
+      t: 7.8
+      text: The analyst asks Cursor to read Dana's report and have the Splunk agent triage it.
+    - id: outlook
+      t: 14.0
+      text: Dana's report is on the right, in Outlook.
+    - id: read
+      t: 17.6
+      text: Cursor reads it through the Outlook MCP and pulls out the original sender and link.
+    # Agent triage
+    - id: launch
+      chapter: triage
+      offset: -1.2
+      text: Then it starts the Agent Launchpad triage agent in Splunk. The agent runs its own searches.
+    - id: sources
+      t: 33.5
+      text: It checks mail, proxy, endpoint, and sign-in data.
+    - id: recipients
+      t: 38.6
+      text: Fourteen people got the email. It failed SPF and DMARC, from a brand-new domain.
+    - id: clicks
+      t: 46.0
+      text: Three people clicked. Priya submitted the form, and later someone tried her account from the Netherlands. MFA stopped it.
+    # Approval
+    - id: contain-ask
+      chapter: approval
+      offset: 0.9
+      text: Now the analyst asks Cursor to contain it with n8n.
+    - id: mailboxes
+      t: 61.3
+      text: Cursor finds all fourteen mailboxes and calls the containment command.
+    - id: why-stop
+      t: 66.9
+      text: The command holds the run. Cursor shows exactly what will happen and waits for your approval.
+    # Containment
+    - id: approved
+      chapter: gate
+      offset: 0.8
+      text: Approved. Cursor reruns the command once.
+    - id: n8n
+      t: 80.4
+      text: n8n purges the email everywhere, blocks the sender's domain, and tells the analyst in Slack.
+    - id: follow-up
+      t: 88.4
+      text: Cursor flags the three people who clicked for follow-up.
+    # Verify
+    - id: verify-ask
+      chapter: verify
+      offset: 0.6
+      text: The notice is in Slack. Now the same agent verifies it in Splunk.
+    - id: verify-run
+      t: 99.8
+      text: It checks every mailbox, and any activity since containment.
+    - id: verified
+      t: 104.8
+      text: No mailbox still holds it, and nothing touched the domain since. Containment is complete.
+    - id: outro
+      t: 111.9
+      text: One approval, and a verified fix.
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/so-08-phishing-containment <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  stackProfile: mdl
+  # MDL signs in with SSO and the demo takes no Splunk Web screenshots.
+  splunkWebLogin: false
+  # n8n-contain (gated), the Outlook plugin (read tools only), and splunkctl searches without a prompt.
+  integrations: [n8n, outlook, search-reads]
+  hints: [phishing]
+  gateEvidence: "CONFIRMATION_REQUIRED"
+  # Each take contains its own case: PH-1042 on a fresh stack, then the next number no earlier take used.
+  # The published take-1 used PH-1042; after a retake, update gate.command to the case in the take's vars.json.
+  vars:
+    CASE_ID: python3 scripts/so08_case.py
+  fixtures:
+    setup:
+      # Refuse to record without the story.
+      - python3 scripts/with_stack.py mdl python3 scripts/seed_phishing.py --check | grep -q "story present"
+    teardown: []
+  beats:
+    - { comment: "Triage a reported phishing email with Splunk Agent Launchpad and n8n", mark: intro }
+    - { run: agent, waitFor: "Plan, search, build anything" }
+    - prompt: >
+        Dana from Finance just forwarded a suspicious email to our security inbox. Read the newest report in
+        the Phishing reports folder, then have our Launchpad triage agent investigate it in Splunk.
+      mark: prompt
+    - { wait: turn-end, timeout: 900, mark: triage-done }
+    - prompt: >
+        Contain it through n8n: purge the email from every mailbox and block the sender domain.
+      mark: contain-ask
+    - { wait: turn-end, timeout: 600, mark: gate-question, require: gate }
+    - { prompt: "Approved. Run it once.", mark: approve }
+    - { wait: turn-end, timeout: 600, mark: contained }
+    - prompt: >
+        Slack says containment is done. Have the Launchpad agent verify it in Splunk.
+      mark: verify
+    - { wait: turn-end, timeout: 900, mark: verified }
+    - { exit: true, mark: outro }
