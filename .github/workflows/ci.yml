@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         with:
@@ -69,7 +71,25 @@ jobs:
         working-directory: ${{ env.HUB }}
         run: npm run build
 
+      # The pane check tests the hub's own fixture, not demo content, so it only runs when the hub or the n8n
+      # canvas changed. A branch is compared with main, and main with the previous push; if that can't be
+      # worked out, the check runs.
+      - name: Detect hub changes
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then base="$BEFORE"; else base=$(git merge-base origin/main HEAD || true); fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "hub=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git diff --name-only "$base" HEAD -- apps/hub recorder/n8n-preview.yaml recorder/n8n-preview scripts/n8n_preview_snapshot.py .github/workflows/ci.yml)" ]; then
+            echo "hub=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hub=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check the workflow canvas pane
+        if: steps.changes.outputs.hub == 'true'
         working-directory: ${{ env.HUB }}
         run: |
           npx playwright install --with-deps chromium
