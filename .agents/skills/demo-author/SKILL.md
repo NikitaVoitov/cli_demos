@@ -9,6 +9,13 @@ The pipeline is the same for every demo and every agent. You edit files under `s
 `python -m pipeline.<step>`; you never hand-write recording content, timing, audio, or captions.
 The full design is `docs/demo_pipeline_architecture.md`; §0.10 covers capture and §0.11 covers narration.
 
+## Before you start
+
+- Run `python3 scripts/doctor.py` (add `--capture` to record). It lists missing tools with the fix for each; the root `README.md` has the full setup.
+- Pick a use case from `docs/headless_use_case_matrix.md` (its Agent Skills table, §4.5, names the skill each use case stars). Today the **recorded** client is Cursor CLI only; the agent that **authors** can be any.
+- The recorded client loads `search-and-dashboard-troubleshooter`, `splunkctl`, and `playwright-cli` by default. For another Splunk Agent Skill add `recording.skills: [splunk-search]` to `scenario.yaml` (names from `splunk/splunk-agent-skills`); setup reinstalls the client's skills from scratch each take.
+- Stack access and tokens come from `.env` (copy `.env.example`) and a stack profile (`recording.stackProfile`); see the README. A scenario with no `captured` artifacts (`source: metadata`) is a planned demo, not a broken one.
+
 ## Files and who owns what
 
 | File | Holds | Rule |
@@ -29,7 +36,7 @@ Use `.captures/venv/bin/python` (dependencies in `pipeline/requirements.txt`).
 3. `python -m pipeline.post scenarios/<id> <take>` retimes and sanitizes into `artifacts/session.cast` and prints each beat's published time. Put chapter and gate times in `scenario.yaml`. Compression cuts most waiting, so a key result can scroll past before narration explains it: add `post.holds` (a regex on screen plus seconds) to freeze on those moments, and rerun post.
 4. `python -m pipeline.transcript scenarios/<id> --client <client> --store <store.db>` writes `artifacts/transcript.json`.
 5. Narrate (below), if the demo is narrated.
-6. `cd apps/hub && npm run build`, then load the demo and play it through.
+6. `cd apps/hub && npm run build` (or `npm run dev`), then load the demo and play it through. On a fresh clone the build stops until the n8n canvas snapshot exists, because SO-08 draws a workflow: run `.captures/venv/bin/python scripts/n8n_preview_snapshot.py` once (needs Docker, about 30 MB, git-ignored).
 
 ## Design the demo before recording
 
