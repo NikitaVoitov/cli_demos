@@ -94,8 +94,9 @@ stack, macOS, and a signed-in client); CI checks and ships what is committed.
 
 1. **Test** (every branch): `pipeline.narrate --check` for each recorded scenario (audio and captions match the text,
    chapter times, and voice), hub lint and type-check, the n8n canvas snapshot (cached, rebuilt with Docker when its
-   inputs change), `npm run build` (this validates every scenario's content and chapter IDs), and the workflow-canvas
-   browser check against the fixture scenario.
+   inputs change), and `npm run build` (this validates every scenario's content and chapter IDs). The workflow-canvas
+   browser check against the hub's fixture scenario runs only when `apps/hub/` or the n8n snapshot inputs changed, so a
+   push that only touches demos skips it.
 2. **Deploy** (`main` only, after a green test): deploys the exact build that was tested with `wrangler deploy`, then
    checks that the live site and the n8n canvas answer. Deploys run one at a time.
 
