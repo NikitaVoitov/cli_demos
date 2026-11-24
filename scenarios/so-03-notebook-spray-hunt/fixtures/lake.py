@@ -9,20 +9,23 @@ Both return the same columns: _time (UTC), src_ip, user, outcome, app.
 Settings come from the environment, which the capture home's jpterm wrapper fills from ~/.config/hunt.env:
 
     LAKE_MODE            live (default) or fixture: the same synthetic story built in memory, for dry runs only
-    LAKE_SCS_URL         https://<host>/<tenant>, the Splunk Cloud Services API root for the search job calls
-    LAKE_SCS_TOKEN       a bearer token for that API
+    LAKE_REST_URL        https://<stack>:8089, the search head's REST API
+    LAKE_REST_TOKEN      a bearer token for that API, with query access to the raw table
     LAKE_RAW_DATASET     the raw table's name
     LAKE_SHARE_PROFILE   the Open Sharing profile file downloaded from the Catalog
     LAKE_SHARE_TABLE     share.schema.table inside that profile
     LAKE_VERIFY          0 skips TLS verification (testing stacks only)
 
-UNVERIFIED against a live stack: the SPL2 in `_RAW_QUERY` and the SCS job calls. Fix them in this file only.
+Raw search is what the Catalog's Search action dispatches: an SPL2 search job (`| @spl2 from <raw table>`) on the
+search head. Raw tables expose only _time, _raw, and the metadata fields, so the IP filter is a text match.
 """
 
+import io
 import os
 import re
 import time
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 
@@ -32,7 +35,7 @@ SHARED = os.environ.get("LAKE_SHARE_TABLE", "")
 COLUMNS = ["_time", "src_ip", "user", "outcome", "app"]
 
 # Raw tables only expose _raw and the metadata fields, so filter on text and parse key=value afterwards.
-_RAW_QUERY = "| from '{table}' | where like(_raw, \"%src_ip={ip} %\") | fields _time, _raw"
+_RAW_QUERY = '| @spl2 from {table} | where like(_raw, "%src_ip={ip} %") | fields _time, _raw'
 
 
 def describe() -> str:
@@ -62,36 +65,37 @@ def _fixture(ip: str | None, days: int) -> pd.DataFrame:
     return _frame(rows)
 
 
-# --- live: Splunk Cloud Services search jobs --------------------------------------------------------------------
+# --- live: SPL2 search jobs on the search head ------------------------------------------------------------------
 
-def _scs(method: str, path: str, **kwargs):
+def _rest(method: str, path: str, **kwargs):
     import requests
 
     verify = os.environ.get("LAKE_VERIFY", "1") != "0"
     if not verify:
         warnings.filterwarnings("ignore", message="Unverified HTTPS request")
     response = requests.request(
-        method, f"{os.environ['LAKE_SCS_URL']}/search/v3alpha1/{path}",
-        headers={"Authorization": f"Bearer {os.environ['LAKE_SCS_TOKEN']}"}, timeout=120, verify=verify, **kwargs)
+        method, f"{os.environ['LAKE_REST_URL'].rstrip('/')}/services/search/v2/jobs{path}",
+        headers={"Authorization": f"Bearer {os.environ['LAKE_REST_TOKEN']}"}, timeout=120, verify=verify, **kwargs)
     response.raise_for_status()
     return response.json()
 
 
 def _job_rows(query: str, days: int) -> list[dict]:
-    job = _scs("POST", "jobs", json={"query": query, "module": "", "queryParameters": {"earliest": f"-{days}d", "latest": "now"}})
+    job = _rest("POST", "", data={"search": query, "earliest_time": f"-{days}d", "latest_time": "now",
+                                  "output_mode": "json"})
     sid = job["sid"]
     for _ in range(300):
-        state = _scs("GET", f"jobs/{sid}")
-        if state.get("status") == "done":
+        state = _rest("GET", f"/{sid}", params={"output_mode": "json"})["entry"][0]["content"]
+        if state.get("isFailed") or state.get("dispatchState") == "FAILED":
+            raise RuntimeError(f"raw search failed: {state.get('messages')}")
+        if state.get("isDone"):
             break
-        if state.get("status") in ("failed", "canceled"):
-            raise RuntimeError(f"search job {state['status']}: {state.get('message', '')}")
         time.sleep(1)
     else:
         raise TimeoutError("raw search did not finish in 5 minutes")
     rows, offset = [], 0
     while True:
-        page = _scs("GET", f"jobs/{sid}/results", params={"offset": offset, "count": 5000})["results"]
+        page = _rest("GET", f"/{sid}/results", params={"output_mode": "json", "offset": offset, "count": 5000})["results"]
         rows += page
         if len(page) < 5000:
             return rows
@@ -116,10 +120,72 @@ def search_raw(ip: str, days: int = 120) -> pd.DataFrame:
     return _parse(_job_rows(_RAW_QUERY.format(table=RAW, ip=ip), days))
 
 
+class _Ranges(io.RawIOBase):
+    """A read-only file over one presigned URL that fetches only the byte ranges Parquet asks for.
+
+    MDL writes a 1 MB bloom filter per string column into every file, between the tiny column data at the start
+    and the footer at the end. Reading the footer and the selected columns skips them."""
+
+    def __init__(self, session, url: str, size: int):
+        self.session, self.url, self.size, self.pos = session, url, size, 0
+        tail = max(0, size - 65536)
+        self.cache = {0: self._get(0, min(size, 65536)), tail: self._get(tail, size)}
+
+    def _get(self, start: int, end: int) -> bytes:
+        response = self.session.get(self.url, headers={"Range": f"bytes={start}-{end - 1}"}, timeout=120)
+        response.raise_for_status()
+        return response.content
+
+    def readable(self) -> bool:
+        return True
+
+    def seekable(self) -> bool:
+        return True
+
+    def tell(self) -> int:
+        return self.pos
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        self.pos = {0: offset, 1: self.pos + offset, 2: self.size + offset}[whence]
+        return self.pos
+
+    def read(self, n: int = -1) -> bytes:
+        end = self.size if n is None or n < 0 else min(self.size, self.pos + n)
+        for start, chunk in self.cache.items():
+            if start <= self.pos and end <= start + len(chunk):
+                data = chunk[self.pos - start:end - start]
+                break
+        else:
+            data = self._get(self.pos, end)
+        self.pos = end
+        return data
+
+
+def _shared_files():
+    from delta_sharing.protocol import DeltaSharingProfile, Table
+    from delta_sharing.rest_client import DataSharingRestClient
+
+    share, schema, name = SHARED.split(".")
+    client = DataSharingRestClient(DeltaSharingProfile.read_from_file(os.environ["LAKE_SHARE_PROFILE"]))
+    return client.list_files_in_table(Table(name=name, share=share, schema=schema)).add_files
+
+
 def load_shared() -> pd.DataFrame:
     if MODE == "fixture":
         return _fixture(None, 90)
-    import delta_sharing
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    import requests
+    import urllib3
 
-    frame = delta_sharing.load_as_pandas(f"{os.environ['LAKE_SHARE_PROFILE']}#{SHARED}")
-    return _frame(frame[COLUMNS].values.tolist())
+    session = requests.Session()
+    # S3 sometimes drops a reused keep-alive connection; the ranged GETs are safe to repeat.
+    retry = urllib3.util.Retry(total=5, backoff_factor=0.5, status_forcelist=(500, 502, 503, 504))
+    session.mount("https://", requests.adapters.HTTPAdapter(pool_maxsize=16, max_retries=retry))
+
+    def read(f):
+        return pq.ParquetFile(_Ranges(session, f.url, f.size)).read(columns=COLUMNS)
+
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        tables = list(pool.map(read, _shared_files()))
+    return _frame(pa.concat_tables(tables).to_pandas().values.tolist())

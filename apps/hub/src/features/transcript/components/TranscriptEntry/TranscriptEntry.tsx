@@ -4,6 +4,7 @@ import { Tag } from '@/components/shared/Tag'
 import { cn } from '@/lib/utils'
 import type { DemoEntry, TranscriptEntry as Entry } from '@/types/content.types'
 import { formatClock } from '@/utils/formatters/time'
+import { NotebookView } from '../NotebookView'
 
 const ACTORS: Record<Entry['kind'], { who: string; verb: string; Icon: LucideIcon; tone: string }> = {
   user: { who: 'You', verb: 'typed', Icon: User, tone: 'bg-muted text-foreground' },
@@ -45,7 +46,7 @@ function Inline({ text }: { text: string }) {
   )
 }
 
-/** The agent writes markdown: fenced blocks, bullet lists, and paragraphs. */
+/** The agent writes markdown: fenced blocks, headings, lists, and paragraphs. Notebook markdown cells use it too. */
 function AgentText({ text }: { text: string }) {
   const blocks = text.split(/```[^\n]*\n([\s\S]*?)```/g)
   return (
@@ -57,6 +58,24 @@ function AgentText({ text }: { text: string }) {
           .filter((para) => para.trim())
           .map((para, j) => {
             const lines = para.trim().split('\n')
+            if (lines.length === 1 && /^#{1,6} /.test(lines[0])) {
+              return (
+                <p key={`${i}-${j}`} className="font-semibold text-foreground">
+                  <Inline text={lines[0].replace(/^#+ /, '')} />
+                </p>
+              )
+            }
+            if (lines.every((line) => /^\s*\d+\. /.test(line))) {
+              return (
+                <ol key={`${i}-${j}`} className="list-decimal pl-5">
+                  {lines.map((line, k) => (
+                    <li key={k}>
+                      <Inline text={line.replace(/^\s*\d+\. /, '')} />
+                    </li>
+                  ))}
+                </ol>
+              )
+            }
             if (lines.every((line) => /^\s*[-*] /.test(line))) {
               return (
                 <ul key={`${i}-${j}`} className="list-disc pl-5">
@@ -127,6 +146,9 @@ function Body({ entry, demo }: { entry: Entry; demo: DemoEntry }) {
           {entry.artifact === 'source' && demo.sourceCode && (
             <CodeBlock code={demo.sourceCode.trim()} copyLabel="Copy script" accent="file" maxLines={40} />
           )}
+          {entry.artifact === 'notebook' && demo.notebooks?.[entry.name] && (
+            <NotebookView name={entry.name} json={demo.notebooks[entry.name]} Markdown={AgentText} />
+          )}
           {entry.artifact === 'workflow' && demo.workflow && (
             <CodeBlock
               code={JSON.stringify(demo.workflow.json, null, 2)}
@@ -147,7 +169,9 @@ export function TranscriptEntry({ entry, demo }: { entry: Entry; demo: DemoEntry
       ? { ...base, verb: 'You ran' }
       : entry.kind === 'file' && entry.artifact === 'workflow'
         ? { ...base, verb: 'Started in n8n' }
-        : base
+        : entry.kind === 'file' && entry.artifact === 'notebook'
+          ? { ...base, verb: 'Agent ran' }
+          : base
   return (
     <li className="grid gap-2 border-b border-border-subtle py-3 last:border-b-0 md:grid-cols-[170px_minmax(0,1fr)] md:gap-4">
       <div className="flex items-start gap-2.5">

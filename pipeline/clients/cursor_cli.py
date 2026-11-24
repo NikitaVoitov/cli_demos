@@ -15,6 +15,14 @@ from . import Event
 
 SHELL_MODE = re.compile(r"^Run the following command: (.+)$", re.S)
 USER_QUERY = re.compile(r"<user_query>\s*(.*?)\s*</user_query>", re.S)
+# How the TUI shows the client is working, and how it shows it is ready for a prompt (for the capture driver).
+TURN_STARTED = "ctrl\\+c to stop"
+READY = "Plan, search, build anything"
+
+
+def mcp_label(server: str, tool: str) -> str:
+    """The text the TUI draws for an MCP call, for timing it on the cast."""
+    return f"{server} {tool}"
 
 
 def find_store(capture_home: Path, prompt: str) -> Path:

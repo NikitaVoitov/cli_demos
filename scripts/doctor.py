@@ -55,6 +55,7 @@ def main() -> int:
     print("Recording a take (macOS, needs a Splunk stack)" + ("" if capture else "; optional, rerun with --capture"))
     tool("asciinema", "brew install asciinema   (3.x)", capture)
     tool("agent", "curl https://cursor.com/install -fsS | bash, then: agent login   (Cursor CLI)", capture)
+    tool("copilot", "brew install --cask copilot-cli   (only for client.name: copilot-cli demos, e.g. SO-03)", False)
     tool("splunkctl", "download a release from https://github.com/splunk/splunkctl/releases into /usr/local/bin", capture)
     tool("playwright-cli", "npm install -g @playwright/cli@latest", capture)
     report((HOME / ".agents/skills/playwright-cli/SKILL.md").exists(), "playwright-cli skill",

@@ -45,7 +45,8 @@ export interface Scenario {
      */
     steps?: { id: string; screenshot: string; object: string; from?: string | number; until: string | number }[]
   }
-  artifacts?: { dashboard?: string; source?: string; transcript?: string }
+  /** `notebooks`: Jupyter notebooks the demo publishes; each shows in the transcript after the command that ran it. */
+  artifacts?: { dashboard?: string; source?: string; transcript?: string; notebooks?: string[] }
   /**
    * An n8n workflow drawn on the real n8n canvas beside the terminal. `src` is the sanitized export from
    * `pipeline.workflow`. Each step lights one node, by name: running from `at`, done at `until` (default: the next
@@ -104,7 +105,8 @@ export interface Content {
   /** Copy for the n8n canvas pane: its header, the canvas's accessible description, and callouts by ID. */
   workflow?: { title?: string; object?: string; alt: string; callouts?: Record<string, string> }
   /** Labels for the architecture diagram; the browser boxes appear only for demos with a browser pane. */
-  flow?: { mcp?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' }
+  /** `agent` names the recorded client in the notebook flow diagram (default Cursor CLI). */
+  flow?: { mcp?: string; agent?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' }
   display: { hidden: boolean; featured: boolean; order: number }
 }
 
@@ -113,7 +115,7 @@ export type TranscriptEntry =
   | { kind: 'shell'; t: number; command: string; result?: string; blocked?: boolean; by?: 'user' }
   | { kind: 'mcp'; t: number; tool: string; args?: Record<string, unknown>; result?: string }
   | { kind: 'browser'; t: number; command: string; result?: string }
-  | { kind: 'file'; t: number; name: string; tag?: string; artifact?: 'dashboard' | 'source' | 'workflow' }
+  | { kind: 'file'; t: number; name: string; tag?: string; artifact?: 'dashboard' | 'source' | 'workflow' | 'notebook' }
   | { kind: 'skill'; t: number; name: string }
 
 export interface TranscriptChapter {
@@ -181,6 +183,8 @@ export interface DemoEntry {
   dashboardJson?: string
   /** The script the agent wrote, for demos whose output is code rather than a dashboard. */
   sourceCode?: string
+  /** `artifacts.notebooks` as raw .ipynb JSON, by file name (the transcript entry's `name`). */
+  notebooks?: Record<string, string>
   transcript?: Transcript
   howItWorksHtml?: string
 }

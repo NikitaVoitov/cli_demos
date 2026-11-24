@@ -4,10 +4,10 @@ Sign-in events (sourcetype `demo:auth:lake`) are in the Splunk index `demo_auth`
 
 Run the notebook with `jpterm`, one cell at a time. It is a guided hunt: do not edit any cell except `params`.
 
-- `jpterm kernel start hunt.ipynb` starts the kernel once.
-- `jpterm write hunt.ipynb --cell params --source '<text>'` sets the parameters. Send the whole cell and change only `SUSPECT_IP`.
-- `jpterm execute hunt.ipynb --cell <id>` runs a cell and prints it with its output. Run them in this order: `setup`, `raw-search`, `load-shared`, `backtest`, `enrich`, `detection`.
-- `raw-search`, `load-shared`, and `backtest` read the lake, so jpterm stops each one with `CONFIRMATION_REQUIRED`. Same rule as splunkctl: never add `--yes` on your own. When a cell stops, show me the command and wait for my approval, then rerun exactly that command with `--yes`.
+- `jpterm kernel start hunt.ipynb` starts the kernel once. `jpterm show hunt.ipynb --cell <id>` prints a cell without running it.
+- `jpterm write hunt.ipynb --cell params --source '<text>'` sets the parameters. Send the whole cell and change only `SUSPECT_IP`. Writing doesn't run it: execute `params` right after, before `setup`.
+- `jpterm execute hunt.ipynb --cell <id>` runs a cell and prints it with its output. Run them in this order: `params`, `setup`, `raw-search`, `load-shared`, `backtest`, `enrich`, `detection`.
+- `raw-search`, `load-shared`, and `backtest` read the lake, so jpterm stops each one with `CONFIRMATION_REQUIRED`. Same rule as splunkctl: never add `--yes` on your own. When a cell stops, quote its `CONFIRMATION_REQUIRED` line, show me the command, and wait for my approval; then rerun exactly that command with `--yes`.
 
 ## Show your evidence
 

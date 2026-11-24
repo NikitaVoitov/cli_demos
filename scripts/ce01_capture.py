@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CE-01 capture environment for Cursor CLI.
+"""CE-01 capture environment for Cursor CLI and GitHub Copilot CLI.
 
   python3 scripts/ce01_capture.py setup            # build the neutral capture HOME (idempotent)
   python3 scripts/ce01_capture.py jira             # after setup: add Jira (acli + Atlassian MCP) for SO-07
@@ -7,7 +7,7 @@
   python3 scripts/ce01_capture.py n8n              # after setup: add the gated n8n-contain wrapper for SO-08
   python3 scripts/ce01_capture.py outlook          # after setup: load the Outlook plugin, read tools only, for SO-08
   python3 scripts/ce01_capture.py search-reads     # after setup: splunkctl runs read-only searches without confirmation
-  python3 scripts/ce01_capture.py login            # one-time Cursor CLI login inside the capture HOME
+  python3 scripts/ce01_capture.py login            # one-time client login inside the capture HOME (Cursor or Copilot)
   python3 scripts/ce01_capture.py atlassian-login  # one-time Atlassian MCP OAuth, as the demo-site account
   python3 scripts/ce01_capture.py acli-login       # one-time acli login to the demo site with the .env token
   python3 scripts/ce01_capture.py shell            # open the pinned demo shell (dry runs, manual checks)
@@ -17,6 +17,10 @@ username appears. Secrets are copied in with 0600 permissions and never printed.
 
 CAPTURE_STACK=<name> points setup at another Splunk stack: its web address and login state, splunkctl config, and
 MCP token come from .captures/ce01/stacks/<name>/ (built by scripts/stack_profile.py) instead of the shared CO2 stack.
+
+CAPTURE_CLIENT=copilot-cli builds the home for GitHub Copilot CLI instead of Cursor CLI (pipeline.capture sets it from
+the scenario's client.name): ~/.copilot/ with the Splunk MCP server, the skills, the trusted workspace, and a `copilot`
+launcher in ~/bin that fixes the flags every take runs with (recorder/clients/copilot-cli/copilot.tmpl).
 """
 
 import json
@@ -31,7 +35,10 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent.parent
 REAL_HOME = Path.home()
 CAPTURE_HOME = Path("/Users/Shared/splunk-demo")
+# Templates both clients share (MCP bridge, workspace instructions, gated wrappers) live with Cursor's.
 CLIENT = ROOT / "recorder/clients/cursor-cli"
+COPILOT = ROOT / "recorder/clients/copilot-cli"
+CLIENT_NAME = os.environ.get("CAPTURE_CLIENT", "cursor-cli")
 STACK = os.environ.get("CAPTURE_STACK", "")
 PROFILE = ROOT / ".captures/ce01/stacks" / STACK if STACK else None
 SECRETS = PROFILE / "secrets" if PROFILE else ROOT / ".captures/ce01/secrets"
@@ -94,6 +101,8 @@ OUTLOOK_WRITES = ["send_mail", "send_draft", "create_draft", "update_draft", "re
                   "forward_mail_message", "move_mail_message", "update_mail_message", "delete_mail_message",
                   "create_mail_folder", "delete_mail_folder"]
 OUTLOOK_SHIMS = ("agent",)
+# Copilot CLI's deny rules for the same MCP write tools; the launcher reads them from ~/.config/copilot-deny.
+COPILOT_DENY = ["splunk(search_create_splunk_alert)", "splunk(search_record_containment_action)"]
 
 
 def private_copy(src: Path, dst: Path) -> None:
@@ -114,7 +123,7 @@ def render(template: Path, dst: Path) -> None:
 
 def setup(model: str = "") -> None:
     h = CAPTURE_HOME
-    for d in ("bin", "payments", ".config", ".cache/playwright-cli", ".playwright", ".cursor/skills"):
+    for d in ("bin", "payments", ".config", ".cache/playwright-cli", ".playwright", ".cursor/skills", ".copilot/skills"):
         (h / d).mkdir(parents=True, exist_ok=True)
     h.chmod(0o700)
 
@@ -146,7 +155,7 @@ def setup(model: str = "") -> None:
         (h / ".config/splunk-web-state.json").chmod(0o600)
 
     # Jira is opt-in per demo (`ce01_capture.py jira`); a plain setup leaves no trace of it.
-    for name in (*JIRA_SHIMS, *NOTEBOOK_SHIMS, *N8N_SHIMS, *OUTLOOK_SHIMS):
+    for name in (*JIRA_SHIMS, *NOTEBOOK_SHIMS, *N8N_SHIMS, *OUTLOOK_SHIMS, "copilot"):
         (h / "bin" / name).unlink(missing_ok=True)
     for name in ("jpterm-gates", "hunt.env", "n8n-contain.env"):
         (h / ".config" / name).unlink(missing_ok=True)
@@ -188,6 +197,10 @@ def setup(model: str = "") -> None:
     for name, src in TOOL_SKILLS.items():
         shutil.copytree(src, skills / name)
 
+    if CLIENT_NAME == "copilot-cli":
+        setup_copilot(skills)
+        return
+
     # Cursor CLI hangs on a hand-written config, so only patch the one it generated on first run.
     cfg_path = h / ".cursor/cli-config.json"
     if not cfg_path.exists():
@@ -208,6 +221,47 @@ def setup(model: str = "") -> None:
     cfg_path.write_text(json.dumps(cfg, indent=2))
     cfg_path.chmod(0o600)
     print(f"capture home ready: {h} (model {cfg['model']['modelId']})")
+
+
+def _jsonc(path: Path) -> dict:
+    """Copilot CLI's config.json starts with // comment lines."""
+    if not path.exists():
+        return {}
+    return json.loads("\n".join(l for l in path.read_text().splitlines() if not l.lstrip().startswith("//")) or "{}")
+
+
+def setup_copilot(installed_skills: Path) -> None:
+    """The Copilot CLI half of setup: the skills, the MCP server, settings, a trusted workspace, and the launcher."""
+    h = CAPTURE_HOME
+    c = h / ".copilot"
+    skills = c / "skills"
+    shutil.rmtree(skills, ignore_errors=True)
+    # The skills were installed the way Cursor finds them; Copilot reads ~/.copilot/skills.
+    shutil.copytree(installed_skills, skills)
+    for d in installed_skills.iterdir():
+        shutil.rmtree(d)
+    render(COPILOT / "mcp-config.json.tmpl", c / "mcp-config.json")
+    (c / "settings.json").write_text(json.dumps({
+        "banner": "never", "autoUpdate": False, "beep": False, "notifications": False,
+        # The footer would show the account's AI credit use in every frame.
+        "footer": {"showAiUsed": False, "showQuota": False},
+    }, indent=2) + "\n")
+    # Folder trust is CLI-managed state; without it the first prompt is a trust dialog. Sign-in state stays.
+    cfg = _jsonc(c / "config.json")
+    cfg["trustedFolders"] = [str(h / "payments")]
+    cfg["askedSetupTerminals"] = sorted(set(cfg.get("askedSetupTerminals", [])) | {"vscode", "iterm2", "apple_terminal"})
+    (c / "config.json").write_text(json.dumps(cfg, indent=2) + "\n")
+    (c / "config.json").chmod(0o600)
+    (h / ".config/copilot-deny").write_text("".join(f"{rule}\n" for rule in COPILOT_DENY))
+    real = shutil.which("copilot", path=TOOL_PATH)
+    if not real:
+        raise SystemExit("GitHub Copilot CLI is not installed: brew install --cask copilot-cli")
+    launcher = h / "bin/copilot"
+    launcher.write_text((COPILOT / "copilot.tmpl").read_text().replace("__COPILOT_BIN__", real))
+    launcher.chmod(0o755)
+    signed_in = any(k in cfg for k in ("loggedInUsers", "lastLoggedInUser", "logged_in_users"))
+    print(f"capture home ready for Copilot CLI: {h}"
+          + ("" if signed_in else "\nif Copilot isn't signed in here yet: CAPTURE_CLIENT=copilot-cli python3 scripts/ce01_capture.py login"))
 
 
 def dotenv(key: str) -> str:
@@ -238,7 +292,7 @@ def notebook(gated: list[str]) -> None:
     (h / ".config/jpterm-gates").write_text("".join(f"{cell}\n" for cell in gated))
 
     cfg_path = h / ".cursor/cli-config.json"
-    if cfg_path.exists():
+    if CLIENT_NAME == "cursor-cli" and cfg_path.exists():
         cfg = json.loads(cfg_path.read_text())
         allow = cfg["permissions"]["allow"]
         allow += [p for p in NOTEBOOK_ALLOW if p not in allow]
@@ -259,11 +313,12 @@ def n8n() -> None:
     env.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
     cfg_path = h / ".cursor/cli-config.json"
-    cfg = json.loads(cfg_path.read_text())
-    allow = cfg["permissions"]["allow"]
-    allow += [p for p in ["Shell(n8n-contain)"] if p not in allow]
-    cfg_path.write_text(json.dumps(cfg, indent=2))
-    cfg_path.chmod(0o600)
+    if CLIENT_NAME == "cursor-cli":
+        cfg = json.loads(cfg_path.read_text())
+        allow = cfg["permissions"]["allow"]
+        allow += [p for p in ["Shell(n8n-contain)"] if p not in allow]
+        cfg_path.write_text(json.dumps(cfg, indent=2))
+        cfg_path.chmod(0o600)
     print(f"n8n ready in {h}: gated n8n-contain wrapper")
 
 
@@ -280,6 +335,8 @@ def search_reads() -> None:
 
 def outlook() -> None:
     """Load the Outlook plugin in a capture home that setup just built, with only its read tools allowed."""
+    if CLIENT_NAME != "cursor-cli":
+        raise SystemExit("the Outlook plugin is Cursor-hosted; record this demo with cursor-cli")
     h = CAPTURE_HOME
     cached = sorted((REAL_HOME / ".cursor/plugins/cache/cursor-public/outlook").glob("*/.cursor-plugin"),
                     key=lambda p: p.stat().st_mtime)
@@ -305,6 +362,8 @@ def outlook() -> None:
 
 def jira() -> None:
     """Add the gated acli wrapper and the Atlassian MCP server to a capture home that setup just built."""
+    if CLIENT_NAME != "cursor-cli":
+        raise SystemExit("the Jira integration is wired for Cursor CLI only so far")
     h = CAPTURE_HOME
     site = jira_site()
     acli = h / "bin/acli"
@@ -353,6 +412,9 @@ def acli_login() -> None:
 
 def demo_env() -> dict:
     keep = {k: os.environ[k] for k in ("USER", "LOGNAME", "LANG", "TMPDIR") if k in os.environ}
+    # Dry runs only: a Copilot CLI take against your own model (BYOK) instead of the signed-in account.
+    # Never set these for a published take; the model name would show in Copilot's footer.
+    keep |= {k: v for k, v in os.environ.items() if k.startswith("COPILOT_PROVIDER_") or k in ("COPILOT_MODEL", "COPILOT_OFFLINE")}
     return {
         **keep,
         "HOME": str(CAPTURE_HOME),
@@ -382,7 +444,11 @@ def main() -> None:
     elif cmd == "notebook":
         notebook([c for c in (sys.argv[2] if len(sys.argv) > 2 else "").split(",") if c])
     elif cmd == "login":
-        sys.exit(subprocess.call(["agent", "login"], env=demo_env(), cwd=CAPTURE_HOME / "payments"))
+        # The real copilot binary, not the capture home's launcher, which puts its flags before the subcommand.
+        login = [shutil.which("copilot", path=TOOL_PATH) or "copilot", "login"] if CLIENT_NAME == "copilot-cli" \
+            else ["agent", "login"]
+        # Extra flags pass through, e.g. `login --device-code` to approve with a chosen GitHub account.
+        sys.exit(subprocess.call(login + sys.argv[2:], env=demo_env(), cwd=CAPTURE_HOME / "payments"))
     elif cmd == "atlassian-login":
         atlassian_login()
     elif cmd == "acli-login":
