@@ -204,10 +204,12 @@ Once per machine, sign Copilot in inside the capture home with the GitHub accoun
 
 ```sh
 CAPTURE_CLIENT=copilot-cli .captures/venv/bin/python scripts/ce01_capture.py setup
-CAPTURE_CLIENT=copilot-cli .captures/venv/bin/python scripts/ce01_capture.py login
+CAPTURE_CLIENT=copilot-cli .captures/venv/bin/python scripts/ce01_capture.py login --device-code
 ```
 
-The sign-in token goes to the login keychain, which the capture home shares. A corporate network can block one Copilot
+`--device-code` prints a code to approve at github.com/login/device in a browser window signed in to the account with
+the Copilot seat (the plain web flow takes whichever account the browser has open). The sign-in token goes to the login
+keychain, which the capture home shares. A corporate network can block one Copilot
 API host and not another (here `api.individual.githubcopilot.com` was reset while `api.business.githubcopilot.com`
 answered), so sign in with the business account if the personal one fails with "Failed to load models".
 
