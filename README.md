@@ -57,7 +57,7 @@ need a new capture. Chapter IDs must match in both. Everything under `scenarios/
 | `pipeline/` | Python steps: `capture`, `post`, `transcript`, `narrate` (+ `sanitize`, `workflow`, client adapter) |
 | `recorder/` | Capture-home config: client templates and gated wrappers, `hints/`, `voice.yaml` (house voice) |
 | `scripts/` | Capture environment (`ce01_capture.py`), stack profiles, data seeders, screenshot/login helpers, `doctor.py` |
-| `apps/hub/` | Vite + React + Tailwind app that plays the demos; `npm run deploy` publishes it |
+| `apps/hub/` | Vite + React + Tailwind app that plays the demos; CI deploys it on every push to `main` |
 | `docs/` | Architecture and use-case matrix (other files are local notes and git-ignored) |
 | `.captures/` | Raw takes, secrets, Python venv. **Git-ignored; never commit from it** |
 
@@ -77,16 +77,38 @@ There is no backend, database, or runtime secret: visitors only download files.
 | Catalog control | `display` in `content.yaml`: `hidden` removes a demo from the catalog, `featured` picks the default one, `order` sorts it |
 | Audio | `narration.mp3` ships as a static asset. The hub fetches it and plays it from a Blob URL, because Workers static assets don't support the `Range` requests Safari needs |
 | n8n canvas | Demos that draw a workflow (SO-08) serve a frozen n8n editor from `apps/hub/public/n8n-preview/` (~30 MB, generated, git-ignored) |
-| Deploy | `cd apps/hub && npm run deploy` runs `tsc`, `vite build`, and `wrangler deploy`. App and demos ship as one version, so a rollback restores both. `npm run deploy:dry` builds without publishing. Only the owner deploys (needs `wrangler login` on the owner's Cloudflare account) |
+| Deploy | GitHub Actions deploys every push to `main` that passes the tests (see below). Manual fallback for the owner: `cd apps/hub && npm run deploy` (needs `wrangler login`). App and demos ship as one version, so a rollback restores both |
 | Observability | Worker logs and traces are on in `wrangler.jsonc` |
 
 ```text
-git (scenarios/ + apps/hub) ──► vite build ──► dist/ (static assets) ──► wrangler deploy ──► Cloudflare Worker ──► visitors
+git push ──► GitHub Actions: test ──► (main only) wrangler deploy ──► Cloudflare Worker ──► visitors
 ```
 
-You never need Cloudflare access to author: `npm run dev` in `apps/hub` shows exactly what will ship, and your PR is
-reviewed and deployed by the owner. Planned, not built yet (architecture doc §8–13): R2 for video and audio, Analytics
-Engine, Sanity editing, and CI recapture.
+You never need Cloudflare access to author: `npm run dev` in `apps/hub` shows exactly what will ship. Planned, not
+built yet (architecture doc §8–13): R2 for video and audio, Analytics Engine, Sanity editing, and CI recapture.
+
+### CI/CD
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push. Capture never runs in CI (it needs a Splunk
+stack, macOS, and a signed-in client); CI checks and ships what is committed.
+
+1. **Test** (every branch): `pipeline.narrate --check` for each recorded scenario (audio and captions match the text,
+   chapter times, and voice), hub lint and type-check, the n8n canvas snapshot (cached, rebuilt with Docker when its
+   inputs change), `npm run build` (this validates every scenario's content and chapter IDs), and the workflow-canvas
+   browser check against the fixture scenario.
+2. **Deploy** (`main` only, after a green test): deploys the exact build that was tested with `wrangler deploy`, then
+   checks that the live site and the n8n canvas answer. Deploys run one at a time.
+
+Open a PR from a branch, let CI go green, and merge: the merge deploys. One-time setup for the repo owner: create a
+Cloudflare API token from the **Edit Cloudflare Workers** template (include the zone of the custom domain) and add it,
+with the account ID, under *Settings → Secrets and variables → Actions*:
+
+```sh
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ACCOUNT_ID
+```
+
+Optionally protect `main` (require the `test` check) and add required reviewers to the `production` environment.
 
 
 Capture needs macOS. Narration, editing text, and the hub work anywhere the tools below install.
@@ -175,5 +197,5 @@ CLI in inside the neutral capture home at `/Users/Shared/splunk-demo`), then `se
 
 - No secrets, usernames, IPs, or real stack hostnames in anything committed. SaaS demos use a personal or demo tenant.
 - Never edit `artifacts/` by hand, and never commit from `.captures/`.
-- Don't push to `main` or write to Sanity. Open a PR; the owner reviews and deploys (`cd apps/hub && npm run deploy`).
+- Don't push to `main` or write to Sanity. Open a PR; the owner reviews it, and merging to `main` deploys through CI.
 - After changing narration lines, chapter times, or the voice, rerun `pipeline.narrate` and commit its outputs.
