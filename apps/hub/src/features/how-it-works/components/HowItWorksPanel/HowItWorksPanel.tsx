@@ -47,7 +47,7 @@ export function HowItWorksPanel({ entry }: { entry: DemoEntry }) {
           ) : entry.content.flow?.kind === 'cdtsm' ? (
             <CdtsmFlowDiagram mcp={entry.content.flow.mcp} />
           ) : entry.content.flow?.kind === 'notebook' ? (
-            <NotebookFlowDiagram mcp={entry.content.flow.mcp} />
+            <NotebookFlowDiagram mcp={entry.content.flow.mcp} agent={entry.content.flow.agent} />
           ) : entry.content.flow?.kind === 'phishing' ? (
             <PhishingFlowDiagram />
           ) : (

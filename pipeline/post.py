@@ -7,11 +7,16 @@ scenario.yaml chapters and the gate point at. The screen is replayed through pyt
 spinner, token count, or timer moves are squeezed while every real change keeps its pace. Replacements keep
 their original length so the client's boxes and columns stay aligned (§6.3).
 
+Workspace files the take kept (`recording.keep`, in <take>/workspace/) are sanitized the same way and written to
+artifacts/ under the same name.
+
 `post.holds` in scenario.yaml freezes the screen at key moments so narration can explain them:
   post: { holds: [{ id: ml-result, text: "<regex>", seconds: 6 }] }
 Each hold waits for its regex to appear on the replayed screen, then for the next pause in the output (so a
 streamed message has finished), and adds `seconds` there. `immediate: true` freezes as soon as the text
-appears instead, for a table that a long message would scroll away. Holds apply once each, in order.
+appears instead, for a table that a long message would scroll away. `settle: <seconds>` freezes at the first gap at
+least that long, for a client that never pauses (Copilot CLI's spinner ticks every 90 ms and it draws a message in
+writes 35 ms apart: `settle: 0.06`). Holds apply once each, in order.
 """
 
 import json
@@ -23,6 +28,7 @@ import pyte
 import yaml
 
 from . import sanitize
+from .term import Screen
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_GAP = 1.0        # longest pause kept between two meaningful screen changes
@@ -33,6 +39,9 @@ NOISE = [
     re.compile(r"[\d.,]+k? tokens"),
     re.compile(r"\b\d+(\.\d+)?(ms|s|m)\b"),
     re.compile(r"\d+(\.\d+)?%"),
+    # Copilot CLI's footer: a spinner (◉ ◎ ○, or a blinking ●) before its status, and a running count of bytes.
+    re.compile(r" {0,3}[◉◎○◌●]? {0,3}(?=Working|Running|Thinking|Retrying)"),
+    re.compile(r"\b\d+(\.\d+)? ?[KMG]?B\b"),
 ]
 
 
@@ -52,7 +61,7 @@ def post(scenario_dir: Path, take: str) -> None:
     anchors = [json.loads(line) for line in (run / "anchors.jsonl").read_text().splitlines()]
     reps = sanitize.find_replacements("".join(e[2] for e in events))
 
-    screen = pyte.Screen(header["width"], header["height"])
+    screen = Screen(header["width"], header["height"])
     stream = pyte.Stream(screen)
     last_seen = normalized(screen)
     holds = [dict(h, rx=re.compile(h["text"], re.S)) for h in (scenario.get("post") or {}).get("holds", [])]
@@ -60,7 +69,7 @@ def post(scenario_dir: Path, take: str) -> None:
     mapping, out, t_new, prev_t, budget = [], [], 0.0, 0.0, STATIC_SPAN
     for t, kind, data in events:
         gap = t - prev_t
-        if seen_hold and (gap >= SETTLED or seen_hold.get("immediate")):
+        if seen_hold and (gap >= seen_hold.get("settle", SETTLED) or seen_hold.get("immediate")):
             # Freeze on the finished screen before this event draws anything new.
             t_new += min(gap, MAX_GAP)
             held.append((seen_hold["id"], round(t_new, 1), seen_hold["seconds"]))
@@ -98,6 +107,15 @@ def post(scenario_dir: Path, take: str) -> None:
 
     print(f"raw {events[-1][0]:.1f}s -> published {out[-1][0]:.1f}s, {len(out)} events, {len(reps)} replacements")
     print("leftover identifiers:", sanitize.leftovers("".join(e[2] for e in out)) or "none")
+    for name in (scenario.get("recording") or {}).get("keep", []):
+        kept = run / "workspace" / name
+        if not kept.exists():
+            print(f"kept file {name} is missing from the take")
+            continue
+        text = kept.read_text()
+        clean = sanitize.apply(text, sanitize.find_replacements(text))
+        (dest.parent / name).write_text(clean)
+        print(f"artifact {name}: leftover identifiers {sanitize.leftovers(clean) or 'none'}")
     for a in anchors:
         print(f"  {a['anchor']:<14} raw {a['t']:7.1f}  ->  {retime(a['t']):6.1f}")
     for hold_id, at, seconds in held:

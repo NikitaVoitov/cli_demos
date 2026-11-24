@@ -1,0 +1,87 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:10.300
+A password-spray alert has been quiet for weeks. Here GitHub Copilot CLI hunts for a slow spray with Splunk and the Machine Data Lake.
+
+ask
+00:00:11.200 --> 00:00:18.640
+The hunter asks Copilot to check the last fourteen days of sign-ins and name the source that looks like a spray.
+
+searches
+00:00:19.000 --> 00:00:28.920
+Copilot searches the hot index through Splunk MCP: the fields first, then failures per source, then the busiest five minutes.
+
+why-quiet
+00:00:30.000 --> 00:00:38.480
+That five-minute check matters. A spray that tries each account once never trips an alert on a hundred failures.
+
+suspect
+00:00:38.800 --> 00:00:47.600
+One address stands out, with about five hundred failures across three hundred accounts, never more than one in five minutes.
+
+vpn
+00:00:47.900 --> 00:00:54.940
+The busy VPN fails too, but mostly succeeds. That's the false positive to avoid.
+
+notebook
+00:00:55.700 --> 00:01:03.860
+Copilot opens the notebook and sets the suspect IP. Lake searches cost more, so it asks first.
+
+lake-approved
+00:01:05.400 --> 00:01:11.800
+Approved, the raw search reads this address's full history, a hundred and twenty days.
+
+history
+00:01:12.400 --> 00:01:18.720
+The index saw ten days. The lake shows a September campaign, then a return.
+
+table-ask
+00:01:19.800 --> 00:01:22.920
+Loading the shared table needs approval too.
+
+table-approved
+00:01:25.200 --> 00:01:33.120
+Copilot loads the ninety-day analytics table into pandas through Open Sharing, with no export or copy.
+
+table-why
+00:01:33.500 --> 00:01:40.460
+The lake promoted those days into a five-column table, so pandas reads only the fields the hunt needs.
+
+table-result
+00:01:40.900 --> 00:01:47.700
+A hundred and four thousand sign-ins over ninety days. The backtest needs your go-ahead too.
+
+backtest-approved
+00:01:49.100 --> 00:01:55.820
+The backtest runs the new rule over every sign-in in the kernel. Nothing is written to Splunk.
+
+rule
+00:01:56.900 --> 00:02:05.780
+It flags only the suspect, on thirteen days. The old alert would never have fired, and the busy VPN is skipped.
+
+intel
+00:02:06.400 --> 00:02:13.520
+It's in a community threat feed, and it got into a privileged backup account at three in the morning, two days ago.
+
+finding
+00:02:15.500 --> 00:02:23.180
+Copilot sums up the case and next steps: reset that account, block the address, review its activity.
+
+traceable
+00:02:24.200 --> 00:02:30.840
+Every claim traces back to a notebook cell, so the hunt is reproducible and easy to review.
+
+record
+00:02:32.000 --> 00:02:40.640
+The executed notebook is the record: every query, table, and chart, ending in the daily search to save as the alert.
+
+value-data
+00:02:41.500 --> 00:02:48.780
+Splunk keeps fourteen hot days fast, and the Machine Data Lake keeps months of history cheaply.
+
+value-agent
+00:02:50.200 --> 00:02:57.880
+An agent turns that history into a tested detection in minutes, with a person approving every costly step.
