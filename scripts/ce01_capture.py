@@ -172,8 +172,11 @@ def setup(model: str = "") -> None:
     skills = h / ".cursor/skills"
     for d in skills.iterdir():
         shutil.rmtree(d)
+    # The skills CLI installs Cursor's skills here, so an earlier demo's skills would otherwise stay loaded.
+    shutil.rmtree(h / ".agents/skills", ignore_errors=True)
     env = demo_env()
-    for name in PUBLIC_SKILLS:
+    extra_skills = [s for s in os.environ.get("CAPTURE_SKILLS", "").split(",") if s and s not in PUBLIC_SKILLS]
+    for name in [*PUBLIC_SKILLS, *extra_skills]:
         subprocess.run(["npx", "-y", "skills@1.9.0", "add", "splunk/splunk-agent-skills", "--skill", name,
                         "--agent", "cursor", "--global", "--yes", "--copy"],
                        env=env, cwd=h, check=True, stdout=subprocess.DEVNULL)

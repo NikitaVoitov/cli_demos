@@ -13,6 +13,7 @@ Beat types, shared by every demo:
   exit      leave the client and end the recording
 
 Before the beats: fixture setup commands, a fresh Splunk Web login, and the capture home. Optional recording keys:
+  skills: [name, ...]         Splunk Agent Skills (splunk/splunk-agent-skills) to load into the client, besides the default
   stackProfile: <name>        capture against another stack (scripts/stack_profile.py builds .captures/ce01/stacks/<name>)
   integrations: [jira]        Jira tools (acli, Atlassian MCP)
   integrations: [notebook]    the gated jpterm and euporie-preview; `notebook.gated` lists the held cell IDs
@@ -99,6 +100,8 @@ def prepare(recording: dict, home: Path) -> dict[str, str]:
         os.environ["CAPTURE_STACK"] = recording["stackProfile"]
     else:
         os.environ.pop("CAPTURE_STACK", None)
+    # Splunk Agent Skills the recorded client loads, on top of the default one (setup installs them).
+    os.environ["CAPTURE_SKILLS"] = ",".join(recording.get("skills", []))
     for command in recording.get("fixtures", {}).get("setup", []):
         subprocess.run(command, shell=True, check=True, cwd=ROOT)
     # Per-take values, such as a case ID no earlier take used: each command prints one value for __NAME__ in hints.
