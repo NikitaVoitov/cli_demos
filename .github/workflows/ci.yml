@@ -1,0 +1,157 @@
+name: CI/CD
+
+# Every push is tested. A push to main that passes is deployed to Cloudflare.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUB: apps/hub
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/hub/package-lock.json
+
+      - name: Check narration is current for every recorded scenario
+        run: |
+          pip install -r pipeline/requirements.txt
+          for dir in scenarios/*/; do
+            [ -f "$dir/artifacts/session.cast" ] || continue
+            python -m pipeline.narrate "${dir%/}" --check
+          done
+
+      - name: Install hub dependencies
+        working-directory: ${{ env.HUB }}
+        run: npm ci
+
+      - name: Lint and type-check the hub
+        working-directory: ${{ env.HUB }}
+        run: |
+          npm run lint
+          npx tsc -b
+
+      # The n8n canvas the hub serves is generated and git-ignored. Rebuild it only when its inputs change.
+      - name: Restore the n8n canvas snapshot
+        id: n8n
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.HUB }}/public/n8n-preview
+          key: n8n-preview-${{ hashFiles('recorder/n8n-preview.yaml', 'recorder/n8n-preview/**', 'scripts/n8n_preview_snapshot.py', 'scenarios/*/artifacts/workflow.json', 'apps/hub/tests/fixtures/scenarios/*/artifacts/workflow.json') }}
+
+      - name: Build the n8n canvas snapshot
+        if: steps.n8n.outputs.cache-hit != 'true'
+        run: python scripts/n8n_preview_snapshot.py
+
+      # content.ts and the Vite plugins validate every scenario while building, so this is also the content check.
+      - name: Build the hub
+        working-directory: ${{ env.HUB }}
+        run: npm run build
+
+      # The pane check tests the hub's own fixture, not demo content, so it only runs when the hub or the n8n
+      # canvas changed. A branch is compared with main, and main with the previous push; if that can't be
+      # worked out, the check runs.
+      - name: Detect hub changes
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then base="$BEFORE"; else base=$(git merge-base origin/main HEAD || true); fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "hub=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git diff --name-only "$base" HEAD -- apps/hub recorder/n8n-preview.yaml recorder/n8n-preview scripts/n8n_preview_snapshot.py .github/workflows/ci.yml)" ]; then
+            echo "hub=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hub=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the workflow canvas pane
+        if: steps.changes.outputs.hub == 'true'
+        working-directory: ${{ env.HUB }}
+        run: |
+          npx playwright install --with-deps chromium
+          DEMO_SCENARIOS=tests/fixtures/scenarios npx vite build --outDir dist-fixture
+          npx vite preview --outDir dist-fixture --port 4173 > preview.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://localhost:4173 >/dev/null && break; sleep 1; done
+          node scripts/check-workflow-pane.mjs http://localhost:4173
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hub-dist
+          path: ${{ env.HUB }}/dist
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://splk.headless.colide.ai
+    # Deploys run one at a time and in order; a newer push waits instead of cancelling a deploy in flight.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Require the Cloudflare secrets
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] \
+            || { echo "::error::Set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets (see README)."; exit 1; }
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/hub/package-lock.json
+
+      # Deploy the exact build that passed the tests.
+      - uses: actions/download-artifact@v8
+        with:
+          name: hub-dist
+          path: ${{ env.HUB }}/dist
+
+      - name: Deploy to Cloudflare Workers
+        working-directory: ${{ env.HUB }}
+        run: |
+          npm ci
+          npx wrangler deploy
+
+      - name: Smoke test the live site
+        run: |
+          for path in / /n8n-preview/workflows/demo; do
+            for attempt in 1 2 3 4 5; do
+              curl -sfo /dev/null "https://splk.headless.colide.ai$path" && continue 2
+              sleep 5
+            done
+            echo "::error::https://splk.headless.colide.ai$path did not answer 200 after the deploy"; exit 1
+          done

@@ -9,18 +9,18 @@ The story is built by scripts/auth_hunt_data.py (120 days of sign-ins, a spray t
 Dual HEC, so each destination gets exactly what it should keep:
 
   token SPLUNK_HEC_TOKEN_IDX_MDL   index demo_auth (14-day retention)      the last 14 days
-  token SPLUNK_HEC_TOKEN_MDL       raw table ~.federated.demo_auth_raw      all 120 days
+  token SPLUNK_HEC_TOKEN_RAW_MDL   raw table ~.federated.demo_auth_raw      all 120 days
 
 Both tokens must already exist with those default indexes. scenarios/so-03-notebook-spray-hunt/fixtures/MDL_SETUP.md
 walks through the stack side. Read from .env (the profile suffix _MDL, see scripts/stack_profile.py):
 
-  SPLUNK_HEC_URL_MDL       https://http-inputs-<stack>.splunkcloud.com
-  SPLUNK_HEC_TOKEN_MDL, SPLUNK_HEC_TOKEN_IDX_MDL
-  SPLUNK_REST_URL_MDL, SPLUNK_REST_TOKEN_MDL     the search head, to count what landed in demo_auth
-  SPLUNK_SCS_URL_MDL, SPLUNK_SCS_TOKEN_MDL       Splunk Cloud Services, to search the raw table (--check)
+  SPLUNK_HEC_URL_MDL       optional; defaults to https://http-inputs-<host of SPLUNK_WEB_BASE_MDL>
+  SPLUNK_HEC_TOKEN_RAW_MDL, SPLUNK_HEC_TOKEN_IDX_MDL
+  SPLUNK_REST_URL_MDL, SPLUNK_REST_TOKEN_MDL     the search head: counts demo_auth, and searches the raw table (--check)
 
-TLS verification is off, as on any testing stack. Reseed within about 5 days of a take: the story is anchored to the
-day it is generated, and --check fails once the second campaign is no longer recent. Prints counts only.
+TLS verification is off, as on any testing stack. Seed once per stack: the story is anchored to the day it is
+generated, and a second seed would add a second, shifted copy to the raw table. --check fails once the second
+campaign is no longer recent (about 4 days after seeding). Prints counts only.
 """
 
 import argparse
@@ -28,6 +28,8 @@ import json
 import os
 import ssl
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -67,8 +69,16 @@ def hec_send(url: str, token: str, events: list[dict]) -> None:
                         "event": data.line(e)}) for e in events[start:start + BATCH]).encode()
         request = urllib.request.Request(f"{url}/services/collector/event", data=body,
                                          headers={"Authorization": f"Splunk {token}"})
-        with urllib.request.urlopen(request, context=CTX, timeout=120) as response:
-            result = json.load(response)
+        # The Splunk Cloud HEC gateway sometimes answers 502/503 under load; the batch was not accepted, so resend it.
+        for attempt in range(5):
+            try:
+                with urllib.request.urlopen(request, context=CTX, timeout=120) as response:
+                    result = json.load(response)
+                break
+            except urllib.error.HTTPError as error:
+                if error.code not in (502, 503, 504) or attempt == 4:
+                    raise SystemExit(f"HEC failed at event {start:,}: HTTP {error.code}")
+                time.sleep(5 * (attempt + 1))
         if result.get("code") != 0:
             raise SystemExit(f"HEC rejected a batch: {result}")
         print(f"  sent {min(start + BATCH, len(events)):,} / {len(events):,}", flush=True)
@@ -85,14 +95,27 @@ def rest_search(env: dict, spl: str) -> list[dict]:
 
 
 def hot_stats(env: dict) -> dict:
-    rows = rest_search(env, f'search index={INDEX} | stats count, latest(_time) AS latest, '
+    rows = rest_search(env, f'search index={INDEX} sourcetype="{data.SOURCETYPE}" | stats count, latest(_time) AS latest, '
                             f'count(eval(src_ip="{data.ATTACKER_IP}")) AS attacker')
     return rows[0] if rows else {"count": "0", "attacker": "0", "latest": "0"}
 
 
+def raw_suspect(env: dict):
+    """The suspect's events in the raw table, through the same search the notebook runs."""
+    os.environ.update({"LAKE_MODE": "live", "LAKE_RAW_DATASET": RAW_TABLE, "LAKE_VERIFY": "0",
+                       "LAKE_REST_URL": need(env, "SPLUNK_REST_URL_MDL")[0], "LAKE_REST_TOKEN": need(env, "SPLUNK_REST_TOKEN_MDL")[0]})
+    import lake
+    return lake.search_raw(data.ATTACKER_IP, days=120)
+
+
 def check(env: dict) -> int:
     problems = []
-    hot = hot_stats(env)
+    # A busy indexer can drop out of one search without a warning; the export endpoint then returns partial counts.
+    for attempt in range(3):
+        hot = hot_stats(env)
+        if int(hot["attacker"]) >= 300 or attempt == 2:
+            break
+        time.sleep(20)
     age_days = (datetime.now(timezone.utc).timestamp() - float(hot.get("latest") or 0)) / 86400
     print(f"hot index {INDEX}: {int(hot['count']):,} events, {int(hot['attacker']):,} from the suspect, newest {age_days:.1f} days old")
     if int(hot["attacker"]) < 300:
@@ -100,10 +123,7 @@ def check(env: dict) -> int:
     if age_days > 4:
         problems.append("the newest hot event is older than 4 days; reseed")
 
-    os.environ.update({"LAKE_MODE": "live", "LAKE_RAW_DATASET": RAW_TABLE, "LAKE_VERIFY": "0",
-                       "LAKE_SCS_URL": need(env, "SPLUNK_SCS_URL_MDL")[0], "LAKE_SCS_TOKEN": need(env, "SPLUNK_SCS_TOKEN_MDL")[0]})
-    import lake
-    raw = lake.search_raw(data.ATTACKER_IP, days=120)
+    raw = raw_suspect(env)
     first_age = (datetime.now(timezone.utc) - raw["_time"].min()).days if len(raw) else 0
     print(f"raw table {RAW_TABLE}: {len(raw):,} events from the suspect, first seen {first_age} days ago")
     if len(raw) < 600:
@@ -120,7 +140,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--force", action="store_true", help="send even if demo_auth already holds events")
+    parser.add_argument("--force", action="store_true", help="send even if the index or raw table already holds the story")
     args = parser.parse_args()
 
     events = data.events()
@@ -134,10 +154,13 @@ def main() -> int:
     env = dotenv()
     if args.check:
         return check(env)
-    url, token_raw, token_idx = need(env, "SPLUNK_HEC_URL_MDL", "SPLUNK_HEC_TOKEN_MDL", "SPLUNK_HEC_TOKEN_IDX_MDL")
-    url = url.rstrip("/")
+    token_raw, token_idx = need(env, "SPLUNK_HEC_TOKEN_RAW_MDL", "SPLUNK_HEC_TOKEN_IDX_MDL")
+    url = (env.get("SPLUNK_HEC_URL_MDL")
+           or f"https://http-inputs-{urllib.parse.urlparse(need(env, 'SPLUNK_WEB_BASE_MDL')[0]).netloc}").rstrip("/")
     if not args.force and int(hot_stats(env)["count"]) > 0:
-        raise SystemExit(f"{INDEX} already holds events; sending again would double them (--force to do it anyway)")
+        raise SystemExit(f"{INDEX} already holds the story; sending again would double it (--force to do it anyway)")
+    if not args.force and len(raw_suspect(env)) > 0:
+        raise SystemExit(f"{RAW_TABLE} already holds the story; a second, shifted copy would break it (--force to do it anyway)")
     print(f"sending to {INDEX}")
     hec_send(url, token_idx, hot)
     print(f"sending to {RAW_TABLE}")

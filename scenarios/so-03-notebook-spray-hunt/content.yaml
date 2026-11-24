@@ -1,7 +1,7 @@
 # What visitors read. Editable without a new capture.
 title: Hunt a password spray in a notebook
 summary: >
-  A slow password spray never trips the alert on 100 failed sign-ins in 5 minutes. Cursor CLI finds the suspect IP
+  A slow password spray never trips the alert on 100 failed sign-ins in 5 minutes. GitHub Copilot CLI finds the suspect IP
   in the hot index through Splunk MCP, then works through a hunt notebook: it searches the Machine Data Lake for
   the IP's full history, loads a shared analytics table into pandas, and backtests a detection over 90 days. You
   approve each of the three cells that read the lake.
@@ -41,5 +41,5 @@ gates:
     decline: Decline
     declinedTitle: The rule was not tested.
     declinedBody: Without a backtest there is no evidence it would have caught the spray, or that it would stay quiet for the busy VPN address.
-flow: { kind: notebook, mcp: "hot index, triage" }
+flow: { kind: notebook, mcp: "hot index, triage", agent: "Copilot CLI" }
 display: { hidden: false, featured: false, order: 45 }

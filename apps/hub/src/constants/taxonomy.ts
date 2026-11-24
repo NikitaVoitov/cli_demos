@@ -29,7 +29,7 @@ export const PERSONAS: Record<string, string> = {
  */
 export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }[] = [
   { id: 'persona', label: 'Persona', values: Object.keys(PERSONAS) },
-  { id: 'agent', label: 'Agent', values: ['Claude Code', 'Codex', 'Cursor', 'Gemini CLI'] },
+  { id: 'agent', label: 'Agent', values: ['Claude Code', 'Codex', 'Cursor', 'Gemini CLI', 'GitHub Copilot'] },
   {
     id: 'splunk',
     label: 'Splunk',

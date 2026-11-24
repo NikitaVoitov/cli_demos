@@ -47,3 +47,6 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# JupyterLab collaboration state when it runs from the repo root
+.jupyter_ystore.db

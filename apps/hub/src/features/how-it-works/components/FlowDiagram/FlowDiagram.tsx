@@ -335,17 +335,18 @@ export function SdkFlowDiagram({ mcp = '2 allowlisted tools' }: { mcp?: string }
   )
 }
 
-// Columns: You 0–100 · Cursor CLI 150–280 · tools 340–600 · Splunk Cloud 660–900, with the Machine Data Lake inside it.
-// The kernel box is dashed-green like the other gated tools; the notebook file sits under it.
-/** The notebook story: the agent runs notebook cells through jpterm, each one held for approval, and one cell reads the lake. */
-export function NotebookFlowDiagram({ mcp = 'hot index, triage' }: { mcp?: string }) {
+// Columns: You 0–100 · the agent 150–280 · tools 330–570 · Splunk Cloud 610–900, with the hot index and the Machine
+// Data Lake inside it. The agent searches the index through MCP; the notebook's kernel reads the lake two ways.
+/** The notebook story: Splunk MCP triages the hot index, then jpterm runs a hunt notebook whose lake cells need approval. */
+export function NotebookFlowDiagram({ mcp = 'hot index, triage', agent = 'Cursor CLI' }: { mcp?: string; agent?: string }) {
   return (
-    <svg viewBox="0 0 900 300" className="h-auto w-full font-sans" role="img" aria-labelledby="nb-flow-title nb-flow-desc">
+    <svg viewBox="0 0 900 400" className="h-auto w-full font-sans" role="img" aria-labelledby="nb-flow-title nb-flow-desc">
       <title id="nb-flow-title">How the pieces fit together</title>
       <desc id="nb-flow-desc">
-        You prompt Cursor CLI. It triages the hot index through Splunk MCP, then works through a Jupyter notebook with jpterm.
-        Each cell the kernel runs stops at CONFIRMATION_REQUIRED, so Cursor asks you first. The approved cells search the Machine
-        Data Lake, load a shared table into the kernel, and backtest the detection over 90 days.
+        You prompt {agent}. It triages the 14-day index demo_auth through Splunk MCP, then runs the hunt notebook one cell
+        at a time with jpterm. The three cells that read the Machine Data Lake stop at CONFIRMATION_REQUIRED, so the agent
+        asks you first. The notebook&apos;s Jupyter kernel searches the 120-day raw table with an SPL2 search job, and
+        loads the 90-day analytics table, promoted from the raw table, through Open Sharing (Delta Sharing) into pandas.
       </desc>
       <defs>
         <marker id="nb-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
@@ -355,37 +356,52 @@ export function NotebookFlowDiagram({ mcp = 'hot index, triage' }: { mcp?: strin
           <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
         </marker>
       </defs>
-      <Box x={0} y={112} w={100} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
-      <Box x={150} y={112} w={130} h={76} title="Cursor CLI" sub="the agent" stroke="var(--text-primary)" />
+      <Box x={0} y={150} w={100} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={150} y={150} w={130} h={76} title={agent} sub="the agent" stroke="var(--text-primary)" />
+      <Box x={330} y={30} w={240} h={64} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
       <Box
-        x={340}
-        y={18}
-        w={260}
+        x={330}
+        y={130}
+        w={240}
         h={76}
         title="jpterm"
         sub="Shell · run notebook cells"
         stroke="var(--status-success)"
-        note="each cell stops at CONFIRMATION_REQUIRED"
+        note="lake cells: CONFIRMATION_REQUIRED"
       />
-      <Box x={340} y={112} w={260} h={68} title="Jupyter kernel" sub="hunt.ipynb · Python, pandas" stroke="var(--status-info)" />
-      <Box x={340} y={206} w={260} h={68} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
-      <Box x={660} y={18} w={240} h={256} title="Splunk Cloud" sub="search head, MCP" stroke="var(--border-strong)" />
-      <Box x={676} y={104} w={208} h={80} title="Machine Data Lake" sub="raw table · shared table" stroke="var(--action-primary)" />
+      <Box x={330} y={240} w={240} h={76} title="Jupyter kernel" sub="hunt.ipynb · Python, pandas" stroke="var(--status-info)" />
+      <Box
+        x={610}
+        y={10}
+        w={290}
+        h={385}
+        title="Splunk Cloud"
+        sub="HEC lands sign-ins in the index and the lake"
+        stroke="var(--border-strong)"
+      />
+      <Box x={626} y={66} w={258} h={56} title="Index demo_auth" sub="last 14 days" stroke="var(--border-strong)" />
+      <Box x={626} y={140} w={258} h={245} title="Machine Data Lake" sub="cheap to keep, slow to search" stroke="var(--action-primary)" />
+      <Box x={642} y={196} w={226} h={56} title="Raw table" sub="demo_auth_raw · 120 days, raw" stroke="var(--border-strong)" />
+      <Box x={642} y={304} w={226} h={64} title="Analytics table" sub="demo_auth_hunt_90d · 5 columns" stroke="var(--border-strong)" />
       <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#nb-flow-arrow)">
-        <path d="M100 138H148" />
-        <path d="M280 150C310 150 310 56 338 56" />
-        <path d="M280 150C310 150 310 240 338 240" />
-        <path d="M470 94V110" />
-        <path d="M600 146H674" />
-        <path d="M600 240H658" />
+        <path d="M100 176H148" />
+        <path d="M280 176C305 176 305 62 328 62" />
+        <path d="M280 184C305 184 305 168 328 168" />
+        <path d="M450 206V238" />
+        <path d="M570 62C596 62 596 94 624 94" />
+        <path d="M570 266C600 266 600 224 640 224" />
+        <path d="M570 296C600 296 600 336 640 336" />
+        <path d="M755 252V302" />
       </g>
-      <path d="M148 164H102" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#nb-flow-arrow-warn)" />
-      <Label x={125} y={130}>prompt</Label>
-      <Label x={125} y={182} warn>
+      <path d="M148 202H102" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#nb-flow-arrow-warn)" />
+      <Label x={125} y={168}>prompt</Label>
+      <Label x={125} y={244} warn>
         asks first
       </Label>
-      <Label x={632} y={138}>reads</Label>
-      <Label x={630} y={232}>MCP</Label>
+      <Label x={592} y={56}>SPL</Label>
+      <Label x={598} y={228}>SPL2</Label>
+      <Label x={604} y={346}>Sharing</Label>
+      <Label x={808} y={281}>promote 90 days</Label>
     </svg>
   )
 }

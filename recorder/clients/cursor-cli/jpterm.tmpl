@@ -1,7 +1,7 @@
 #!/bin/bash
 # jpterm in the capture home. The agent runs a notebook one cell at a time. Cells listed in ~/.config/jpterm-gates
 # stop the way splunkctl's writes do: run without --yes and the cell is held until the same command is rerun with
-# --yes. Only kernel, execute, and write are available, and write only edits the parameter cell, with literals.
+# --yes. Only kernel, show, execute, and write are available, and write only edits the parameter cell, with literals.
 VENV="__NB_VENV__"
 GATES="$HOME/.config/jpterm-gates"
 
@@ -23,9 +23,13 @@ for ((i = 1; i < ${#args[@]}; i++)); do
 done
 
 case "${args[0]}" in
-  kernel) ;;
+  kernel|show) ;;
   execute)
+    # Help is read-only; the agent reads it when a command doesn't behave as expected.
+    case " ${args[*]} " in *" --help "*) exec "$VENV/bin/jpterm" "${args[@]}" ;; esac
     [ -n "$cell" ] || refuse "run one cell at a time: jpterm execute NOTEBOOK --cell ID"
+    # jpterm stops a cell after 30 s by default; the lake cells take longer (load-shared about 70 s).
+    case " ${args[*]} " in *" --timeout"*) ;; *) args+=(--timeout 600) ;; esac
     if [ "$yes" -ne 1 ] && grep -qxF -- "$cell" "$GATES" 2>/dev/null; then
       cat >&2 <<MSG
 CONFIRMATION_REQUIRED: cell $cell requires confirmation.
@@ -40,7 +44,7 @@ MSG
     if printf '%s\n' "$source" | grep -vqE '^([A-Z_]+ *= *("[^"]*"|[0-9.]+) *(#.*)?|#.*)?$'; then
       refuse "the params cell takes NAME = number-or-string lines only"
     fi ;;
-  *) refuse "only 'jpterm kernel', 'jpterm execute', and 'jpterm write' are available here" ;;
+  *) refuse "only 'jpterm kernel', 'jpterm show', 'jpterm execute', and 'jpterm write' are available here" ;;
 esac
 
 set -a
