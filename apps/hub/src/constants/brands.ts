@@ -4,6 +4,7 @@ import cursor from '@/assets/brands/cursor.svg'
 import geminiCli from '@/assets/brands/gemini-cli.svg'
 import gemini from '@/assets/brands/gemini.svg'
 import githubActions from '@/assets/brands/github-actions.svg'
+import githubCopilot from '@/assets/brands/github-copilot.svg'
 import jira from '@/assets/brands/jira.svg'
 import kubernetes from '@/assets/brands/kubernetes.svg'
 import n8n from '@/assets/brands/n8n.svg'
@@ -27,6 +28,7 @@ export const BRAND_ICON: Record<string, string> = {
   'Gemini CLI': geminiCli,
   Gemini: gemini,
   'GitHub Actions': githubActions,
+  'GitHub Copilot': githubCopilot,
   Jira: jira,
   Kubernetes: kubernetes,
   n8n: n8n,

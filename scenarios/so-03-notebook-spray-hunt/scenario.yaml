@@ -1,31 +1,52 @@
 # What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
-# A guided threat hunt in a Jupyter notebook that Cursor CLI runs through jpterm, on a stack with Machine Data Lake.
-# Not recorded yet: `source: metadata` keeps it a catalog placeholder. Fix the stack side first (fixtures/MDL_SETUP.md),
-# record, then follow "After the first capture" below.
+# A guided threat hunt in a Jupyter notebook that GitHub Copilot CLI runs through jpterm, on a stack with Machine Data Lake.
+# Stack side: fixtures/MDL_SETUP.md.
 id: so-03-notebook-spray-hunt
 useCase: SO-03
-source: metadata
+source: captured
 change: Gated write
 stack: co2-mdl
 client:
-  name: cursor-cli
-  label: Cursor
-  model: Auto Balance
-terminal: { cols: 88, rows: 28 }
+  name: copilot-cli
+  label: GitHub Copilot
+  model: Auto
+# Copilot CLI draws a failed command as one line that ends with the first line of its output; 110 columns keep
+# "CONFIRMATION_REQUIRED: cell <id>" on it.
+terminal: { cols: 110, rows: 32 }
 
-# After the first capture (docs: .agents/skills/demo-author/SKILL.md):
-#   1. `python -m pipeline.capture scenarios/so-03-notebook-spray-hunt <take>`, then `pipeline.post` and `pipeline.transcript`.
-#   2. Change `source` to `captured` and add `capture:` and `cast:` like the other demos.
-#   3. Chapters: one per beat mark below, at the time post prints for it: triage, notebook, lake, table, backtest,
-#      detection. Their labels are already in content.yaml.
-#   4. Gates: three entries in `gates:` (not `gate:`), each `t` where its refusal is first on screen (the cast shows
-#      "cell <id> requires confirmation"). Their copy is already in content.yaml `gates`.
-#        gates:
-#          - { id: gate-lake, t: 0, command: jpterm execute hunt.ipynb --cell raw-search }
-#          - { id: gate-table, t: 0, command: jpterm execute hunt.ipynb --cell load-shared }
-#          - { id: gate-backtest, t: 0, command: jpterm execute hunt.ipynb --cell backtest }
-#   5. `post.holds` on the evidence screens (suspect IP, first seen date, rule hit table, SPL), then narrate. Narration
-#      anchors a line to a gate with `chapter: <gate id>`, and nothing may still be playing at any gate.
+capture:
+  status: captured
+  take: take-3
+  month: Nov 2026
+  # Waits where only Copilot's spinner moves are cut; seven holds freeze the evidence screens and carry the narration.
+  # The raw take ran 4 min 50 s.
+  timeCompressed: true
+  rawDuration: 289.7
+  notes: >
+    Recorded from the beats in this file with GitHub Copilot CLI 1.0.114 (Auto, which picked Claude Sonnet 5.5) in a
+    neutral capture home on the MDL stack (stack profile mdl). Copilot runs with all tools allowed and the Splunk MCP
+    write tools denied, so jpterm's CONFIRMATION_REQUIRED on the three lake cells is the only stop. Data is
+    index=demo_auth, the raw table demo_auth_raw, and its analytics table demo_auth_hunt_90d shared with Open Sharing
+    (scripts/seed_auth.py, fixtures/MDL_SETUP.md).
+
+cast:
+  src: artifacts/session.cast
+  duration: 179.5
+
+# Stable IDs; times are seconds on the published cast clock, set by hand after each capture. Labels: content.yaml.
+chapters:
+  - { id: triage, t: 0 }
+  - { id: notebook, t: 49.2 }
+  - { id: lake, t: 64.9 }
+  - { id: table, t: 84.8 }
+  - { id: backtest, t: 108.7 }
+  - { id: detection, t: 152.6 }
+
+# Each gate pauses on the agent's approval question, just before the next prompt. Copy: content.yaml `gates`.
+gates:
+  - { id: gate-lake, t: 64.6, command: jpterm execute hunt.ipynb --cell raw-search, summary: "Searching the lake stopped at CONFIRMATION_REQUIRED until you approved" }
+  - { id: gate-table, t: 84.4, command: jpterm execute hunt.ipynb --cell load-shared, summary: "Loading the shared table stopped at CONFIRMATION_REQUIRED until you approved" }
+  - { id: gate-backtest, t: 108.3, command: jpterm execute hunt.ipynb --cell backtest, summary: "The backtest stopped at CONFIRMATION_REQUIRED until you approved" }
 
 # How this demo is recorded: `python -m pipeline.capture scenarios/so-03-notebook-spray-hunt <take>`.
 recording:
@@ -34,12 +55,16 @@ recording:
   # The MDL-enabled stack: its Splunk Web, splunkctl config, and MCP token come from .captures/ce01/stacks/mdl
   # (python3 scripts/stack_profile.py init mdl).
   stackProfile: mdl
+  # No Splunk Web screenshots in this demo, and the MDL stack signs in with SSO.
+  splunkWebLogin: false
   # Adds the gated jpterm (the three cells below stop with CONFIRMATION_REQUIRED) and euporie-preview.
   integrations: [notebook]
   notebook:
     gated: [raw-search, load-shared, backtest]
   hints: [notebook-hunt]
-  # The wrapper's refusal is short on purpose: Cursor CLI truncates long shell output. Each gate also names its cell.
+  # The executed notebook, outputs and all; pipeline.post publishes it as artifacts/hunt.ipynb.
+  keep: [hunt.ipynb]
+  # The wrapper's refusal is short on purpose: the clients truncate long shell output. Each gate also names its cell.
   gateEvidence: "CONFIRMATION_REQUIRED"
   fixtures:
     setup:
@@ -52,7 +77,7 @@ recording:
       - bash scenarios/so-03-notebook-spray-hunt/fixtures/teardown.sh
   beats:
     - { comment: "Hunt a password spray in a notebook, with Splunk MCP and the Machine Data Lake", mark: intro }
-    - { run: agent, waitFor: "Plan, search, build anything" }
+    - { run: copilot, waitFor: "open sidebar" }
     # Short turns, so each one ends with an answer on screen. The terminal truncates tool output, which is why the
     # hint asks for a short message after every step. The three approvals are the turns that end at a refusal.
     - prompt: >
@@ -64,19 +89,122 @@ recording:
         Good. Open hunt.ipynb: start its kernel, put that IP in the params cell, run setup, then run raw-search to
         see the IP's full history in the lake.
       mark: notebook
-    - { wait: turn-end, timeout: 600, mark: gate-lake, require: gate, evidence: "cell raw-search requires" }
+    - { wait: turn-end, timeout: 600, mark: gate-lake, require: gate, evidence: "CONFIRMATION_REQUIRED: cell raw-search" }
     - prompt: "Approved. Run it and tell me what the lake shows. Then run load-shared."
       mark: lake
-    - { wait: turn-end, timeout: 600, mark: gate-table, require: gate, evidence: "cell load-shared requires" }
+    - { wait: turn-end, timeout: 600, mark: gate-table, require: gate, evidence: "CONFIRMATION_REQUIRED: cell load-shared" }
     - prompt: "Approved. Load it, tell me what is in the table, then run backtest."
       mark: table
-    - { wait: turn-end, timeout: 600, mark: gate-backtest, require: gate, evidence: "cell backtest requires" }
+    - { wait: turn-end, timeout: 600, mark: gate-backtest, require: gate, evidence: "CONFIRMATION_REQUIRED: cell backtest" }
     - prompt: >
         Approved. Run the backtest, then enrich and detection, and tell me what we found and what to do next.
       mark: backtest
     - { wait: turn-end, timeout: 900, mark: agent-done }
-    # The closing beat is the viewer typing in shell mode: the executed notebook, outputs and all.
-    - shell: "euporie-preview hunt.ipynb"
+    # The closing shot: the viewer leaves Copilot and shows the executed notebook, outputs and all, in the terminal.
+    # Not in Copilot's shell mode, which prints euporie's color codes as text.
+    - { leave: true }
+    - run: "euporie-preview hunt.ipynb"
       waitFor: "\\[\\d+\\] Daily saved search"
+      # For the transcript, which has no output for commands run outside the client.
+      result: "The executed notebook in the terminal, every cell with its output. It is the artifact below."
       mark: detection
     - { exit: true, mark: outro }
+
+artifacts:
+  transcript: artifacts/transcript.json
+  # Shown in the transcript after the last command that ran it.
+  notebooks: [artifacts/hunt.ipynb]
+
+# Freeze frames on the evidence so narration can explain it (pipeline/post.py). The texts are this take's wording;
+# Copilot renders inline code with a space on each side, so the patterns avoid code spans. Gates need no hold: the
+# player pauses there. The last hold carries the closing narration (the outcome and why it matters). Copilot draws each message whole, and its spinner never lets the output pause, so every hold
+# is immediate.
+post:
+  holds:
+    - { id: suspect, text: "Likely benign", seconds: 9, settle: 0.06 }
+    - { id: history, text: "quiet October", seconds: 9, settle: 0.06 }
+    - { id: table, text: "104,198 sign-ins", seconds: 8, settle: 0.06 }
+    - { id: rule, text: "The backtest flags only", seconds: 9, settle: 0.06 }
+    - { id: intel, text: "Threat intel flags", seconds: 7, settle: 0.06 }
+    - { id: finding, text: "Next steps", seconds: 12, settle: 0.06 }
+    - { id: detection, text: "tries<=3", seconds: 22, settle: 0.06 }
+
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/so-03-notebook-spray-hunt` builds the audio
+# and captions; rerun it after changing a line, an anchor, a chapter time, or the voice.
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    # Hot index triage
+    - id: intro
+      chapter: triage
+      offset: 0.3
+      text: A password-spray alert has been quiet for weeks. Here GitHub Copilot CLI hunts for a slow spray with Splunk and the Machine Data Lake.
+    - id: ask
+      t: 11.2
+      text: The hunter asks Copilot to check the last fourteen days of sign-ins and name the source that looks like a spray.
+    - id: searches
+      t: 19.0
+      text: "Copilot searches the hot index through Splunk MCP: the fields first, then failures per source, then the busiest five minutes."
+    - id: why-quiet
+      t: 30.0
+      text: That five-minute check matters. A spray that tries each account once never trips an alert on a hundred failures.
+    - id: suspect
+      t: 38.8
+      text: One address stands out, with about five hundred failures across three hundred accounts, never more than one in five minutes.
+    - id: vpn
+      t: 47.9
+      text: The busy VPN fails too, but mostly succeeds. That's the false positive to avoid.
+    # Notebook, then the first approval
+    - id: notebook
+      t: 55.7
+      text: Copilot opens the notebook and sets the suspect IP. Lake searches cost more, so it asks first.
+    - id: lake-approved
+      chapter: gate-lake
+      offset: 0.8
+      text: Approved, the raw search reads this address's full history, a hundred and twenty days.
+    - id: history
+      t: 72.4
+      text: The index saw ten days. The lake shows a September campaign, then a return.
+    - id: table-ask
+      t: 79.8
+      text: Loading the shared table needs approval too.
+    # Shared table
+    - id: table-approved
+      chapter: gate-table
+      offset: 0.8
+      text: Copilot loads the ninety-day analytics table into pandas through Open Sharing, with no export or copy.
+    - id: table-why
+      t: 93.5
+      text: The lake promoted those days into a five-column table, so pandas reads only the fields the hunt needs.
+    - id: table-result
+      t: 100.9
+      text: A hundred and four thousand sign-ins over ninety days. The backtest needs your go-ahead too.
+    # Backtest, enrichment, and the finding
+    - id: backtest-approved
+      chapter: gate-backtest
+      offset: 0.8
+      text: The backtest runs the new rule over every sign-in in the kernel. Nothing is written to Splunk.
+    - id: rule
+      t: 116.9
+      text: It flags only the suspect, on thirteen days. The old alert would never have fired, and the busy VPN is skipped.
+    - id: intel
+      t: 126.4
+      text: It's in a community threat feed, and it got into a privileged backup account at three in the morning, two days ago.
+    - id: finding
+      t: 135.5
+      text: "Copilot sums up the case and next steps: reset that account, block the address, review its activity."
+    - id: traceable
+      t: 144.2
+      text: Every claim traces back to a notebook cell, so the hunt is reproducible and easy to review.
+    # The executed notebook, and why it matters
+    - id: record
+      chapter: detection
+      offset: -0.6
+      text: "The executed notebook is the record: every query, table, and chart, ending in the daily search to save as the alert."
+    - id: value-data
+      t: 161.5
+      text: Splunk keeps fourteen hot days fast, and the Machine Data Lake keeps months of history cheaply.
+    - id: value-agent
+      t: 170.2
+      text: An agent turns that history into a tested detection in minutes, with a person approving every costly step.

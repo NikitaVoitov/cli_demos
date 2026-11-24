@@ -48,10 +48,17 @@ KEYS = {
 }
 
 
+class Screen(pyte.Screen):
+    """pyte rejects the private form of the device status query (CSI ? 6 n) that Copilot CLI sends."""
+
+    def report_device_status(self, mode, **_):
+        return super().report_device_status(mode)
+
+
 class Driver:
     def __init__(self, run: Path):
         self.run = run
-        self.screen = pyte.Screen(COLS, ROWS)
+        self.screen = Screen(COLS, ROWS)
         self.stream = pyte.ByteStream(self.screen)
         self.lock = threading.Lock()
         self.changed = time.time()

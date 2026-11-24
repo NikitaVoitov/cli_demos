@@ -1,7 +1,7 @@
 # Headless Splunk demos
 
 Interactive demo pages built from **real AI-client sessions against Splunk Cloud**. A coding agent records a session
-(today: Cursor CLI), the pipeline cleans and retimes it, adds a transcript and a voice-over, and a small web app (the
+(Cursor CLI or GitHub Copilot CLI), the pipeline cleans and retimes it, adds a transcript and a voice-over, and a small web app (the
 hub) plays it with approval gates, chapters, and a "how it works" panel. You author demos by working with an agent
 (Claude Code, Cursor, Codex, or GitHub Copilot) that follows the repo's `demo-author` skill.
 
@@ -120,7 +120,8 @@ Capture needs macOS. Narration, editing text, and the hub work anywhere the tool
 brew install uv node ffmpeg asciinema gitleaks zellij
 brew install elevenlabs/tap/elevenlabs        # then: elevenlabs auth login
 npm install -g @playwright/cli                # browser checks inside the recorded session
-curl https://cursor.com/install -fsS | bash   # Cursor CLI (the recorded client); then: agent login
+curl https://cursor.com/install -fsS | bash   # Cursor CLI (the default recorded client); then: agent login
+brew install --cask copilot-cli               # GitHub Copilot CLI, for demos with client.name: copilot-cli (SO-03)
 ```
 
 `splunkctl` ([releases](https://github.com/splunk/splunkctl/releases)) must be at `/usr/local/bin/splunkctl`; on macOS run
@@ -172,7 +173,7 @@ matrix."* The agent copies the shape of an existing scenario, writes `scenario.y
 ```sh
 .captures/venv/bin/python -m pipeline.capture    scenarios/<id> <take>    # real run; a person can watch
 .captures/venv/bin/python -m pipeline.post       scenarios/<id> <take>    # retime + sanitize → session.cast; prints chapter times
-.captures/venv/bin/python -m pipeline.transcript scenarios/<id> --client cursor-cli --store <store.db>
+.captures/venv/bin/python -m pipeline.transcript scenarios/<id> --store .captures/<id>/<take>/session/<store.db or events.jsonl>
 .captures/venv/bin/python -m pipeline.narrate    scenarios/<id> --estimate   # free timing check, then without --estimate
 .captures/venv/bin/python -m pipeline.narrate    scenarios/<id> --check
 ```
@@ -193,6 +194,44 @@ splunkctl, `search-ui` for Splunk Web and the MCP Server). Two ways to point the
 
 First capture on a machine: run `.captures/venv/bin/python scripts/ce01_capture.py setup`, then `... login` (signs Cursor
 CLI in inside the neutral capture home at `/Users/Shared/splunk-demo`), then `setup` again to pin its settings.
+
+### Recording with GitHub Copilot CLI
+
+A scenario with `client: { name: copilot-cli, label: GitHub Copilot }` is recorded with Copilot CLI instead of Cursor
+(SO-03 is the first). The capture builds `~/.copilot/` in the capture home and a `copilot` launcher in its `bin/` with
+the flags every take uses ([recorder/clients/copilot-cli/copilot.tmpl](recorder/clients/copilot-cli/copilot.tmpl)).
+Once per machine, sign Copilot in inside the capture home with the GitHub account that has your Copilot seat:
+
+```sh
+CAPTURE_CLIENT=copilot-cli .captures/venv/bin/python scripts/ce01_capture.py setup
+CAPTURE_CLIENT=copilot-cli .captures/venv/bin/python scripts/ce01_capture.py login
+```
+
+The sign-in token goes to the login keychain, which the capture home shares. A corporate network can block one Copilot
+API host and not another (here `api.individual.githubcopilot.com` was reset while `api.business.githubcopilot.com`
+answered), so sign in with the business account if the personal one fails with "Failed to load models".
+
+For a dry run without the Copilot service, point the take at your own model: any `COPILOT_PROVIDER_*`, `COPILOT_MODEL`,
+or `COPILOT_OFFLINE` variable in your environment passes through to the capture shell (`copilot help providers-env`).
+Never publish such a take: the model's name shows in Copilot's footer.
+
+### Jupyter notebook tooling
+
+The recorder's [notebook requirements](recorder/notebook/requirements.txt) include JupyterLab, real-time collaboration,
+and Datalayer's [Jupyter MCP Server](https://github.com/datalayer/jupyter-mcp-server) and
+[MCP Tools extension](https://github.com/datalayer/jupyter-mcp-tools). The `notebook` capture setup installs them in
+`/Users/Shared/splunk-demo/nb`. To refresh an existing notebook environment after requirements change:
+
+```sh
+uv pip install --python /Users/Shared/splunk-demo/nb/bin/python -r recorder/notebook/requirements.txt
+```
+
+For authoring, run JupyterLab on loopback with token authentication and configure your MCP client to launch
+`jupyter-mcp-server` over stdio with `JUPYTER_URL` and `JUPYTER_TOKEN`. Keep tokens in private, untracked configuration.
+The MCP Tools frontend commands require an open JupyterLab browser tab.
+
+These packages do not automatically add MCP access to the recorded client: arbitrary notebook execution could bypass
+the gated `jpterm` wrapper. Recorded demos continue to use that wrapper and its existing approvals.
 
 ## Rules
 

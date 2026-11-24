@@ -6,7 +6,11 @@ const scenarios = import.meta.glob<Scenario>('@scenarios/*/scenario.yaml', { eag
 const contents = import.meta.glob<Content>('@scenarios/*/content.yaml', { eager: true, import: 'default' })
 const howItWorks = import.meta.glob<string>('@scenarios/*/how-it-works.md', { eager: true, import: 'default' })
 const transcripts = import.meta.glob<Transcript>('@scenarios/*/artifacts/transcript.json', { eager: true, import: 'default' })
-const rawJson = import.meta.glob<string>('@scenarios/*/artifacts/*.{json,py}', { eager: true, query: '?raw', import: 'default' })
+const rawJson = import.meta.glob<string>('@scenarios/*/artifacts/*.{json,py,ipynb}', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+})
 const assetUrls = import.meta.glob<string>('@scenarios/*/artifacts/*.{cast,png,mp3}', { eager: true, query: '?url', import: 'default' })
 const captionFiles = import.meta.glob<string>('@scenarios/*/artifacts/*.vtt', { eager: true, query: '?raw', import: 'default' })
 
@@ -142,6 +146,13 @@ function buildEntry(scenarioPath: string): DemoEntry {
 
   const playable = scenario.source === 'captured' && Boolean(scenario.cast)
   const artifact = (relative?: string) => (relative ? `${dir}/${relative}` : undefined)
+  const notebooks = Object.fromEntries(
+    (scenario.artifacts?.notebooks ?? []).map((relative) => {
+      const json = rawJson[artifact(relative) ?? '']
+      if (!json) throw new Error(`${scenario.id}: notebook ${relative} is missing`)
+      return [relative.split('/').pop() ?? relative, json]
+    }),
+  )
 
   return {
     id: scenario.id,
@@ -172,6 +183,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
     workflow: resolveWorkflow(scenario, content, chapters, rawJson[artifact(scenario.workflow?.src) ?? '']),
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],
+    notebooks,
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],
     howItWorksHtml: howItWorks[`${dir}/how-it-works.md`],
   }

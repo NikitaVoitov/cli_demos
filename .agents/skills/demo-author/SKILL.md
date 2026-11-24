@@ -12,7 +12,7 @@ The full design is `docs/demo_pipeline_architecture.md`; §0.10 covers capture a
 ## Before you start
 
 - Run `python3 scripts/doctor.py` (add `--capture` to record). It lists missing tools with the fix for each; the root `README.md` has the full setup.
-- Pick a use case from `docs/headless_use_case_matrix.md` (its Agent Skills table, §4.5, names the skill each use case stars). Today the **recorded** client is Cursor CLI only; the agent that **authors** can be any.
+- Pick a use case from `docs/headless_use_case_matrix.md` (its Agent Skills table, §4.5, names the skill each use case stars). The **recorded** client is Cursor CLI (default) or GitHub Copilot CLI (`client.name: copilot-cli`, see below); the agent that **authors** can be any.
 - The recorded client loads `search-and-dashboard-troubleshooter`, `splunkctl`, and `playwright-cli` by default. For another Splunk Agent Skill add `recording.skills: [splunk-search]` to `scenario.yaml` (names from `splunk/splunk-agent-skills`); setup reinstalls the client's skills from scratch each take.
 - Stack access and tokens come from `.env` (copy `.env.example`) and a stack profile (`recording.stackProfile`); see the README. A scenario with no `captured` artifacts (`source: metadata`) is a planned demo, not a broken one.
 
@@ -34,7 +34,7 @@ Use `.captures/venv/bin/python` (dependencies in `pipeline/requirements.txt`).
 1. Write `scenario.yaml` (beats, fixtures, `recording.hints`) and `content.yaml`. Copy the shape of an existing scenario.
 2. `python -m pipeline.capture scenarios/<id> <take>`. A person can watch; the take lands in `.captures/<id>/<take>/`.
 3. `python -m pipeline.post scenarios/<id> <take>` retimes and sanitizes into `artifacts/session.cast` and prints each beat's published time. Put chapter and gate times in `scenario.yaml`. Compression cuts most waiting, so a key result can scroll past before narration explains it: add `post.holds` (a regex on screen plus seconds) to freeze on those moments, and rerun post.
-4. `python -m pipeline.transcript scenarios/<id> --client <client> --store <store.db>` writes `artifacts/transcript.json`.
+4. `python -m pipeline.transcript scenarios/<id> --store <session log>` writes `artifacts/transcript.json`. The take keeps the client's log in `.captures/<id>/<take>/session/` (`store.db` for Cursor, `events.jsonl` for Copilot); `--client` defaults to the scenario's.
 5. Narrate (below), if the demo is narrated.
 6. `cd apps/hub && npm run build` (or `npm run dev`), then load the demo and play it through. On a fresh clone the build stops until the n8n canvas snapshot exists, because SO-08 draws a workflow: run `.captures/venv/bin/python scripts/n8n_preview_snapshot.py` once (needs Docker, about 30 MB, git-ignored).
 
@@ -42,9 +42,9 @@ Use `.captures/venv/bin/python` (dependencies in `pipeline/requirements.txt`).
 
 These come from owner reviews; skipping them cost SO-07 a full re-record. Details: §0.10 items 19–28.
 
-- **Story first.** Write down the situation, the pain, what gets detected, the decision, and the outcome before writing beats. The About section in `how-it-works.md` tells that story first, then the technology. Aim for 2–3 minutes published.
+- **Story first.** Write down the situation, the pain, what gets detected, the decision, and the outcome before writing beats. The About section in `how-it-works.md` tells that story first, then the technology. Aim for 2–3 minutes published; a demo with several approvals (SO-03's notebook hunt has three) can run 3–5 minutes. Don't cut evidence to hit a length.
 - **The advertised technique must find the answer.** If the title says ML, seed data where the model flags the culprit. Check the feature's distribution with a search before you fit. A model that misses on purpose is fine only as a theory the agent rules out.
-- **Evidence has to be on screen.** Cursor CLI shows an MCP call as a bare tool name; Ctrl+O doesn't expand it, and hints asking the agent to "show evidence" get ignored. Use several short prompts, each with `wait: turn-end`, so each turn ends with an answer (a list, a result table, the key numbers). Put `require: gate` only on the turn that writes.
+- **Evidence has to be on screen.** Cursor CLI shows an MCP call as a bare tool name, and Copilot CLI collapses shell output; Ctrl+O doesn't expand it, and hints asking the agent to "show evidence" get ignored. Use several short prompts, each with `wait: turn-end`, so each turn ends with an answer (a list, a result table, the key numbers). Put `require: gate` only on the turn that writes.
 - **Show the source and the proof, not only the result.** `browser.steps` puts screenshots in the pane before the final one, such as the source records the agent reads and the tool's own UI showing the key result. Copy for each step goes in `content.yaml` `browser.steps.<id>`.
 - **Writes outside Splunk get a wrapper.** Copy `recorder/clients/cursor-cli/acli.tmpl`: allow-list commands, answer writes without `--yes` with a short `CONFIRMATION_REQUIRED` line (Cursor truncates long output), and deny the MCP server's write tools in the capture config.
 - **SaaS data lives on a personal or demo tenant.** Scripts refuse the corporate host. Add sanitizer rules for the tenant's host, emails, account IDs, and display names before the first post.
@@ -69,6 +69,53 @@ Setup sheets: `scenarios/so-08-phishing-containment/fixtures/LAUNCHPAD_SETUP.md`
 - **Sanitizer cases this demo hit:** addresses the terminal wraps mid-domain (`acme-corp.examp|le`), Microsoft Graph URLs with `%40` addresses and mailbox IDs, and Graph `displayName` folder names (masked only for Atlassian now). Seeded story data uses the `.example` TLD so it stays readable.
 - **Takes with real side effects** (records in Splunk, Slack posts) need a fresh key each time: use `recording.vars`. Delete test notices before the screenshot.
 - **`.env` values with spaces must be quoted.** Sourcing `.env` in zsh runs the rest of the line as a command and prints it.
+
+### Recording with GitHub Copilot CLI
+
+`client: { name: copilot-cli, label: GitHub Copilot }` in `scenario.yaml`, and the launch beat is `{ run: copilot, waitFor: "open sidebar" }`. Everything else (fixtures, hints, gates, post, narration) is the same as for Cursor. Setup and sign-in: README, "Recording with GitHub Copilot CLI".
+
+- **The capture home** gets `~/.copilot/` (skills, `mcp-config.json` with the Splunk MCP bridge, `settings.json` with the banner off and no auto-update) and a `copilot` launcher in `~/bin`. The launcher sets the flags every take runs with: allow all tools, no `ask_user` form (it would wait for an answer and stall the take), no built-in GitHub MCP server, no mouse, and a `--deny-tool` for each line of `~/.config/copilot-deny` (the Splunk MCP write tools). The story's approvals stay the gated wrappers'. The footer still says "Manual Approval"; nothing prompts.
+- **Pre-trust the workspace.** Folder trust is in `~/.copilot/config.json` (`trustedFolders`), not `settings.json`; without it the first prompt is a trust dialog. A `TERM_PROGRAM=vscode` in the environment opens a "Set up terminal" dialog; the capture shell doesn't pass it.
+- **Driver cues:** ready is `open sidebar` in the footer; a turn runs while the footer shows `ctrl+c interrupt`. Two Ctrl+C presses quit and print a resume line. Startup takes 20–30 s while the Splunk MCP server connects.
+- **pyte** rejected Copilot's private device status query (`CSI ? 6 n`); `ce01_drive.py` and the transcript's screen clock patch it.
+- **Shell output is collapsed.** A command the agent runs shows as `$ Shell <description> N lines…` with the command under it; a failed one is one line, `✗ Shell <description> Failed with exit code N  <first output line>…`, cut at the terminal width. Use 110 columns, put the cell or object first in a refusal so the per-gate `evidence` (`CONFIRMATION_REQUIRED: cell <id>`) fits, and have the hint ask the agent to quote the refusal line. Output the person runs in shell mode (`!`) is shown in full.
+- **Session log:** `~/.copilot/session-state/<id>/events.jsonl` has every message and tool call with full output and exit code; a shell-mode command is `tool.user_requested` (`local_shell`). The capture clears old sessions before a take and copies the log to `session/events.jsonl`.
+- **Transcript timing comes from the rendered screen.** Copilot redraws only changed cells, so text never appears whole in the cast's byte stream; the adapter sets `SCREEN_CLOCK` and `pipeline.transcript` replays the cast with pyte.
+- **Dry runs without the Copilot service:** `COPILOT_PROVIDER_*`/`COPILOT_MODEL`/`COPILOT_OFFLINE` pass through to the capture shell. A small OpenAI-compatible fake that returns one tool call and one reply checks the whole capture (launch, a gate, shell mode, exit) in a minute; a real BYOK model gives a full rehearsal. Don't publish either.
+
+### Lessons from SO-03 (Machine Data Lake, Jupyter, Open Sharing)
+
+Setup sheet: `scenarios/so-03-notebook-spray-hunt/fixtures/MDL_SETUP.md` (every step checked on the MDL stack, Splunk Cloud 10.8).
+The 10.8 MDL docs block plain fetches (403); `curl` with a browser user agent or the Firecrawl CLI (`npx -y firecrawl-cli scrape <url> --only-main-content`) reads them.
+
+**Landing data in the lake**
+- **Direct HEC is the simple route; no Edge Processor or landing pipeline needed.** An HEC token whose default and only allowed index is `~.federated.<raw_table>` writes straight to the raw table. For the same events in a Splunk index too, send them a second time with an index token (the docs' "two-request model"). Don't use the landing definition's *Divert* or *Duplicate* for this: it pulls events that are already going to an index.
+- **The raw table's landing definition still applies to direct HEC.** A "Keep data where …" action in it filtered our direct-HEC test events out. Leave the landing definition with one partition that matches nothing in your indexes and no actions.
+- **Landing takes 8–10 minutes.** A test event sent with `mdl_test_id=<unique>` showed up in raw search only after about 8 minutes; wait at least 10 before deciding it was lost. Lost events would be in `lastchanceindex`.
+- **The Splunk Cloud HEC gateway can answer `502` mid-load.** The batch wasn't accepted; resend it (`seed_auth.py` retries 5xx). A seeder that is deterministic per UTC day can resume from the count already indexed.
+- **Set raw table retention longer than the oldest seeded event,** or the lake drops it on arrival. Static promotion limit at least the analytics window; the volume limit only matters above it.
+
+**Searching the lake from code**
+- Raw tables aren't classic indexes: `search index="~.federated.x"` and `| from federated:x` return nothing. They're SPL2 datasets. Dispatch SPL2 to the search head's `POST /services/search/v2/jobs` with `search=| @spl2 from <raw_table> | where like(_raw, "%…%")`; poll `/services/search/v2/jobs/<sid>` and page `/results`. Raw tables expose only `_time`, `_raw`, `host`, `source`, `sourcetype`: filter on text and parse `_raw` yourself. This is the Catalog's "Search", and it needs no SCS token.
+- An analytics table is searched with `| @spl2 search index=<analytics_table>`.
+- An `sc_admin` REST token can query everything above. Expect a message saying the search runs on an MDL raw dataset; it isn't an error.
+
+**Promoting to an analytics table**
+- No props/transforms exist for a custom sourcetype, so the **Promote fields** dialog lists only raw fields as "unavailable". Ignore it: the schema comes from the SPL2 editor. Put the extraction inside `process_data` after `return from $source`:
+  `| rex field=_raw /k1=(?P<k1>\S+) …/ | fields _time, k1, …`. The preview's **Fields** panel must list your columns before you click Next.
+- The review page can say "Selected fields: host, source, sourcetype, _raw, _time" and "Estimated promotion volume 0 B". It still promotes. The table kept `host`, `source`, `sourcetype`, and an empty `_raw` next to the extracted columns; read only the columns you need.
+- **A completed promotion can look empty for about 10 minutes.** Search and Open Sharing both returned 0 rows right after "Complete"; the rows appeared about 9 minutes later. Wait before deleting or re-promoting.
+
+**Open Sharing (Delta Sharing) with pandas**
+- Enable sharing on the **analytics table**, not the raw table. The downloaded profile is a secret: keep it outside the repo with `chmod 600`, and point `.env` at its path. The table name is `<share>.<schema>.<table>`; list it with `delta_sharing.SharingClient(profile).list_all_tables()`. The share name contains the stack name, so it stays in `.env`.
+- **`delta_sharing.load_as_pandas` is far too slow for MDL tables.** Every Parquet file MDL writes holds about 6 MB of bloom filters (1 MB per string column) even when it has 4 rows: a 104,000-row table was 112 files and 706 MB and didn't load in 20 minutes. List the files with the client, then read each file's footer and only the needed column chunks with HTTP range requests, 16 in parallel, with retries (S3 drops reused connections). See `load_shared()` in `scenarios/so-03-notebook-spray-hunt/fixtures/lake.py`: 72 s for the whole table. `limit=` on `load_as_pandas` is fine for a sample.
+- Profiles expire (the default is 14 days). Re-enabling sharing or recreating the table means downloading a new profile.
+
+**Jupyter in a recording**
+- Pin every notebook package (`recorder/notebook/requirements.txt`). Output that viewers see changes between releases: an unpinned `plotext` dropped `clear_figure`, which broke a cell. Test cells with `uv run --with-requirements recorder/notebook/requirements.txt` before recording.
+- The agent runs cells only through the gated `jpterm` wrapper. Don't give the recorded client a Jupyter MCP server or notebook skills (`jupyter-notebook`, `pandas`); they let it edit or run cells around the gates. Use them while authoring.
+- `lake.py`'s `LAKE_MODE=fixture` runs the notebook without the lake. Never record in it: `lake.describe()` shows "fixture" on screen.
+- `seed_auth.py --check` must print `story present` before each take. The story is anchored to the seeding day, so a take has to happen within about 4 days of seeding.
 
 ## Verify in the hub
 
