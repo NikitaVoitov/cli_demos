@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Player } from 'asciinema-player'
-import { Maximize2, Minimize2, Rows3, StretchHorizontal } from 'lucide-react'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { NotebookPane as Pane } from '@/types/content.types'
 import { frameAt } from '../../utils/timeline'
 import { PaneFrame } from '../TerminalPane/TerminalPane'
 
-function HeaderButton({ label, pressed, onClick, children }: {
+function HeaderButton({ label, onClick, children }: {
   label: string
-  pressed?: boolean
   onClick: () => void
   children: React.ReactNode
 }) {
@@ -18,12 +17,8 @@ function HeaderButton({ label, pressed, onClick, children }: {
       type="button"
       title={label}
       aria-label={label}
-      aria-pressed={pressed}
       onClick={onClick}
-      className={cn(
-        'flex h-5 items-center gap-1 rounded-sm px-1.5 font-semibold hover:bg-foreground/10',
-        pressed ? 'text-gate' : 'text-subtle-foreground',
-      )}
+      className="flex h-5 items-center gap-1 rounded-sm px-1.5 font-semibold text-subtle-foreground hover:bg-foreground/10"
     >
       {children}
     </button>
@@ -32,8 +27,7 @@ function HeaderButton({ label, pressed, onClick, children }: {
 
 /**
  * The notebook beside the terminal. Its cast holds one frame per notebook state, so this player never plays: it seeks
- * to the state the terminal's clock has reached and scrolls to the cell the agent is on. "Whole notebook" shrinks it
- * to fit the pane; fullscreen gives it the screen.
+ * to the state the terminal's clock has reached and scrolls to the cell the agent is on. Fullscreen gives it the screen.
  */
 export function NotebookPane({ pane }: { pane: Pane }) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -41,9 +35,7 @@ export function NotebookPane({ pane }: { pane: Pane }) {
   const playerRef = useRef<HTMLDivElement>(null)
   const player = useRef<Player | undefined>(undefined)
   const [ready, setReady] = useState(false)
-  const [whole, setWhole] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
-  const [wholeWidth, setWholeWidth] = useState<number>()
   const index = usePlaybackStore((state) => frameAt(pane.frames, state.time))
   const frame = pane.frames[index]
 
@@ -79,28 +71,11 @@ export function NotebookPane({ pane }: { pane: Pane }) {
     void p.seek(frame.t + 0.001).then(() => {
       const scroller = scrollRef.current
       const term = playerRef.current
-      if (!scroller || !term || whole) return
+      if (!scroller || !term) return
       const rowPx = term.getBoundingClientRect().height / pane.rows
       scroller.scrollTo({ top: frame.focus * rowPx, behavior: 'smooth' })
     })
-  }, [ready, frame, whole, pane.rows])
-
-  // "Whole notebook": the width at which every row fits the pane's height. The player keeps its shape at any width.
-  useEffect(() => {
-    const scroller = scrollRef.current
-    const term = playerRef.current
-    if (!scroller || !term) return
-    const measure = () => {
-      const { width, height } = term.getBoundingClientRect()
-      if (!width || !height) return
-      setWholeWidth(Math.min(scroller.clientWidth, (scroller.clientHeight * width) / height))
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(scroller)
-    observer.observe(term)
-    return () => observer.disconnect()
-  }, [])
+  }, [ready, frame, pane.rows])
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === rootRef.current)
@@ -114,15 +89,9 @@ export function NotebookPane({ pane }: { pane: Pane }) {
   }
 
   const actions = (
-    <>
-      <HeaderButton label={whole ? 'Follow the agent' : 'Show the whole notebook'} pressed={whole} onClick={() => setWhole(!whole)}>
-        {whole ? <StretchHorizontal aria-hidden className="size-3.5" /> : <Rows3 aria-hidden className="size-3.5" />}
-        {whole ? 'Follow' : 'Whole notebook'}
-      </HeaderButton>
-      <HeaderButton label={fullscreen ? 'Exit notebook fullscreen' : 'Notebook fullscreen'} onClick={toggleFullscreen}>
-        {fullscreen ? <Minimize2 aria-hidden className="size-3.5" /> : <Maximize2 aria-hidden className="size-3.5" />}
-      </HeaderButton>
-    </>
+    <HeaderButton label={fullscreen ? 'Exit notebook fullscreen' : 'Notebook fullscreen'} onClick={toggleFullscreen}>
+      {fullscreen ? <Minimize2 aria-hidden className="size-3.5" /> : <Maximize2 aria-hidden className="size-3.5" />}
+    </HeaderButton>
   )
 
   return (
@@ -133,14 +102,13 @@ export function NotebookPane({ pane }: { pane: Pane }) {
           role="region"
           aria-label={`The notebook ${pane.title}, in step with the terminal recording${frame.cell ? `: ${frame.running ? 'running' : 'ran'} cell ${frame.cell}` : ''}. The Transcript tab has the executed notebook.`}
           tabIndex={0}
-          className={cn('relative overflow-x-hidden', whole ? 'overflow-y-hidden' : 'overflow-y-auto', fullscreen ? 'flex-1' : 'h-[386px]')}
+          className={cn('relative overflow-x-hidden overflow-y-auto', fullscreen ? 'flex-1' : 'h-[386px]')}
         >
           {/* The terminal's clock drives this player, so it takes no input: no start overlay, no keys, no clicks. */}
           <div
             ref={playerRef}
             inert
-            className="pointer-events-none mx-auto [&_.ap-overlay-start]:!hidden"
-            style={{ width: whole && wholeWidth ? `${wholeWidth}px` : '100%' }}
+            className="pointer-events-none [&_.ap-overlay-start]:!hidden"
           />
         </div>
       </PaneFrame>

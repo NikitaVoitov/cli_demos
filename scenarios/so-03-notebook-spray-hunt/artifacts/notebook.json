@@ -9,91 +9,91 @@
    "running": false
   },
   {
-   "t": 59.7,
+   "t": 57.6,
    "focus": 10,
    "cell": "params",
    "running": false
   },
   {
-   "t": 59.8,
+   "t": 57.6,
    "focus": 10,
    "cell": "params",
    "running": true
   },
   {
-   "t": 60.4,
+   "t": 58.3,
    "focus": 10,
    "cell": "params",
    "running": false
   },
   {
-   "t": 60.4,
+   "t": 58.3,
    "focus": 18,
    "cell": "setup",
    "running": true
   },
   {
-   "t": 61.4,
+   "t": 59.2,
    "focus": 30,
    "cell": "setup",
    "running": false
   },
   {
-   "t": 69.4,
+   "t": 67.6,
    "focus": 36,
    "cell": "raw-search",
    "running": true
   },
   {
-   "t": 70.3,
+   "t": 70.5,
    "focus": 50,
    "cell": "raw-search",
    "running": false
   },
   {
-   "t": 87.6,
+   "t": 87.5,
    "focus": 70,
    "cell": "load-shared",
    "running": true
   },
   {
-   "t": 88.6,
+   "t": 90.3,
    "focus": 85,
    "cell": "load-shared",
    "running": false
   },
   {
-   "t": 105.5,
+   "t": 108.0,
    "focus": 97,
    "cell": "backtest",
    "running": true
   },
   {
-   "t": 106.5,
+   "t": 109.0,
    "focus": 133,
    "cell": "backtest",
    "running": false
   },
   {
-   "t": 116.6,
+   "t": 119.1,
    "focus": 171,
    "cell": "enrich",
    "running": true
   },
   {
-   "t": 117.4,
+   "t": 119.8,
    "focus": 187,
    "cell": "enrich",
    "running": false
   },
   {
-   "t": 118.3,
+   "t": 127.8,
    "focus": 194,
    "cell": "detection",
    "running": true
   },
   {
-   "t": 119.1,
+   "t": 128.6,
    "focus": 210,
    "cell": "detection",
    "running": false
