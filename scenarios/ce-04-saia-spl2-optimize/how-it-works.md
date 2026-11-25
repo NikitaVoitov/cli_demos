@@ -12,9 +12,9 @@ rewrites it to read the `demo_soc` index and calculate attempts and failures tog
 then calculate the rate. This removes the separate search branch and join while keeping the report's fields and
 calculations.
 
-On the recorded CO2 data, the baseline took 91.56 seconds and the rewrite took 2.465 seconds. Both jobs reported
-1,421,600 events and returned the same four rows. The comparison demonstrates this rewrite on the seeded data;
-the narrower index scope should be retained only where it matches the intended data coverage.
+Using synthetic sign-in data, the baseline took 91.56 seconds and the rewrite took 2.465 seconds. Both jobs
+reported 1,421,600 events and returned the same four rows. Only narrow the index scope if it still covers all
+the data your search needs.
 
 ### Prerequisites
 
