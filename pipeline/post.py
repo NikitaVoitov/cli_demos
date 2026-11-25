@@ -8,7 +8,8 @@ spinner, token count, or timer moves are squeezed while every real change keeps 
 their original length so the client's boxes and columns stay aligned (§6.3).
 
 Workspace files the take kept (`recording.keep`, in <take>/workspace/) are sanitized the same way and written to
-artifacts/ under the same name.
+artifacts/ under the same name. With `notebookPane` in scenario.yaml it also writes the notebook pane's cast, from the
+take's jpterm trace (pipeline/notebook_pane.py).
 
 `post.holds` in scenario.yaml freezes the screen at key moments so narration can explain them:
   post: { holds: [{ id: ml-result, text: "<regex>", seconds: 6 }] }
@@ -27,7 +28,7 @@ from pathlib import Path
 import pyte
 import yaml
 
-from . import sanitize
+from . import notebook_pane, sanitize
 from .term import Screen
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -116,6 +117,7 @@ def post(scenario_dir: Path, take: str) -> None:
         clean = sanitize.apply(text, sanitize.find_replacements(text))
         (dest.parent / name).write_text(clean)
         print(f"artifact {name}: leftover identifiers {sanitize.leftovers(clean) or 'none'}")
+    notebook_pane.build(scenario, run, scenario_dir, retime)
     for a in anchors:
         print(f"  {a['anchor']:<14} raw {a['t']:7.1f}  ->  {retime(a['t']):6.1f}")
     for hold_id, at, seconds in held:

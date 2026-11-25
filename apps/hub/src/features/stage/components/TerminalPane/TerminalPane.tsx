@@ -56,7 +56,7 @@ export function TerminalPane({ entry, focused }: { entry: DemoEntry; focused: bo
   const { cols, rows } = entry.scenario.terminal ?? { cols: 88, rows: 28 }
 
   return (
-    <PaneFrame title="zsh — cursor-agent" focused={focused} actions={<CaptionsToggle entry={entry} />}>
+    <PaneFrame title={entry.terminalTitle} focused={focused} actions={<CaptionsToggle entry={entry} />}>
       <div
         ref={containerRef}
         role="region"

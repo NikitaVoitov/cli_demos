@@ -8,7 +8,8 @@ Both return the same columns: _time (UTC), src_ip, user, outcome, app.
 
 Settings come from the environment, which the capture home's jpterm wrapper fills from ~/.config/hunt.env:
 
-    LAKE_MODE            live (default) or fixture: the same synthetic story built in memory, for dry runs only
+    LAKE_MODE            live (default) or fixture: the same synthetic story built in memory, when the lake is unavailable
+    LAKE_FIXTURE_DAY     fixture only: the YYYY-MM-DD the stack was seeded, so the story matches its hot index
     LAKE_REST_URL        https://<stack>:8089, the search head's REST API
     LAKE_REST_TOKEN      a bearer token for that API, with query access to the raw table
     LAKE_RAW_DATASET     the raw table's name
@@ -52,14 +53,18 @@ def _frame(rows) -> pd.DataFrame:
 # --- offline fixture --------------------------------------------------------------------------------------------
 
 def _fixture_events():
-    import auth_hunt_data as data   # staged next to this file only for dry runs
+    from datetime import datetime, timezone
 
-    return data.events()
+    import auth_hunt_data as data   # staged next to this file only in fixture mode
+
+    day = os.environ.get("LAKE_FIXTURE_DAY")
+    return data.events(datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc) if day else None)
 
 
 def _fixture(ip: str | None, days: int) -> pd.DataFrame:
     events = _fixture_events()
-    cutoff = max(e["t"] for e in events) - days * 86400 + 86400
+    last = max(e["t"] for e in events)
+    cutoff = last - last % 86400 - days * 86400   # whole days, like the lake's day-partitioned tables
     rows = [[pd.Timestamp(e["t"], unit="s", tz="UTC"), e["src_ip"], e["user"], e["outcome"], e["app"]]
             for e in events if e["t"] >= cutoff and (ip is None or e["src_ip"] == ip)]
     return _frame(rows)

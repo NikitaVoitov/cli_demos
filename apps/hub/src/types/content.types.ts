@@ -14,7 +14,8 @@ export interface Scenario {
   change: ChangeKind
   stack: string
   client: { name: string; label: string; version?: string }
-  terminal?: { cols: number; rows: number }
+  /** `title` overrides the terminal pane's header, which defaults to "zsh — <client>". */
+  terminal?: { cols: number; rows: number; title?: string }
   capture?: {
     status: 'placeholder' | 'captured'
     month: string
@@ -58,6 +59,11 @@ export interface Scenario {
     show?: { from: string | number; until?: string | number }
     steps: { node: string; at: string | number; until?: string | number; callout?: string; status?: 'success' | 'error' }[]
   }
+  /**
+   * A second, time-synced pane beside the terminal with the notebook as the agent changes it: each cell running, then
+   * its saved outputs. `pipeline.post` writes `cast` and its frame index (`cast` with .json) from the take's jpterm trace.
+   */
+  notebookPane?: { notebook: string; cast: string; cols?: number }
   narration?: Narration
 }
 
@@ -158,6 +164,22 @@ export interface DemoWorkflow {
   show: { from: number; until: number }
 }
 
+/** One notebook state in the notebook pane's cast: when it shows, the cell it changed, and the line to scroll to. */
+export interface NotebookFrame {
+  t: number
+  focus: number
+  cell: string | null
+  running: boolean
+}
+
+export interface NotebookPane {
+  title: string
+  castUrl: string
+  rows: number
+  cols: number
+  frames: NotebookFrame[]
+}
+
 export interface Chapter extends ScenarioChapter {
   label: string
 }
@@ -170,6 +192,8 @@ export interface DemoEntry {
   facets: Record<FacetGroupId, string[]>
   playable: boolean
   split: boolean
+  /** The terminal pane's header. */
+  terminalTitle: string
   chapters: Chapter[]
   castUrl?: string
   /** Narration track for the player's audioUrl, with one caption per spoken line. */
@@ -185,6 +209,7 @@ export interface DemoEntry {
   sourceCode?: string
   /** `artifacts.notebooks` as raw .ipynb JSON, by file name (the transcript entry's `name`). */
   notebooks?: Record<string, string>
+  notebookPane?: NotebookPane
   transcript?: Transcript
   howItWorksHtml?: string
 }
