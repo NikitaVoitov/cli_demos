@@ -6,9 +6,7 @@ In this demo the hunter hands the hypothesis to GitHub Copilot CLI. The agent tr
 
 Each of those three cells reads the lake, so jpterm stops it with `CONFIRMATION_REQUIRED` until you approve. The notebook never writes to Splunk: the detection stays as text for you to review. The data is synthetic.
 
-The notebook plays beside the terminal, cell by cell as the agent runs it. Each chart and table there is the cell's real saved output, and **Whole notebook** zooms out to show every cell at once.
-
-In this recording the triage searched the hot index live, but the Machine Data Lake was unavailable that day: its raw search and Open Sharing both failed on the stack side. So the notebook read the same synthetic story built in memory, anchored to the day the stack was seeded so its numbers line up with the hot index. Its setup cell prints `lake: fixture`, and the agent points that out before acting on the results.
+The notebook plays beside the terminal, cell by cell as the agent runs it. Each chart and table there is the cell's real saved output.
 
 ### What it uses
 
