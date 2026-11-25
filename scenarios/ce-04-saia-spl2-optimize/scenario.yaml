@@ -8,36 +8,38 @@ client:
   name: copilot-cli
   label: GitHub Copilot
   model: Auto
-terminal: { cols: 110, rows: 32 }
+terminal: { cols: 110, rows: 40 }
 
 capture:
   status: captured
-  take: take-2
+  take: take-4
   month: Nov 2026
   timeCompressed: true
-  rawDuration: 277.4
+  rawDuration: 452.2
   notes: >
     Recorded with GitHub Copilot CLI using synthetic sign-in data on Splunk Cloud. The baseline completed in
-    91.564 seconds and the optimized search in 2.465 seconds; both returned the same four rows and reported
-    1,421,600 events.
+    148.107 seconds and the optimized search in 7.913 seconds; both returned the same four rows by value
+    and reported 1,421,600 events. Complete queries and a colored side-by-side diff are shown.
 
 cast:
   src: artifacts/session.cast
-  duration: 121.4
+  duration: 182.5
 
 chapters:
   - { id: baseline, t: 10.6 }
-  - { id: optimize, t: 59.8 }
-  - { id: verify, t: 83.6 }
-  - { id: outcome, t: 119.4 }
+  - { id: optimize, t: 72.8 }
+  - { id: verify, t: 129.6 }
+  - { id: diff, t: 158.6 }
+  - { id: outcome, t: 175.0 }
 
 artifacts:
   transcript: artifacts/transcript.json
 
 post:
   holds:
-    - { id: baseline-stats, text: "Runtime: 91.56 s", seconds: 8, settle: 0.06 }
-    - { id: comparison, text: "speedup comes from one scan instead of two", seconds: 12, settle: 0.06 }
+    - { id: old-listing, text: "BASELINE SPL2 - complete listing.*sort - failure_rate", seconds: 22, settle: 0.06 }
+    - { id: new-listing, text: "SAIA SPL2 - complete listing.*sort", seconds: 18, settle: 0.06 }
+    - { id: visual-diff, text: '\nSPL2 comparison complete *\n', seconds: 22, settle: 0.06 }
 
 narration:
   audio: artifacts/narration.mp3
@@ -46,60 +48,83 @@ narration:
     - id: intro
       t: 2.1
       text: Copilot measures a slow SPL2 search, then asks Splunk AI Assistant to optimize it.
+    - id: full-baseline
+      t: 10.8
+      text: Here is the complete original search, with no hidden clauses or abbreviated code.
     - id: separate-counts
-      chapter: baseline
-      offset: 0.3
+      t: 17.5
       text: The baseline counts attempts, then counts failures in a second branch.
-    - id: wildcard
-      t: 16.6
-      text: It starts with wildcard index selection, then filters for this sourcetype.
-    - id: two-branches
-      t: 22.8
-      text: Both branches read the same data independently.
     - id: join
-      t: 28.0
-      text: A join matches the aggregates by service and version.
+      t: 23.5
+      text: Both branches start broadly, then a join matches their counts by service and version.
+    - id: unused-eval
+      t: 30.5
+      text: The original also computes a failure indicator without using it, then renames the joined fields.
     - id: extra-work
-      t: 33.2
-      text: That adds work to produce just four summary rows.
+      t: 38.0
+      text: That is extra work for a report that needs only grouped attempts and failures.
     - id: skill
-      t: 39.3
+      t: 44.8
       text: The performance skill compares job metrics with query structure.
+    - id: authorization
+      t: 50.5
+      text: Only search jobs are authorized; no Splunk configuration changes are needed.
+    - id: measure
+      t: 57.0
+      text: Copilot submits the original search, then waits for its completed-job status.
     - id: evidence
-      t: 45.9
-      text: Completed-job status gives us a measured baseline.
+      t: 63.5
+      text: The actual result rows become the reference for checking the rewrite.
     - id: baseline
-      t: 51.1
-      text: About ninety-two seconds, 1.42 million events, four rows.
+      t: 69.5
+      text: The baseline takes about one hundred forty-eight seconds to return four rows.
+    - id: request
+      t: 76.5
+      text: Copilot asks Splunk AI Assistant for a valid, more efficient SPL2 query.
+    - id: preserve
+      t: 83.5
+      text: The request preserves the report's fields and calculations, without adding a time filter.
+    - id: scope
+      t: 90.5
+      text: Narrowing an index is useful only when it still covers the data the report needs.
+    - id: compare-not-guess
+      t: 98.5
+      text: A shorter query is not enough; its result values must still match.
+    - id: full-rewrite
+      t: 105.8
+      text: SAIA replaces wildcard index selection with the sample-data index.
     - id: single-aggregation
-      t: 59.3
-      text: Splunk AI Assistant counts attempts and failures together in one aggregation.
-    - id: direct-index
-      t: 66.7
-      text: It scopes the search to demo_soc instead of every index.
-    - id: same-report
-      t: 73.3
-      text: Service, version, attempts, failures, and rates remain.
+      t: 112.5
+      text: One aggregation counts all attempts and sums failures directly from the same events.
+    - id: removed-work
+      t: 119.5
+      text: The separate failure search and join are gone.
     - id: verify-next
-      t: 78.8
-      text: The final run checks both runtime and output rows.
-    - id: same-event-count
-      t: 83.6
-      text: Both jobs report the same 1.42 million events and four rows.
+      t: 125.5
+      text: Copilot now runs this exact rewrite to check the improvement.
     - id: matching-rows
-      t: 91.5
-      text: All four service and version rows match in value.
+      t: 132.5
+      text: The comparison checks every service and version, not just the number of output rows.
+    - id: measured-not-guaranteed
+      t: 140.0
+      text: These are measured runtimes for this run; caching and load can affect other runs.
     - id: runtime
-      t: 97.2
-      text: Runtime drops from ninety-two seconds to two and a half.
-    - id: speedup
-      t: 103.3
-      text: About thirty-seven times faster, with the same four rows.
-    - id: why-fast
-      t: 109.0
-      text: One aggregation removes the second branch and join.
+      t: 147.5
+      text: Runtime drops to about eight seconds, roughly nineteen times faster.
+    - id: parity
+      t: 153.5
+      text: All four rows match in value; tied rows can appear in a different order.
+    - id: diff-legend
+      t: 160.5
+      text: Red marks removals, green additions, yellow changes.
+    - id: diff-removals
+      t: 167.5
+      text: "Original left, rewrite right: two searches become one aggregation."
+    - id: same-report
+      t: 174.0
+      text: The rate calculation and report fields stay the same.
     - id: close
-      t: 115.0
+      t: 178.6
       text: Same failure-rate report, delivered in seconds.
 
 recording:
@@ -108,12 +133,16 @@ recording:
   splunkWebLogin: false
   hints: [saia-spl2]
   skills: [search-performance-optimizer]
+  keep: [login_failure_rate.spl2, optimized_login_failure_rate.spl2]
   fixtures:
     stage:
       - bash scenarios/ce-04-saia-spl2-optimize/fixtures/stage.sh
   beats:
     - { comment: "Optimize an SPL2 search with Splunk AI Assistant", mark: intro }
     - { run: copilot, waitFor: "open sidebar" }
+    - shell: "printf 'BASELINE SPL2 - complete listing\\n'; cat login_failure_rate.spl2"
+      waitFor: "sort - failure_rate"
+      mark: old-listing
     - prompt: >
         Apply the search-performance-optimizer skill to login_failure_rate.spl2. You are authorized to submit this
         read-only search job with splunkctl --yes; do not change Splunk configuration. Detach and poll until it
@@ -124,9 +153,14 @@ recording:
     - prompt: >
         Now use Splunk AI Assistant's saia_generate_spl tool with spl_only enabled to optimize login_failure_rate.spl2.
         Ask for valid SPL2 (not SPL1), the same output fields and calculations, and no added time filter. Save its
-        rewrite as optimized_login_failure_rate.spl2. Briefly explain what changed and why it should run faster.
+        complete rewrite as optimized_login_failure_rate.spl2, formatted with one pipeline command per line
+        and expressions wrapped at whitespace to at most 44 columns. No ellipses. Briefly explain the actual
+        changes and why they should run faster.
       mark: optimize
     - { wait: turn-end, timeout: 900, mark: optimize-done }
+    - shell: "printf 'SAIA SPL2 - complete listing\\n'; cat optimized_login_failure_rate.spl2"
+      waitFor: "sort"
+      mark: new-listing
     - prompt: >
         Run optimized_login_failure_rate.spl2 as an authorized read-only search job with splunkctl --yes; do not
         change Splunk configuration. Detach and poll until it finishes.
@@ -134,4 +168,9 @@ recording:
         and do not claim exact result parity unless the outputs match.
       mark: verify
     - { wait: turn-end, timeout: 900, mark: agent-done }
+    - { leave: true }
+    - run: "bash show_spl2_diff.sh"
+      waitFor: "SPL2 comparison complete"
+      result: "Full SPL2 comparison: Before SAIA on the left, After SAIA on the right. Red marks removed code, green additions, yellow changed expressions."
+      mark: diff
     - { exit: true, mark: outro }
