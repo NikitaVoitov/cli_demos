@@ -1,5 +1,5 @@
 import type { GateDecision, PlaybackStatus } from '@/store/usePlaybackStore'
-import type { Chapter } from '@/types/content.types'
+import type { Chapter, NotebookFrame } from '@/types/content.types'
 
 export type StepState = 'done' | 'current' | 'gate' | 'declined' | 'upcoming'
 
@@ -35,4 +35,11 @@ export function stepStates(chapters: Chapter[], { time, status, decision, gateT 
 /** Nothing after an unapproved gate can be reached, whether by chapter click or the seek bar. */
 export function isBeyondGate(time: number, decision: GateDecision, gateT?: number) {
   return gateT !== undefined && decision !== 'approved' && time > gateT + EPSILON
+}
+
+/** The notebook pane's state on screen at `time`: the last frame that has started. */
+export function frameAt(frames: NotebookFrame[], time: number) {
+  let index = 0
+  for (let i = 0; i < frames.length; i += 1) if (frames[i].t <= time + 0.05) index = i
+  return index
 }
