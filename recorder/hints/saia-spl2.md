@@ -13,3 +13,10 @@ Ask Splunk AI Assistant to optimize this SPL2 query with `saia_generate_spl`, se
 this request: "Optimize this SPL2 search for performance. Return valid SPL2 (not SPL1) with the same output
 fields and no added time filter." Save the returned query as `optimized_login_failure_rate.spl2`. Run searches
 read-only; do not make changes to Splunk.
+
+Keep the baseline file unchanged. Request and save the optimized query with one pipeline command per line,
+wrapping long expressions at whitespace to at most 44 columns without changing the returned query's meaning.
+Do not abbreviate either query or replace any part with an ellipsis. The recording prints both complete files
+in shell mode and uses icdiff in the plain terminal after leaving Copilot, where ANSI colors render correctly.
+Explain the actual rewrite: index scope, combined aggregation, and removed branch and join. Only describe changes
+present in SAIA's returned query. The same time scope and matching output rows matter as much as runtime.

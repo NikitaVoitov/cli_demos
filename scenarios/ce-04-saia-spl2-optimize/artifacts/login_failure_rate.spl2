@@ -1,0 +1,22 @@
+@spl2 search index=*
+| where sourcetype="portal:auth"
+| eval is_failure=if(result="failure", 1, 0)
+| stats count() AS attempts
+    BY service, version
+| join left=L right=R
+    where L.service=R.service
+      AND L.version=R.version
+    [search index=*
+     | where sourcetype="portal:auth"
+         AND result="failure"
+     | stats count() AS failures
+         BY service, version]
+| eval service='L.service',
+       version='L.version',
+       attempts='L.attempts',
+       failures='R.failures'
+| eval failure_rate=
+    round(100*failures/attempts, 1)
+| fields service, version, attempts,
+         failures, failure_rate
+| sort - failure_rate
