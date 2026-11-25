@@ -3,7 +3,7 @@ id: ce-04-saia-spl2-optimize
 useCase: CE-04
 source: captured
 change: Read
-stack: co2
+stack: splunk-cloud
 client:
   name: copilot-cli
   label: GitHub Copilot
@@ -17,9 +17,9 @@ capture:
   timeCompressed: true
   rawDuration: 277.4
   notes: >
-    Recorded from the beats in this file with GitHub Copilot CLI on the CO2 stack. Splunk AI Assistant returned
-    valid SPL2 on the first attempt. The baseline completed in 91.564 seconds and the optimized search in 2.465
-    seconds; both returned the same four rows and reported 1,421,600 events.
+    Recorded with GitHub Copilot CLI using synthetic sign-in data on Splunk Cloud. The baseline completed in
+    91.564 seconds and the optimized search in 2.465 seconds; both returned the same four rows and reported
+    1,421,600 events.
 
 cast:
   src: artifacts/session.cast
