@@ -5,6 +5,7 @@ import {
   JiraFlowDiagram,
   NotebookFlowDiagram,
   PhishingFlowDiagram,
+  SaiaFlowDiagram,
   SdkFlowDiagram,
 } from '../FlowDiagram/FlowDiagram'
 
@@ -50,6 +51,8 @@ export function HowItWorksPanel({ entry }: { entry: DemoEntry }) {
             <NotebookFlowDiagram mcp={entry.content.flow.mcp} agent={entry.content.flow.agent} />
           ) : entry.content.flow?.kind === 'phishing' ? (
             <PhishingFlowDiagram />
+          ) : entry.content.flow?.kind === 'saia' ? (
+            <SaiaFlowDiagram />
           ) : (
             <FlowDiagram browser={entry.split} mcp={entry.content.flow?.mcp} />
           )}

@@ -112,7 +112,7 @@ export interface Content {
   workflow?: { title?: string; object?: string; alt: string; callouts?: Record<string, string> }
   /** Labels for the architecture diagram; the browser boxes appear only for demos with a browser pane. */
   /** `agent` names the recorded client in the notebook flow diagram (default Cursor CLI). */
-  flow?: { mcp?: string; agent?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' }
+  flow?: { mcp?: string; agent?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' | 'saia' }
   display: { hidden: boolean; featured: boolean; order: number }
 }
 

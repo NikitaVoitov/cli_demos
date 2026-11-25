@@ -1,0 +1,18 @@
+# What visitors read. Editable without a new capture.
+title: Optimize an SPL2 search with Splunk AI Assistant
+summary: >
+  GitHub Copilot CLI applies the search-performance-optimizer skill to an expensive SPL2 failure-rate search.
+  It measures the baseline, asks Splunk AI Assistant for a more efficient rewrite, then runs the new search
+  and compares the results and runtime.
+taxonomy:
+  personas: [DevOps Engineer, Admin]
+  category: Content Authoring & Lifecycle
+  technologies: []
+  splunk: [splunkctl, Splunk MCP, Splunk Agent Skills, Splunk AI Assistant, Splunk Cloud]
+chapters:
+  baseline: Measure the baseline
+  optimize: Optimize with SAIA
+  verify: Run and compare
+  outcome: Results
+flow: { kind: saia }
+display: { hidden: false, featured: false, order: 50 }

@@ -1,0 +1,137 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+id: ce-04-saia-spl2-optimize
+useCase: CE-04
+source: captured
+change: Read
+stack: co2
+client:
+  name: copilot-cli
+  label: GitHub Copilot
+  model: Auto
+terminal: { cols: 110, rows: 32 }
+
+capture:
+  status: captured
+  take: take-2
+  month: Nov 2026
+  timeCompressed: true
+  rawDuration: 277.4
+  notes: >
+    Recorded from the beats in this file with GitHub Copilot CLI on the CO2 stack. Splunk AI Assistant returned
+    valid SPL2 on the first attempt. The baseline completed in 91.564 seconds and the optimized search in 2.465
+    seconds; both returned the same four rows and reported 1,421,600 events.
+
+cast:
+  src: artifacts/session.cast
+  duration: 121.4
+
+chapters:
+  - { id: baseline, t: 10.6 }
+  - { id: optimize, t: 59.8 }
+  - { id: verify, t: 83.6 }
+  - { id: outcome, t: 119.4 }
+
+artifacts:
+  transcript: artifacts/transcript.json
+
+post:
+  holds:
+    - { id: baseline-stats, text: "Runtime: 91.56 s", seconds: 8, settle: 0.06 }
+    - { id: comparison, text: "speedup comes from one scan instead of two", seconds: 12, settle: 0.06 }
+
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    - id: intro
+      t: 2.1
+      text: Copilot measures a slow SPL2 search, then asks Splunk AI Assistant to optimize it.
+    - id: separate-counts
+      chapter: baseline
+      offset: 0.3
+      text: The baseline counts attempts, then counts failures in a second branch.
+    - id: wildcard
+      t: 16.6
+      text: It starts with wildcard index selection, then filters for this sourcetype.
+    - id: two-branches
+      t: 22.8
+      text: Both branches read the same data independently.
+    - id: join
+      t: 28.0
+      text: A join matches the aggregates by service and version.
+    - id: extra-work
+      t: 33.2
+      text: That adds work to produce just four summary rows.
+    - id: skill
+      t: 39.3
+      text: The performance skill compares job metrics with query structure.
+    - id: evidence
+      t: 45.9
+      text: Completed-job status gives us a measured baseline.
+    - id: baseline
+      t: 51.1
+      text: About ninety-two seconds, 1.42 million events, four rows.
+    - id: single-aggregation
+      t: 59.3
+      text: Splunk AI Assistant counts attempts and failures together in one aggregation.
+    - id: direct-index
+      t: 66.7
+      text: It scopes the search to demo_soc instead of every index.
+    - id: same-report
+      t: 73.3
+      text: Service, version, attempts, failures, and rates remain.
+    - id: verify-next
+      t: 78.8
+      text: The final run checks both runtime and output rows.
+    - id: same-event-count
+      t: 83.6
+      text: Both jobs report the same 1.42 million events and four rows.
+    - id: matching-rows
+      t: 91.5
+      text: All four service and version rows match in value.
+    - id: runtime
+      t: 97.2
+      text: Runtime drops from ninety-two seconds to two and a half.
+    - id: speedup
+      t: 103.3
+      text: About thirty-seven times faster, with the same four rows.
+    - id: why-fast
+      t: 109.0
+      text: One aggregation removes the second branch and join.
+    - id: close
+      t: 115.0
+      text: Same failure-rate report, delivered in seconds.
+
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  splunkWebLogin: false
+  hints: [saia-spl2]
+  skills: [search-performance-optimizer]
+  fixtures:
+    stage:
+      - bash scenarios/ce-04-saia-spl2-optimize/fixtures/stage.sh
+  beats:
+    - { comment: "Optimize an SPL2 search with Splunk AI Assistant", mark: intro }
+    - { run: copilot, waitFor: "open sidebar" }
+    - prompt: >
+        Apply the search-performance-optimizer skill to login_failure_rate.spl2. You are authorized to submit this
+        read-only search job with splunkctl --yes; do not change Splunk configuration. Detach and poll until it
+        finishes, then report its runtime, event count,
+        result count, results, and any job messages or partial-result warnings. Explain what makes this search expensive.
+      mark: baseline
+    - { wait: turn-end, timeout: 900, mark: baseline-done }
+    - prompt: >
+        Now use Splunk AI Assistant's saia_generate_spl tool with spl_only enabled to optimize login_failure_rate.spl2.
+        Ask for valid SPL2 (not SPL1), the same output fields and calculations, and no added time filter. Save its
+        rewrite as optimized_login_failure_rate.spl2. Briefly explain what changed and why it should run faster.
+      mark: optimize
+    - { wait: turn-end, timeout: 900, mark: optimize-done }
+    - prompt: >
+        Run optimized_login_failure_rate.spl2 as an authorized read-only search job with splunkctl --yes; do not
+        change Splunk configuration. Detach and poll until it finishes.
+        Show the runtime, event count, result count, job messages, and output rows. Compare with the baseline,
+        and do not claim exact result parity unless the outputs match.
+      mark: verify
+    - { wait: turn-end, timeout: 900, mark: agent-done }
+    - { exit: true, mark: outro }
