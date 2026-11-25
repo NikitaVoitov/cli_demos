@@ -46,5 +46,5 @@ export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }
       'Splunk Cloud',
     ],
   },
-  { id: 'technologies', label: 'Technologies', values: ['Python', 'Jupyter', 'pandas', 'Gemini', 'Playwright', 'Jira', 'n8n', 'Outlook', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack', 'Azure'] },
+  { id: 'technologies', label: 'Technologies', values: ['Python', 'Jupyter', 'Gemini', 'Playwright', 'Jira', 'n8n', 'Outlook', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack', 'Azure'] },
 ]

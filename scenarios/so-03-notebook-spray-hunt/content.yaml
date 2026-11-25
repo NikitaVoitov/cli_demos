@@ -9,7 +9,7 @@ taxonomy:
   # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
   personas: [Detection Engineer]
   category: Security Operations
-  technologies: [Python, Jupyter, pandas]
+  technologies: [Python, Jupyter]
   splunk: [Splunk MCP, Machine Data Lake, Splunk Cloud]
 chapters:
   triage: Hot index
