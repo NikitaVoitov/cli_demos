@@ -11,81 +11,85 @@ ask
 The hunter asks Copilot to check the last fourteen days of sign-ins and name the source that looks like a spray.
 
 searches
-00:00:18.400 --> 00:00:26.960
-Copilot queries the hot index through Splunk MCP. When a search errors, it simplifies the query and tries again.
+00:00:18.400 --> 00:00:26.400
+Copilot queries the hot index through Splunk MCP: failures per source, then the busiest five minutes.
 
 why-quiet
-00:00:27.400 --> 00:00:36.680
-It counts failures and distinct accounts per source, because a spray that tries each account once never trips an alert on a hundred failures.
+00:00:27.800 --> 00:00:36.280
+That five-minute check matters. A spray that tries each account once never trips an alert on a hundred failures.
 
 suspect
 00:00:37.500 --> 00:00:43.500
 One address stands out: over five hundred failures on three hundred accounts.
 
 vpn
-00:00:44.200 --> 00:00:51.080
+00:00:43.800 --> 00:00:50.680
 The busy VPN fails too, but mostly succeeds: the false positive to avoid.
 
 notebook
-00:00:51.500 --> 00:00:57.420
-Copilot opens the hunt notebook, shown on the right, and sets the suspect IP.
+00:00:51.000 --> 00:00:56.200
+Copilot opens the hunt notebook, shown on the right, and sets the IP.
 
-fixture
-00:00:57.800 --> 00:01:01.640
-Setup reports a fixture, since the lake is down today.
+lake-ask
+00:00:56.600 --> 00:01:00.120
+Lake searches cost more, so it asks.
 
 lake-approved
-00:01:03.700 --> 00:01:10.100
+00:01:01.800 --> 00:01:08.200
 Approved, the raw search pulls this address's full history, a hundred and twenty days.
 
 history
-00:01:10.400 --> 00:01:19.120
+00:01:10.600 --> 00:01:19.320
 The index saw ten days. The lake shows a September campaign in amber, a quiet October, then a return.
 
 table-approved
-00:01:21.800 --> 00:01:26.440
-Copilot loads the shared ninety-day table straight into pandas.
+00:01:21.900 --> 00:01:28.540
+Copilot loads the ninety-day analytics table, shared through Open Sharing, straight into pandas.
 
-early
-00:01:27.200 --> 00:01:31.680
-It also tries the backtest early. The gate stops it.
+table-why
+00:01:28.900 --> 00:01:33.540
+Only the columns the hunt needs travel, so it loads in seconds.
 
 table-result
-00:01:32.000 --> 00:01:36.560
-A hundred and five thousand sign-ins, the suspect on top.
+00:01:33.900 --> 00:01:38.380
+A hundred and four thousand sign-ins, the suspect on top.
 
 backtest-approved
-00:01:38.100 --> 00:01:44.820
+00:01:40.800 --> 00:01:47.520
 The backtest runs the new rule over every sign-in in the kernel. Nothing is written to Splunk.
 
 rule
-00:01:45.200 --> 00:01:55.360
+00:01:48.000 --> 00:01:58.160
 It flags only the suspect, on thirteen days. Each dot is one address on one day, and the busy VPN stays under the line.
 
 intel
-00:01:55.800 --> 00:02:03.880
+00:01:58.600 --> 00:02:06.680
 Enrichment finds it in a community threat feed, and a successful sign-in to a privileged backup account at three in the morning.
 
 finding
-00:02:04.200 --> 00:02:14.040
-Copilot sums up: reset that account, block the address, save the detection. It also flags that the results came from a fixture.
+00:02:07.100 --> 00:02:13.740
+Copilot sums up: contain the backup account, block the address, deploy the detection.
 
 traceable
-00:02:14.400 --> 00:02:19.440
+00:02:15.000 --> 00:02:20.040
 Every claim traces back to a notebook cell, so the hunt is easy to review.
 
+leave
+00:02:20.400 --> 00:02:25.760
+Then the hunter leaves Copilot and opens the executed notebook in the terminal.
+
 record
-00:02:20.200 --> 00:02:26.280
+00:02:27.500 --> 00:02:33.580
 The executed notebook is the record, ending in the daily search to save as the alert.
 
 value-data
-00:02:27.300 --> 00:02:34.580
+00:02:34.000 --> 00:02:41.280
 Splunk keeps fourteen hot days fast, and the Machine Data Lake keeps months of history cheaply.
 
 value-agent
-00:02:34.900 --> 00:02:42.580
+00:02:41.700 --> 00:02:49.380
 An agent turns that history into a tested detection in minutes, with a person approving every costly step.
 
 value-close
-00:02:43.000 --> 00:02:45.960
+00:02:49.800 --> 00:02:52.760
 Faster hunts, fewer missed attacks.

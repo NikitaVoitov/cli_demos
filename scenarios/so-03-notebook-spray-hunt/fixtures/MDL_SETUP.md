@@ -120,5 +120,5 @@ After `--check` passes: Catalog, `demo_auth_raw`, Promote.
   `uv run --python 3.12 --with-requirements recorder/notebook/requirements.txt python` with the cells from
   `build_notebook.py`, in a scratch folder with `lake.py` and the two CSVs, and the `LAKE_*` variables from `stage.sh`.
 - Dry run of the notebook without the lake: `LAKE_MODE=fixture`, `LAKE_FIXTURE_DAY=<seed day>`, and
-  `scripts/auth_hunt_data.py` next to `lake.py`. Record in fixture mode only when the lake is down, and disclose it:
-  `setup.sh fixture` and `stage.sh fixture <seed day>` in `scenario.yaml`; `lake.describe()` prints `fixture` on screen.
+  `scripts/auth_hunt_data.py` next to `lake.py` (`stage.sh fixture <seed day>` stages that). Not for takes:
+  `lake.describe()` prints `fixture` on screen.
