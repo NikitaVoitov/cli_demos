@@ -236,10 +236,13 @@ def setup_copilot(installed_skills: Path) -> None:
     c = h / ".copilot"
     skills = c / "skills"
     shutil.rmtree(skills, ignore_errors=True)
-    # The skills were installed the way Cursor finds them; Copilot reads ~/.copilot/skills.
+    # The skills were installed the way Cursor finds them (the skills CLI writes ~/.agents/skills, splunkctl and the
+    # tool skills ~/.cursor/skills); Copilot reads ~/.copilot/skills.
     shutil.copytree(installed_skills, skills)
+    shutil.copytree(h / ".agents/skills", skills, dirs_exist_ok=True)
     for d in installed_skills.iterdir():
         shutil.rmtree(d)
+    shutil.rmtree(h / ".agents/skills")
     render(COPILOT / "mcp-config.json.tmpl", c / "mcp-config.json")
     (c / "settings.json").write_text(json.dumps({
         "banner": "never", "autoUpdate": False, "beep": False, "notifications": False,

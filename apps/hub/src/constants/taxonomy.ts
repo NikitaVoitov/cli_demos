@@ -37,6 +37,7 @@ export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }
       'splunkctl',
       'Splunk MCP',
       'Splunk Agent Skills',
+      'Splunk AI Assistant',
       'Agentic Splunk SDK',
       'Splunk Dashboard Studio',
       'Splunk AI Toolkit',
