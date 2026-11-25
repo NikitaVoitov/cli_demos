@@ -4,6 +4,8 @@
     python3 scripts/seed_auth.py --dry-run      # build the events and print the plan; sends nothing
     python3 scripts/seed_auth.py                # send them (refuses if demo_auth already holds events; --force overrides)
     python3 scripts/seed_auth.py --check        # verify the stack holds the story; exit 1 if not
+    python3 scripts/seed_auth.py --check --hot-only   # the hot index only, for a take whose notebook runs on the
+                                                      # fixture because the lake is unavailable
 
 The story is built by scripts/auth_hunt_data.py (120 days of sign-ins, a spray that returns after a quiet spell).
 Dual HEC, so each destination gets exactly what it should keep:
@@ -108,7 +110,7 @@ def raw_suspect(env: dict):
     return lake.search_raw(data.ATTACKER_IP, days=120)
 
 
-def check(env: dict) -> int:
+def check(env: dict, hot_only: bool = False) -> int:
     problems = []
     # A busy indexer can drop out of one search without a warning; the export endpoint then returns partial counts.
     for attempt in range(3):
@@ -123,13 +125,16 @@ def check(env: dict) -> int:
     if age_days > 4:
         problems.append("the newest hot event is older than 4 days; reseed")
 
-    raw = raw_suspect(env)
-    first_age = (datetime.now(timezone.utc) - raw["_time"].min()).days if len(raw) else 0
-    print(f"raw table {RAW_TABLE}: {len(raw):,} events from the suspect, first seen {first_age} days ago")
-    if len(raw) < 600:
-        problems.append("the raw table is missing the suspect's history")
-    if first_age < 70:
-        problems.append("the first campaign (about 78 days ago) is missing from the raw table")
+    if hot_only:
+        print("raw table not checked (--hot-only)")
+    else:
+        raw = raw_suspect(env)
+        first_age = (datetime.now(timezone.utc) - raw["_time"].min()).days if len(raw) else 0
+        print(f"raw table {RAW_TABLE}: {len(raw):,} events from the suspect, first seen {first_age} days ago")
+        if len(raw) < 600:
+            problems.append("the raw table is missing the suspect's history")
+        if first_age < 70:
+            problems.append("the first campaign (about 78 days ago) is missing from the raw table")
     for problem in problems:
         print(f"PROBLEM: {problem}")
     print("story present" if not problems else f"{len(problems)} problem(s)")
@@ -140,6 +145,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--hot-only", action="store_true", help="with --check: skip the raw table")
     parser.add_argument("--force", action="store_true", help="send even if the index or raw table already holds the story")
     args = parser.parse_args()
 
@@ -153,7 +159,7 @@ def main() -> int:
 
     env = dotenv()
     if args.check:
-        return check(env)
+        return check(env, args.hot_only)
     token_raw, token_idx = need(env, "SPLUNK_HEC_TOKEN_RAW_MDL", "SPLUNK_HEC_TOKEN_IDX_MDL")
     url = (env.get("SPLUNK_HEC_URL_MDL")
            or f"https://http-inputs-{urllib.parse.urlparse(need(env, 'SPLUNK_WEB_BASE_MDL')[0]).netloc}").rstrip("/")

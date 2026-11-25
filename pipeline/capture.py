@@ -218,6 +218,10 @@ def record(scenario_dir: Path, take: str) -> None:
             shutil.copy(store, run / "session" / ("events.jsonl" if client == "copilot-cli" else "store.db"))
         except Exception as error:  # noqa: BLE001 - best effort
             print(f"no session store copied: {error}")
+        # The gated jpterm's record of each notebook change (recorder/clients/cursor-cli/jpterm.tmpl), for post.
+        trace = home / ".cache/jpterm-trace"
+        if trace.is_dir():
+            shutil.copytree(trace, run / "notebook-trace", dirs_exist_ok=True)
         # Files the agent left in the workspace that the demo publishes, before teardown or the next take clears them.
         for name in recording.get("keep", []):
             src = home / recording["workspace"] / name

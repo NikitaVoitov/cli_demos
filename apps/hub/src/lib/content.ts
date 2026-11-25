@@ -1,6 +1,16 @@
 import { CATEGORIES, FACET_GROUPS, type FacetGroupId } from '@/constants/taxonomy'
 import { gateCopy, gatesOf } from '@/lib/gates'
-import type { Caption, Chapter, Content, DemoEntry, DemoWorkflow, N8nWorkflow, Scenario, Transcript } from '@/types/content.types'
+import type {
+  Caption,
+  Chapter,
+  Content,
+  DemoEntry,
+  DemoWorkflow,
+  N8nWorkflow,
+  NotebookPane,
+  Scenario,
+  Transcript,
+} from '@/types/content.types'
 
 const scenarios = import.meta.glob<Scenario>('@scenarios/*/scenario.yaml', { eager: true, import: 'default' })
 const contents = import.meta.glob<Content>('@scenarios/*/content.yaml', { eager: true, import: 'default' })
@@ -107,6 +117,22 @@ function assertVocabulary(id: string, group: string, values: string[], allowed: 
   }
 }
 
+function resolveNotebookPane(scenario: Scenario, dir: string): NotebookPane | undefined {
+  const pane = scenario.notebookPane
+  if (!pane) return undefined
+  const castUrl = assetUrls[`${dir}/${pane.cast}`]
+  const index = rawJson[`${dir}/${pane.cast.replace(/\.cast$/, '.json')}`]
+  if (!castUrl || !index) throw new Error(`${scenario.id}: notebook pane ${pane.cast} or its .json is missing; rerun pipeline.post`)
+  const { rows, cols, frames } = JSON.parse(index) as Omit<NotebookPane, 'title' | 'castUrl'>
+  return { title: pane.notebook, castUrl, rows, cols, frames }
+}
+
+/** "zsh — github copilot cli": the shell, then the client as people name it. */
+function terminalTitle(scenario: Scenario) {
+  const { name, label } = scenario.client
+  return scenario.terminal?.title ?? `zsh — ${(label + (name.endsWith('-cli') ? ' CLI' : '')).toLowerCase()}`
+}
+
 function buildEntry(scenarioPath: string): DemoEntry {
   const dir = dirOf(scenarioPath)
   const scenario = scenarios[scenarioPath]
@@ -160,7 +186,8 @@ function buildEntry(scenarioPath: string): DemoEntry {
     content,
     facets,
     playable,
-    split: Boolean(scenario.browser || scenario.workflow),
+    split: Boolean(scenario.browser || scenario.workflow || scenario.notebookPane),
+    terminalTitle: terminalTitle(scenario),
     chapters,
     castUrl: assetUrls[artifact(scenario.cast?.src) ?? ''],
     narrationUrl: assetUrls[artifact(scenario.narration?.audio) ?? ''],
@@ -184,6 +211,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],
     notebooks,
+    notebookPane: resolveNotebookPane(scenario, dir),
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],
     howItWorksHtml: howItWorks[`${dir}/how-it-works.md`],
   }

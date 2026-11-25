@@ -1,0 +1,102 @@
+{
+ "rows": 223,
+ "cols": 100,
+ "frames": [
+  {
+   "t": 0.0,
+   "focus": 0,
+   "cell": null,
+   "running": false
+  },
+  {
+   "t": 59.7,
+   "focus": 10,
+   "cell": "params",
+   "running": false
+  },
+  {
+   "t": 59.8,
+   "focus": 10,
+   "cell": "params",
+   "running": true
+  },
+  {
+   "t": 60.4,
+   "focus": 10,
+   "cell": "params",
+   "running": false
+  },
+  {
+   "t": 60.4,
+   "focus": 18,
+   "cell": "setup",
+   "running": true
+  },
+  {
+   "t": 61.4,
+   "focus": 30,
+   "cell": "setup",
+   "running": false
+  },
+  {
+   "t": 69.4,
+   "focus": 36,
+   "cell": "raw-search",
+   "running": true
+  },
+  {
+   "t": 70.3,
+   "focus": 50,
+   "cell": "raw-search",
+   "running": false
+  },
+  {
+   "t": 87.6,
+   "focus": 70,
+   "cell": "load-shared",
+   "running": true
+  },
+  {
+   "t": 88.6,
+   "focus": 85,
+   "cell": "load-shared",
+   "running": false
+  },
+  {
+   "t": 105.5,
+   "focus": 97,
+   "cell": "backtest",
+   "running": true
+  },
+  {
+   "t": 106.5,
+   "focus": 133,
+   "cell": "backtest",
+   "running": false
+  },
+  {
+   "t": 116.6,
+   "focus": 171,
+   "cell": "enrich",
+   "running": true
+  },
+  {
+   "t": 117.4,
+   "focus": 187,
+   "cell": "enrich",
+   "running": false
+  },
+  {
+   "t": 118.3,
+   "focus": 194,
+   "cell": "detection",
+   "running": true
+  },
+  {
+   "t": 119.1,
+   "focus": 210,
+   "cell": "detection",
+   "running": false
+  }
+ ]
+}
