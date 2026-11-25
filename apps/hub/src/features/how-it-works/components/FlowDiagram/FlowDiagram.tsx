@@ -109,6 +109,43 @@ export function FlowDiagram({ browser = true, mcp = 'MCP · sourcetypes, SPL' }:
   )
 }
 
+export function SaiaFlowDiagram() {
+  return (
+    <svg viewBox="0 0 900 234" className="h-auto w-full font-sans" role="img" aria-labelledby="saia-flow-title saia-flow-desc">
+      <title id="saia-flow-title">SPL2 optimization architecture</title>
+      <desc id="saia-flow-desc">
+        You prompt GitHub Copilot CLI. The search-performance-optimizer skill guides the comparison. Copilot asks Splunk
+        AI Assistant for an SPL2 rewrite through the Splunk MCP Server. Separately, it uses splunkctl over REST to run
+        the original and rewritten searches on Splunk Cloud and compare runtimes and result rows. No approval or
+        configuration change is needed.
+      </desc>
+      <defs>
+        <marker id="saia-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+      </defs>
+      <Box x={2} y={106} w={96} h={64} title="You" sub="prompt" stroke="var(--border-strong)" />
+      <Box x={146} y={18} w={208} h={58} title="Splunk Agent Skills" sub="search-performance-optimizer" stroke="var(--border-default)" dashed />
+      <Box x={146} y={106} w={208} h={64} title="GitHub Copilot CLI" sub="measure, optimize, compare" stroke="var(--text-primary)" />
+      <Box x={416} y={66} w={184} h={64} title="Splunk MCP Server" sub="saia_generate_spl" stroke="var(--action-primary)" />
+      <Box x={416} y={146} w={184} h={64} title="splunkctl" sub="read-only SPL2 jobs" stroke="var(--status-success)" />
+      <Box x={660} y={8} w={238} h={220} title="Splunk Cloud" sub="sample sign-ins in demo_soc" stroke="var(--border-strong)" />
+      <Box x={676} y={66} w={206} h={64} title="Splunk AI Assistant" sub="returns the SPL2 rewrite" stroke="var(--action-primary)" />
+      <Box x={676} y={146} w={206} h={64} title="Search jobs" sub="return runtime and result rows" stroke="var(--border-strong)" />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#saia-flow-arrow)">
+        <path d="M98 138H144" />
+        <path d="M250 76V104" />
+        <path d="M354 138C385 138 385 98 414 98" />
+        <path d="M354 138C385 138 385 178 414 178" />
+        <path d="M600 98H674" />
+        <path d="M600 178H674" />
+      </g>
+      <Label x={630} y={90}>MCP</Label>
+      <Label x={630} y={170}>REST</Label>
+    </svg>
+  )
+}
+
 // Same columns as FlowDiagram, one more row. The loop: Splunk finds the threat, n8n acts after approval and writes
 // its audit records back to Splunk, Slack tells you, and the same agent proves the fix in Splunk.
 /** The closed-loop phishing story: Outlook report, Agent Launchpad triage, approved n8n containment, Slack, verify. */
