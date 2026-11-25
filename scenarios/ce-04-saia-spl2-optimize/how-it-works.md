@@ -12,15 +12,22 @@ rewrites it to read the `demo_soc` index and calculate attempts and failures tog
 then calculate the rate. This removes the separate search branch and join while keeping the report's fields and
 calculations.
 
-Using synthetic sign-in data, the baseline took 91.56 seconds and the rewrite took 2.465 seconds. Both jobs
-reported 1,421,600 events and returned the same four rows. Only narrow the index scope if it still covers all
-the data your search needs.
+Both complete queries appear in the terminal. The closing side-by-side comparison uses
+[icdiff](https://github.com/jeffkaufman/icdiff): the original is on the left and SAIA's rewrite on the right.
+Red marks removed code, green marks additions, and yellow highlights changed expressions. Narration explains
+the original's extra work and the rewrite's combined aggregation while the relevant code stays on screen.
+
+Using synthetic sign-in data, the baseline took 148.107 seconds and the rewrite took 7.913 seconds, about
+19 times faster in this recorded run. Both jobs reported 1,421,600 events and returned the same four rows by
+value; the order of tied rows changed. Timings vary with caching and load. Only narrow the index scope if it
+still covers all the data your search needs.
 
 ### Prerequisites
 
 - Splunk Cloud with the `demo_soc` sample data
 - Splunk MCP Server with Splunk AI Assistant tools enabled
 - GitHub Copilot CLI with the `search-performance-optimizer` and `splunkctl` skills
+- icdiff, installed with the pipeline requirements, for the recorded terminal comparison
 
 ### Learn more
 

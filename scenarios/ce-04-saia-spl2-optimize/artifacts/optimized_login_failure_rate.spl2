@@ -1,0 +1,11 @@
+@spl2 from index:demo_soc
+| where sourcetype="portal:auth"
+| stats count() as attempts,
+    sum(if(result="failure", 1, 0))
+    as failures
+    by service, version
+| eval failure_rate=
+    round(100*failures/attempts, 1)
+| fields service, version, attempts,
+    failures, failure_rate
+| sort -failure_rate

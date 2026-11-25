@@ -6,48 +6,49 @@
       "id": "baseline",
       "entries": [
         {
+          "kind": "shell",
+          "t": 12.3,
+          "command": "printf 'BASELINE SPL2 - complete listing\\n'; cat login_failure_rate.spl2",
+          "result": "BASELINE SPL2 - complete listing\n@spl2 search index=*\n| where sourcetype=\"portal:auth\"\n| eval is_failure=if(result=\"failure\", 1, 0)\n| stats count() AS attempts\n    BY service, version\n| join left=L right=R\n    where L.service=R.service\n      AND L.version=R.version\n    [search index=*\n     | where sourcetype=\"portal:auth\"\n         AND result=\"failure\"\n     | stats count() AS failures\n         BY service, version]\n| eval service='L.service',\n       version='L.version',\n       attempts='L.attempts',\n       failures='R.failures'\n| eval failure_rate=\n    round(100*failures/attempts, 1)\n| fields service, version, attempts,\n         failures, failure_rate\n| sort - failure_rate",
+          "by": "user"
+        },
+        {
           "kind": "user",
-          "t": 10.9,
+          "t": 38.8,
           "text": "Apply the search-performance-optimizer skill to login_failure_rate.spl2. You are authorized to submit this read-only search job with splunkctl --yes; do not change Splunk configuration. Detach and poll until it finishes, then report its runtime, event count, result count, results, and any job messages or partial-result warnings. Explain what makes this search expensive."
         },
         {
           "kind": "skill",
-          "t": 11.0,
+          "t": 39.1,
           "name": "search-performance-optimizer"
         },
         {
           "kind": "skill",
-          "t": 15.5,
+          "t": 43.8,
           "name": "splunkctl"
         },
         {
           "kind": "shell",
-          "t": 30.2,
-          "command": "cd /Users/Shared/splunk-demo/payments && Q=\"| $(cat login_failure_rate.spl2)\" && splunkctl --yes search \"$Q\" --detach --output json",
-          "result": "{\"job_id\":\"1795643981.28667\",\"ttl\":3600}"
+          "t": 57.5,
+          "command": "Q=\"| $(cat login_failure_rate.spl2)\"; splunkctl --yes search \"$Q\" --detach",
+          "result": "{\"job_id\":\"1795647081.28831\",\"ttl\":3600}"
         },
         {
           "kind": "shell",
-          "t": 31.9,
-          "command": "for i in $(seq 1 30); do s=$(splunkctl jobs status 1795643981.28667 --output json); echo \"$s\" | grep -o '\"dispatchState\":\"[A-Z]*\"'; echo \"$s\" | grep -q '\"dispatchState\": *\"DONE\"\\|\"dispatchState\":\"DONE\"\\|FAILED' && break; sleep 5; done; echo \"$s\" | head -c 3000",
-          "result": "<command with shellId: 1 is still running after 30 seconds. The command is still running but hasn't produced output yet. You will be automatically notified when it completes; if you need the command to complete end your response with no tool calls to wait for the notification, or use stop_bash to stop it.>"
+          "t": 59.4,
+          "command": "for i in $(seq 1 40); do s=$(splunkctl jobs status 1795647081.28831 --output json); echo \"$s\" | grep -o '\"dispatchState\":\"[A-Z]*\"'; echo \"$s\" | grep -q '\"dispatchState\":\"DONE\"\\|FAILED' && break; sleep 5; done; echo \"$s\" | head -c 1500",
+          "result": "[\n  {\n    \"dispatchState\": \"DONE\",\n    \"eventCount\": 1421600,\n    \"isDone\": true,\n    \"resultCount\": 4,\n    \"runDuration\": 148.107,\n    \"sid\": \"1795647081.28831\"\n  }\n]"
         },
         {
           "kind": "shell",
-          "t": 31.9,
-          "command": "splunkctl jobs status 1795643981.28667 --output json | head -c 1500",
-          "result": "[\n  {\n    \"dispatchState\": \"DONE\",\n    \"eventCount\": 1421600,\n    \"isDone\": true,\n    \"resultCount\": 4,\n    \"runDuration\": 91.56400000000001,\n    \"sid\": \"1795643981.28667\"\n  }\n]"
-        },
-        {
-          "kind": "shell",
-          "t": 47.7,
-          "command": "splunkctl jobs show 1795643981.28667 --output json | head -c 6000",
+          "t": 68.9,
+          "command": "splunkctl jobs show 1795647081.28831 --output json | head -c 6000",
           "result": "[\n  {\n    \"attempts\": \"844\",\n    \"failure_rate\": \"30.8\",\n    \"failures\": \"260\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.12.0\"\n  },\n  {\n    \"attempts\": \"425444\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"8334\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.11.3\"\n  },\n  {\n    \"attempts\": \"284599\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"5695\",\n    \"service\": \"sso-bridge\",\n    \"version\": \"v2.9.0\"\n  },\n  {\n    \"attempts\": \"710713\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"14330\",\n    \"service\": \"web-login\",\n    \"version\": \"v7.3.1\"\n  }\n]"
         },
         {
           "kind": "agent",
-          "t": 49.5,
-          "text": "**Baseline job `1795643981.28667`** (authored `login_failure_rate.spl2`, run read-only)\n\n- **State:** DONE\n- **Runtime:** 91.56 s\n- **Event count:** 1,421,600\n- **Result count:** 4\n- **Messages and partial-result warnings:** none appeared. `jobs status` and `jobs show` returned only state, counts, runtime and rows. I didn't see Job Inspector or `search.log`, so I can't rule out a message there.\n\n**Results**\n\n| service | version | attempts | failures | failure_rate |\n|---|---|---|---|---|\n| mobile-login | v4.12.0 | 844 | 260 | 30.8 |\n| mobile-login | v4.11.3 | 425,444 | 8,334 | 2.0 |\n| sso-bridge | v2.9.0 | 284,599 | 5,695 | 2.0 |\n| web-login | v7.3.1 | 710,713 | 14,330 | 2.0 |\n\n**Why it's expensive** (from the SPL; I have no per-stage timings)\n1. **`index=*` with no time bound.** It scans every index over the default time range, then filters `sourcetype` afterwards with `where`. Putting `index=… sourcetype=portal:auth` in the base search would let Splunk skip irrelevant data.\n2. **Two full scans.** The main search and the `join` subsearch both read the same data. The second is just the failure subset of the first.\n3. **`join` is unnecessary.** It is a non-streaming command with subsearch limits. One pass with `stats count() AS attempts, count(eval(result=\"failure\")) AS failures BY service, version` gives the same output.\n4. **Dead `eval is_failure`.** It is computed for every event but never used.\n\nThe scan reached 1.42M events. The rare 30.8% failure rate for `v4.12.0` stands out against about 2% elsewhere, so the result set is tiny and nearly all the cost is in the scan.\n\n**Next step:** ask Splunk AI Assistant for the optimized query (`saia_generate_spl`, `spl_only` true) and run it the same way. I'll then compare runtime, events, results and rows against this baseline. Want me to proceed?"
+          "t": 70.6,
+          "text": "**Baseline job `1795647081.28831`** finished with `dispatchState` DONE.\n\n| Metric | Value |\n|---|---|\n| Runtime | 148.107 s |\n| Event count | 1,421,600 |\n| Result count | 4 |\n\n**Results**\n\n| service | version | attempts | failures | failure_rate |\n|---|---|---|---|---|\n| mobile-login | v4.12.0 | 844 | 260 | 30.8 |\n| mobile-login | v4.11.3 | 425,444 | 8,334 | 2.0 |\n| sso-bridge | v2.9.0 | 284,599 | 5,695 | 2.0 |\n| web-login | v7.3.1 | 710,713 | 14,330 | 2.0 |\n\n**Messages and warnings:** `jobs status` and `jobs show` returned none, and no partial-result flag. I only saw the fields those commands print, and I didn't check the job's messages separately.\n\n**Why it's expensive**\n- **Two full scans:** the main search and the `join` subsearch both read `index=*`. The same ~1.42M events are scanned twice (the job's `eventCount` covers both scans, so I can't split it per branch).\n- **Late filtering:** `sourcetype=\"portal:auth\"` is applied in a `| where` after the `index=*` retrieval, not as an early search term, so retrieval isn't narrowed to that sourcetype.\n- **Redundant join:** `failures` could come from the same pass with `count(eval(result=\"failure\"))`. The `join` only repeats the aggregation.\n- **Unused `eval`:** `is_failure` is computed but never used.\n- **Time range:** no time range is set, so the job runs over whatever default applies. I didn't verify what that was.\n\n**Next:** optimize with `saia_generate_spl` as specified, run it, and compare runtime, event count, and result rows against these numbers."
         }
       ],
       "summary": "2 skills · 4 shell commands"
@@ -57,60 +58,73 @@
       "entries": [
         {
           "kind": "user",
-          "t": 60.4,
-          "text": "Now use Splunk AI Assistant's saia_generate_spl tool with spl_only enabled to optimize login_failure_rate.spl2. Ask for valid SPL2 (not SPL1), the same output fields and calculations, and no added time filter. Save its rewrite as optimized_login_failure_rate.spl2. Briefly explain what changed and why it should run faster."
+          "t": 73.4,
+          "text": "Now use Splunk AI Assistant's saia_generate_spl tool with spl_only enabled to optimize login_failure_rate.spl2. Ask for valid SPL2 (not SPL1), the same output fields and calculations, and no added time filter. Save its complete rewrite as optimized_login_failure_rate.spl2, formatted with one pipeline command per line and expressions wrapped at whitespace to at most 44 columns. No ellipses. Briefly explain the actual changes and why they should run faster."
         },
         {
           "kind": "mcp",
-          "t": 60.4,
+          "t": 73.4,
           "tool": "saia_generate_spl",
           "args": {
-            "prompt": "Optimize this SPL2 search for performance. Return valid SPL2 (not SPL1) with the same output fields and no added time filter.\n\n@spl2 search index=* | where sourcetype=\"portal:auth\" | eval is_failure=if(result=\"failure\", 1, 0) | stats count() AS attempts BY service, version | join left=L right=R where L.service=R.service AND L.version=R.version [search index=* | where sourcetype=\"portal:auth\" AND result=\"failure\" | stats count() AS failures BY service, version] | eval service='L.service', version='L.version', attempts='L.attempts', failures='R.failures' | eval failure_rate=round(100*failures/attempts, 1) | fields service, version, attempts, failures, failure_rate | sort - failure_rate",
+            "prompt": "Optimize this SPL2 search for performance. Return valid SPL2 (not SPL1) with the same output fields and no added time filter.\n\n@spl2 search index=*\n| where sourcetype=\"portal:auth\"\n| eval is_failure=if(result=\"failure\", 1, 0)\n| stats count() AS attempts\n    BY service, version\n| join left=L right=R\n    where L.service=R.service\n      AND L.version=R.version\n    [search index=*\n     | where sourcetype=\"portal:auth\"\n         AND result=\"failure\"\n     | stats count() AS failures\n         BY service, version]\n| eval service='L.service',\n       version='L.version',\n       attempts='L.attempts',\n       failures='R.failures'\n| eval failure_rate=\n    round(100*failures/attempts, 1)\n| fields service, version, attempts,\n         failures, failure_rate\n| sort - failure_rate",
             "spl_only": true,
-            "chat_history": "User asks to optimize login_failure_rate.spl2 for performance; output fields service, version, attempts, failures, failure_rate must stay the same; no added time filter."
+            "chat_history": "User asked to optimize a baseline SPL2 login failure rate search for performance, keeping the same output fields and calculations."
           },
-          "result": "1 rows\n{\"response\": [\"| @spl2 from index:demo_soc\\n| where sourcetype=\\\"portal:auth\\\"\\n| eval is_failure=if(result=\\\"failure\\\", 1, 0)\\n| stats count() as attempts, sum(is_failure) as failures by service, version\\n| eval failure_rate=round(100D*failures/attempts, 1)\\n| fields service, version, attempts, failures, failure_rate\\n| sort -failure_rate\"]}"
+          "result": "1 rows\n{\"response\": [\"| @spl2 from index:demo_soc\\n| where sourcetype=\\\"portal:auth\\\"\\n| stats count() as attempts, sum(if(result=\\\"failure\\\", 1, 0)) as failures by service, version\\n| eval failure_rate=round(100*failures/attempts, 1)\\n| fields service, version, attempts, failures, failure_rate\\n| sort -failure_rate\"]}"
         },
         {
           "kind": "file",
-          "t": 60.4,
+          "t": 73.4,
           "name": "optimized_login_failure_rate.spl2"
         },
         {
           "kind": "agent",
-          "t": 81.6,
-          "text": "I saved the rewrite as `optimized_login_failure_rate.spl2`. I haven't run it yet. I dropped the returned leading `| ` so the file matches the original's format. Add the `| ` prefix when running it.\n\n**What changed**\n- **`join` removed:** a single `stats` computes `attempts` and `failures` (`sum(is_failure)`) in one pass. The original scanned the data twice and joined the results, so this should roughly halve the scan.\n- **`is_failure` is now used:** the original computed it and never used it.\n- **Fewer steps:** the extra `eval` that renamed the `L.`/`R.` fields is gone. The output fields and the `failure_rate` calculation are unchanged.\n- **`index=*` became `from index:demo_soc`:** this is the main reason it should run faster, since it scans one index instead of all of them.\n\n**Caveat:** SAIA added `index:demo_soc` on its own, and I haven't checked that `portal:auth` lives only there. If it is also in other indexes, the results will differ from the baseline. The wider `index=*` scan is a large part of the baseline cost.\n\nI'd run it and compare it to the baseline (91.56 s, 1,421,600 events, 4 results). If the rows differ, `index=*` or an explicit index list is needed. Want me to run it?"
+          "t": 73.4,
+          "text": "Saved `optimized_login_failure_rate.spl2`. I haven't run it yet, so there's no timing comparison.\n\nSAIA returned this query, wrapped at whitespace to 44 columns or fewer:\n```\n@spl2 from index:demo_soc\n| where sourcetype=\"portal:auth\"\n| stats count() as attempts,\n    sum(if(result=\"failure\", 1, 0))\n    as failures\n    by service, version\n| eval failure_rate=\n    round(100*failures/attempts, 1)\n| fields service, version, attempts,\n    failures, failure_rate\n| sort -failure_rate\n```\nSAIA's raw output began with `| @spl2`. I dropped the leading pipe to match the baseline file, since the run procedure prefixes `| `.\n\n**What changed**\n- **Index scope:** `search index=*` became `from index:demo_soc`. This is a scope change, not a pure rewrite, because the baseline searched every index. It matches the baseline only if all `portal:auth` events are in `demo_soc`, so I'd check that first.\n- **Combined aggregation:** `attempts` and `failures` now come from one `stats` pass. `failures` is `sum(if(result=\"failure\", 1, 0))`.\n- **Removed branch and join:** the second `index=*` scan and the `join` are gone, so the data is read once instead of twice. The `L.`/`R.` renaming `eval` went with them.\n- **Dropped `eval`:** the unused `is_failure` is gone.\n\n**Kept:** the same `where sourcetype`, `failure_rate` calculation, output fields, and `sort`, with no time filter added.\n\n**Open risk:** the `where sourcetype` filter is still applied after retrieval, as in the baseline. SAIA didn't move it into the search terms, and I didn't change what it returned.\n\nDo you want me to run the optimized query now and compare runtime, event count, and result rows against the baseline?"
+        },
+        {
+          "kind": "shell",
+          "t": 106.4,
+          "command": "printf 'SAIA SPL2 - complete listing\\n'; cat optimized_login_failure_rate.spl2",
+          "result": "SAIA SPL2 - complete listing\n@spl2 from index:demo_soc\n| where sourcetype=\"portal:auth\"\n| stats count() as attempts,\n    sum(if(result=\"failure\", 1, 0))\n    as failures\n    by service, version\n| eval failure_rate=\n    round(100*failures/attempts, 1)\n| fields service, version, attempts,\n    failures, failure_rate\n| sort -failure_rate",
+          "by": "user"
         }
       ],
-      "summary": "1 MCP call · 1 file"
+      "summary": "1 MCP call · 1 shell command · 1 file"
     },
     {
       "id": "verify",
       "entries": [
         {
           "kind": "user",
-          "t": 83.9,
+          "t": 129.9,
           "text": "Run optimized_login_failure_rate.spl2 as an authorized read-only search job with splunkctl --yes; do not change Splunk configuration. Detach and poll until it finishes. Show the runtime, event count, result count, job messages, and output rows. Compare with the baseline, and do not claim exact result parity unless the outputs match."
         },
         {
           "kind": "shell",
-          "t": 100.1,
-          "command": "cd /Users/Shared/splunk-demo/payments && Q=\"| $(cat optimized_login_failure_rate.spl2)\" && splunkctl --yes search \"$Q\" --detach --output json",
-          "result": "{\"job_id\":\"1795644198.28689\",\"ttl\":3600}"
-        },
-        {
-          "kind": "shell",
-          "t": 101.9,
-          "command": "for i in $(seq 1 20); do s=$(splunkctl jobs status 1795644198.28689 --output json); echo \"$s\" | grep -q '\"isDone\": true' && break; sleep 5; done; echo \"$s\"; splunkctl jobs show 1795644198.28689 --output json",
-          "result": "[\n  {\n    \"dispatchState\": \"DONE\",\n    \"eventCount\": 1421600,\n    \"isDone\": true,\n    \"resultCount\": 4,\n    \"runDuration\": 2.465,\n    \"sid\": \"1795644198.28689\"\n  }\n]\n[\n  {\n    \"attempts\": \"844\",\n    \"failure_rate\": \"30.8\",\n    \"failures\": \"260\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.12.0\"\n  },\n  {\n    \"attempts\": \"284599\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"5695\",\n    \"service\": \"sso-bridge\",\n    \"version\": \"v2.9.0\"\n  },\n  {\n    \"attempts\": \"425444\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"8334\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.11.3\"\n  },\n  {\n    \"attempts\": \"710713\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"14330\",\n    \"service\": \"web-login\",\n    \"version\": \"v7.3.1\"\n  }\n]"
+          "t": 147.2,
+          "command": "Q=\"| $(cat optimized_login_failure_rate.spl2)\"; sid=$(splunkctl --yes search \"$Q\" --detach | grep -o '\"job_id\":\"[^\"]*\"' | cut -d'\"' -f4); echo $sid; for i in $(seq 1 60); do s=$(splunkctl jobs status $sid --output json); echo \"$s\" | grep -q '\"isDone\": true\\|FAILED' && break; sleep 3; done; echo \"$s\"; splunkctl jobs show $sid --output json",
+          "result": "1795647458.28847\n[\n  {\n    \"dispatchState\": \"DONE\",\n    \"eventCount\": 1421600,\n    \"isDone\": true,\n    \"resultCount\": 4,\n    \"runDuration\": 7.913,\n    \"sid\": \"1795647458.28847\"\n  }\n]\n[\n  {\n    \"attempts\": \"844\",\n    \"failure_rate\": \"30.8\",\n    \"failures\": \"260\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.12.0\"\n  },\n  {\n    \"attempts\": \"284599\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"5695\",\n    \"service\": \"sso-bridge\",\n    \"version\": \"v2.9.0\"\n  },\n  {\n    \"attempts\": \"425444\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"8334\",\n    \"service\": \"mobile-login\",\n    \"version\": \"v4.11.3\"\n  },\n  {\n    \"attempts\": \"710713\",\n    \"failure_rate\": \"2.0\",\n    \"failures\": \"14330\",\n    \"service\": \"web-login\",\n    \"version\": \"v7.3.1\"\n  }\n]"
         },
         {
           "kind": "agent",
-          "t": 105.3,
-          "text": "**Optimized job `1795644198.28689`:** DONE\n\n| Metric | Baseline | Optimized |\n|---|---|---|\n| Runtime | 91.56 s | 2.47 s (about 37× faster) |\n| Event count | 1,421,600 | 1,421,600 |\n| Result count | 4 | 4 |\n\n**Job messages and warnings:** none appeared in `jobs status` or `jobs show`. I didn't check Job Inspector or `search.log`.\n\n**Output rows:** all four rows match the baseline on `service`, `version`, `attempts`, `failures` and `failure_rate`, with the same 30.8% for `mobile-login v4.12.0` and 2.0% for the other three. The three 2.0% rows came back in a different order (the baseline listed mobile-login v4.11.3 above sso-bridge). They tie on `failure_rate`, so the sort doesn't fix their order.\n\n**Parity:** the row contents are identical in this run. I'm not claiming general equivalence for two reasons:\n- **Index scope:** the rewrite reads only `demo_soc` instead of `index=*`. The matching event counts suggest all the `portal:auth` data sits in that index for this time range, but a different range or newly added indexes could differ.\n- **Tie ordering:** if row order matters, add a secondary sort key such as `service, version`.\n\nThe speedup comes from one scan instead of two, no `join`, and a single-index scan. With the event counts unchanged, I can't tell how much each of the three contributed."
+          "t": 151.8,
+          "text": "**Optimized job `1795647458.28847`** finished with `dispatchState` DONE. `jobs status` and `jobs show` showed no job messages or partial-result warnings.\n\n| Metric | Baseline | Optimized |\n|---|---|---|\n| Runtime | 148.107 s | 7.913 s |\n| Event count | 1,421,600 | 1,421,600 |\n| Result count | 4 | 4 |\n\nThe optimized run is about 18.7× faster, with 140.2 s less runtime.\n\n**Output rows:** all four rows match the baseline on every field.\n\n| service | version | attempts | failures | failure_rate |\n|---|---|---|---|---|\n| mobile-login | v4.12.0 | 844 | 260 | 30.8 |\n| sso-bridge | v2.9.0 | 284,599 | 5,695 | 2.0 |\n| mobile-login | v4.11.3 | 425,444 | 8,334 | 2.0 |\n| web-login | v7.3.1 | 710,713 | 14,330 | 2.0 |\n\nThe values match, but the optimized run lists `sso-bridge` before `mobile-login v4.11.3`. Those rows tie at 2.0, so their order isn't guaranteed. This is a tie-order difference, not a data difference.\n\n**Event count:** the event counts are identical (1,421,600). I can't say what each branch of the baseline scanned, so the event count alone doesn't confirm the baseline's `index=*` scan matched `demo_soc`. The matching result rows do support that for this data.\n\n**Caveat:** this is one run of each query, so timing could also be affected by caching or load. I'd rerun both to confirm."
+        },
+        {
+          "kind": "shell",
+          "t": 156.8,
+          "command": "bash show_spl2_diff.sh",
+          "by": "user",
+          "result": "Full SPL2 comparison: Before SAIA on the left, After SAIA on the right. Red marks removed code, green additions, yellow changed expressions."
         }
       ],
       "summary": "2 shell commands"
+    },
+    {
+      "id": "diff",
+      "entries": [],
+      "summary": "Your prompt"
     },
     {
       "id": "outcome",
