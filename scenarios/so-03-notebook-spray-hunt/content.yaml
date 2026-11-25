@@ -23,21 +23,21 @@ gates:
   gate-lake:
     title: Searching the lake needs your approval
     body: Raw search in the Machine Data Lake is costly, so the notebook asks first. This one pulls the suspect IP's whole history, 120 days back.
-    approve: Approve the lake search
+    approve: Approve
     decline: Decline
     declinedTitle: The lake was not searched.
     declinedBody: The cell never ran, so the hunt has only the 14 days the hot index keeps and cannot say how long the IP has been active.
   gate-table:
     title: Loading the shared table needs your approval
     body: This reads 90 days of sign-ins from the analytics table shared with Open Sharing into the kernel's memory.
-    approve: Approve the load
+    approve: Approve
     decline: Decline
     declinedTitle: The table was not loaded.
     declinedBody: The data stayed in the lake, so there is nothing in the kernel to backtest a rule against.
   gate-backtest:
     title: The backtest needs your approval
     body: It runs the detection rule over every sign-in in the table, inside the kernel. It reads data already loaded and changes nothing in Splunk.
-    approve: Approve the backtest
+    approve: Approve
     decline: Decline
     declinedTitle: The rule was not tested.
     declinedBody: Without a backtest there is no evidence it would have caught the spray, or that it would stay quiet for the busy VPN address.

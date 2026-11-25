@@ -6,6 +6,10 @@ In this demo the hunter hands the hypothesis to GitHub Copilot CLI. The agent tr
 
 Each of those three cells reads the lake, so jpterm stops it with `CONFIRMATION_REQUIRED` until you approve. The notebook never writes to Splunk: the detection stays as text for you to review. The data is synthetic.
 
+The notebook plays beside the terminal, cell by cell as the agent runs it. Each chart and table there is the cell's real saved output, and **Whole notebook** zooms out to show every cell at once.
+
+In this recording the triage searched the hot index live, but the Machine Data Lake was unavailable that day: its raw search and Open Sharing both failed on the stack side. So the notebook read the same synthetic story built in memory, anchored to the day the stack was seeded so its numbers line up with the hot index. Its setup cell prints `lake: fixture`, and the agent points that out before acting on the results.
+
 ### What it uses
 
 Splunk MCP lets the agent search the hot index. The notebook runs in a local Jupyter kernel through jpterm, a terminal client for notebooks that an agent can drive: it starts the kernel, runs one cell by ID, and saves the outputs into the notebook. The Machine Data Lake supplies two sources: the raw table, which keeps every event, and an analytics table promoted from it, which has a fixed schema and is shared with Open Sharing (the Delta Sharing protocol) so pandas can read it. The capture home's `jpterm` is a thin wrapper that holds the three lake cells until `--yes`, and lets the agent edit only the parameter cell.
@@ -14,7 +18,7 @@ Splunk MCP lets the agent search the hot index. The notebook runs in a local Jup
 
 - **Splunk Cloud** stack with **Machine Data Lake**, a raw table, and an analytics table shared with Open Sharing
 - **Splunk MCP** app and an MCP token
-- A Python environment with **jpterm**, **pandas**, and the **Delta Sharing** client
+- A Python environment with **jpterm**, **pandas**, **plotext**, and the **Delta Sharing** client, plus **euporie** to view the executed notebook
 - **GitHub Copilot CLI**
 
 ### Learn more

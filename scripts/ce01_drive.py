@@ -76,6 +76,8 @@ class Driver:
                 str(self.run / "session.cast"),
             ])
         self.t0 = time.time()
+        # Wall-clock time of cast t=0, so post can place events logged by tools in the capture home on the cast.
+        (self.run / "clock.json").write_text(json.dumps({"t0": self.t0}) + "\n")
         self.pid, self.fd = pid, fd
         fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
         threading.Thread(target=self.pump, daemon=True).start()

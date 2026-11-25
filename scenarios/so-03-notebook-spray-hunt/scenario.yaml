@@ -16,37 +16,38 @@ terminal: { cols: 110, rows: 32 }
 
 capture:
   status: captured
-  take: take-3
+  take: take-4
   month: Nov 2026
-  # Waits where only Copilot's spinner moves are cut; seven holds freeze the evidence screens and carry the narration.
-  # The raw take ran 4 min 50 s.
+  # Waits where only Copilot's spinner moves are cut; six holds freeze the evidence screens and carry the narration.
+  # The raw take ran 3 min 1 s.
   timeCompressed: true
-  rawDuration: 289.7
+  rawDuration: 180.7
   notes: >
-    Recorded from the beats in this file with GitHub Copilot CLI 1.0.114 (Auto, which picked Claude Sonnet 5.5) in a
-    neutral capture home on the MDL stack (stack profile mdl). Copilot runs with all tools allowed and the Splunk MCP
-    write tools denied, so jpterm's CONFIRMATION_REQUIRED on the three lake cells is the only stop. Data is
-    index=demo_auth, the raw table demo_auth_raw, and its analytics table demo_auth_hunt_90d shared with Open Sharing
-    (scripts/seed_auth.py, fixtures/MDL_SETUP.md).
+    Recorded from the beats in this file with GitHub Copilot CLI 1.0.114 (Auto, which picked Claude Sonnet 5.5) in a neutral
+    capture home on the MDL stack (stack profile mdl). Copilot runs with all tools allowed and the Splunk MCP write
+    tools denied, so jpterm's CONFIRMATION_REQUIRED on the three lake cells is the only stop. The triage searches
+    index=demo_auth live through Splunk MCP. The lake was unavailable on the day of this take (its SPL2 raw search and
+    Open Sharing both failed on the stack side), so the notebook read the same story built in memory, anchored to the
+    day the stack was seeded (lake.py fixture mode); its setup cell prints "lake: fixture", and Copilot says so.
 
 cast:
   src: artifacts/session.cast
-  duration: 179.5
+  duration: 166.9
 
 # Stable IDs; times are seconds on the published cast clock, set by hand after each capture. Labels: content.yaml.
 chapters:
   - { id: triage, t: 0 }
-  - { id: notebook, t: 49.2 }
-  - { id: lake, t: 64.9 }
-  - { id: table, t: 84.8 }
-  - { id: backtest, t: 108.7 }
-  - { id: detection, t: 152.6 }
+  - { id: notebook, t: 48.5 }
+  - { id: lake, t: 64.2 }
+  - { id: table, t: 82.3 }
+  - { id: backtest, t: 98.6 }
+  - { id: detection, t: 139.9 }
 
 # Each gate pauses on the agent's approval question, just before the next prompt. Copy: content.yaml `gates`.
 gates:
-  - { id: gate-lake, t: 64.6, command: jpterm execute hunt.ipynb --cell raw-search, summary: "Searching the lake stopped at CONFIRMATION_REQUIRED until you approved" }
-  - { id: gate-table, t: 84.4, command: jpterm execute hunt.ipynb --cell load-shared, summary: "Loading the shared table stopped at CONFIRMATION_REQUIRED until you approved" }
-  - { id: gate-backtest, t: 108.3, command: jpterm execute hunt.ipynb --cell backtest, summary: "The backtest stopped at CONFIRMATION_REQUIRED until you approved" }
+  - { id: gate-lake, t: 62.9, command: jpterm execute hunt.ipynb --cell raw-search, summary: "Searching the lake stopped at CONFIRMATION_REQUIRED until you approved" }
+  - { id: gate-table, t: 81.0, command: jpterm execute hunt.ipynb --cell load-shared, summary: "Loading the shared table stopped at CONFIRMATION_REQUIRED until you approved" }
+  - { id: gate-backtest, t: 97.3, command: jpterm execute hunt.ipynb --cell backtest, summary: "The backtest stopped at CONFIRMATION_REQUIRED until you approved" }
 
 # How this demo is recorded: `python -m pipeline.capture scenarios/so-03-notebook-spray-hunt <take>`.
 recording:
@@ -67,12 +68,15 @@ recording:
   # The wrapper's refusal is short on purpose: the clients truncate long shell output. Each gate also names its cell.
   gateEvidence: "CONFIRMATION_REQUIRED"
   fixtures:
+    # `fixture`: the lake was unavailable for this take (its SPL2 raw search and Open Sharing both failed on the stack
+    # side), so the notebook reads the same story built in memory, anchored to the day the stack was seeded, and its
+    # setup cell says so. Drop both `fixture` arguments to record against the lake.
     setup:
       # Refuses to record unless the profile exists and the stack holds the story (scripts/seed_auth.py).
-      - bash scenarios/so-03-notebook-spray-hunt/fixtures/setup.sh
+      - bash scenarios/so-03-notebook-spray-hunt/fixtures/setup.sh fixture
     stage:
-      # Puts hunt.ipynb, lake.py, the lake credentials, and two lookup files in the emptied workspace.
-      - bash scenarios/so-03-notebook-spray-hunt/fixtures/stage.sh
+      # Puts hunt.ipynb, lake.py, show.py, the lake settings, and two lookup files in the emptied workspace.
+      - bash scenarios/so-03-notebook-spray-hunt/fixtures/stage.sh fixture 2026-11-24
     teardown:
       - bash scenarios/so-03-notebook-spray-hunt/fixtures/teardown.sh
   beats:
@@ -110,6 +114,9 @@ recording:
       mark: detection
     - { exit: true, mark: outro }
 
+# The notebook beside the terminal, cell by cell as Copilot runs it (pipeline/notebook_pane.py, from the jpterm trace).
+notebookPane: { notebook: hunt.ipynb, cast: artifacts/notebook.cast, cols: 100 }
+
 artifacts:
   transcript: artifacts/transcript.json
   # Shown in the transcript after the last command that ran it.
@@ -121,12 +128,11 @@ artifacts:
 # is immediate.
 post:
   holds:
-    - { id: suspect, text: "Likely benign", seconds: 9, settle: 0.06 }
-    - { id: history, text: "quiet October", seconds: 9, settle: 0.06 }
-    - { id: table, text: "104,198 sign-ins", seconds: 8, settle: 0.06 }
-    - { id: rule, text: "The backtest flags only", seconds: 9, settle: 0.06 }
-    - { id: intel, text: "Threat intel flags", seconds: 7, settle: 0.06 }
-    - { id: finding, text: "Next steps", seconds: 12, settle: 0.06 }
+    - { id: suspect, text: "Every other IP has only", seconds: 9, settle: 0.06 }
+    - { id: history, text: "Lake shows 688", seconds: 9, settle: 0.06 }
+    - { id: table, text: "105,338 sign-ins", seconds: 8, settle: 0.06 }
+    - { id: rule, text: "The rule flags only", seconds: 9, settle: 0.06 }
+    - { id: finding, text: "Next steps \\(your call\\)", seconds: 16, settle: 0.06 }
     - { id: detection, text: "tries<=3", seconds: 22, settle: 0.06 }
 
 # Spoken over the published cast. `python -m pipeline.narrate scenarios/so-03-notebook-spray-hunt` builds the audio
@@ -141,70 +147,73 @@ narration:
       offset: 0.3
       text: A password-spray alert has been quiet for weeks. Here GitHub Copilot CLI hunts for a slow spray with Splunk and the Machine Data Lake.
     - id: ask
-      t: 11.2
+      t: 10.6
       text: The hunter asks Copilot to check the last fourteen days of sign-ins and name the source that looks like a spray.
     - id: searches
-      t: 19.0
-      text: "Copilot searches the hot index through Splunk MCP: the fields first, then failures per source, then the busiest five minutes."
+      t: 18.4
+      text: Copilot queries the hot index through Splunk MCP. When a search errors, it simplifies the query and tries again.
     - id: why-quiet
-      t: 30.0
-      text: That five-minute check matters. A spray that tries each account once never trips an alert on a hundred failures.
+      t: 27.4
+      text: It counts failures and distinct accounts per source, because a spray that tries each account once never trips an alert on a hundred failures.
     - id: suspect
-      t: 38.8
-      text: One address stands out, with about five hundred failures across three hundred accounts, never more than one in five minutes.
+      t: 37.5
+      text: "One address stands out: over five hundred failures on three hundred accounts."
     - id: vpn
-      t: 47.9
-      text: The busy VPN fails too, but mostly succeeds. That's the false positive to avoid.
+      t: 44.2
+      text: "The busy VPN fails too, but mostly succeeds: the false positive to avoid."
     # Notebook, then the first approval
     - id: notebook
-      t: 55.7
-      text: Copilot opens the notebook and sets the suspect IP. Lake searches cost more, so it asks first.
+      t: 51.5
+      text: Copilot opens the hunt notebook, shown on the right, and sets the suspect IP.
+    - id: fixture
+      t: 57.8
+      text: Setup reports a fixture, since the lake is down today.
     - id: lake-approved
       chapter: gate-lake
       offset: 0.8
-      text: Approved, the raw search reads this address's full history, a hundred and twenty days.
+      text: Approved, the raw search pulls this address's full history, a hundred and twenty days.
     - id: history
-      t: 72.4
-      text: The index saw ten days. The lake shows a September campaign, then a return.
-    - id: table-ask
-      t: 79.8
-      text: Loading the shared table needs approval too.
+      t: 70.4
+      text: The index saw ten days. The lake shows a September campaign in amber, a quiet October, then a return.
     # Shared table
     - id: table-approved
       chapter: gate-table
       offset: 0.8
-      text: Copilot loads the ninety-day analytics table into pandas through Open Sharing, with no export or copy.
-    - id: table-why
-      t: 93.5
-      text: The lake promoted those days into a five-column table, so pandas reads only the fields the hunt needs.
+      text: Copilot loads the shared ninety-day table straight into pandas.
+    - id: early
+      t: 87.2
+      text: It also tries the backtest early. The gate stops it.
     - id: table-result
-      t: 100.9
-      text: A hundred and four thousand sign-ins over ninety days. The backtest needs your go-ahead too.
+      t: 92.0
+      text: A hundred and five thousand sign-ins, the suspect on top.
     # Backtest, enrichment, and the finding
     - id: backtest-approved
       chapter: gate-backtest
       offset: 0.8
       text: The backtest runs the new rule over every sign-in in the kernel. Nothing is written to Splunk.
     - id: rule
-      t: 116.9
-      text: It flags only the suspect, on thirteen days. The old alert would never have fired, and the busy VPN is skipped.
+      t: 105.2
+      text: It flags only the suspect, on thirteen days. Each dot is one address on one day, and the busy VPN stays under the line.
     - id: intel
-      t: 126.4
-      text: It's in a community threat feed, and it got into a privileged backup account at three in the morning, two days ago.
+      t: 115.8
+      text: Enrichment finds it in a community threat feed, and a successful sign-in to a privileged backup account at three in the morning.
     - id: finding
-      t: 135.5
-      text: "Copilot sums up the case and next steps: reset that account, block the address, review its activity."
+      t: 124.2
+      text: "Copilot sums up: reset that account, block the address, save the detection. It also flags that the results came from a fixture."
     - id: traceable
-      t: 144.2
-      text: Every claim traces back to a notebook cell, so the hunt is reproducible and easy to review.
+      t: 134.4
+      text: Every claim traces back to a notebook cell, so the hunt is easy to review.
     # The executed notebook, and why it matters
     - id: record
       chapter: detection
-      offset: -0.6
-      text: "The executed notebook is the record: every query, table, and chart, ending in the daily search to save as the alert."
+      offset: 0.3
+      text: "The executed notebook is the record, ending in the daily search to save as the alert."
     - id: value-data
-      t: 161.5
+      t: 147.3
       text: Splunk keeps fourteen hot days fast, and the Machine Data Lake keeps months of history cheaply.
     - id: value-agent
-      t: 170.2
+      t: 154.9
       text: An agent turns that history into a tested detection in minutes, with a person approving every costly step.
+    - id: value-close
+      t: 163.0
+      text: Faster hunts, fewer missed attacks.

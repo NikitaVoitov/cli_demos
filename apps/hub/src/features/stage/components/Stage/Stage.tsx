@@ -2,9 +2,11 @@ import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { DemoEntry } from '@/types/content.types'
 import { ApprovalBar } from '../ApprovalBar/ApprovalBar'
 import { ChapterProgress } from '../ChapterProgress/ChapterProgress'
+import { NotebookPane } from '../NotebookPane/NotebookPane'
 import { SplunkWebPane } from '../SplunkWebPane/SplunkWebPane'
 import { PaneFrame, TerminalPane } from '../TerminalPane/TerminalPane'
 import { WorkflowPane } from '../WorkflowPane/WorkflowPane'
+import { frameAt } from '../../utils/timeline'
 import { canvasStateAt } from '../../utils/workflowCanvas'
 
 function GateAnnouncer() {
@@ -55,14 +57,18 @@ export function Stage({ entry }: { entry: DemoEntry }) {
   const shared = Boolean(entry.workflow && entry.scenario.browser)
   const canvasActive = shared && !published && time >= entry.workflow!.show.from && time < entry.workflow!.show.until
   const layer = (active: boolean) => (active ? '' : 'invisible absolute inset-0')
+  // While a notebook cell runs, the notebook pane has the focus ring instead of the terminal.
+  const cellRunning = Boolean(entry.notebookPane?.frames[frameAt(entry.notebookPane.frames, time)].running)
 
   return (
     <>
       <GateAnnouncer />
       {entry.split ? (
         <div className="grid gap-3 min-[1100px]:grid-cols-2">
-          <TerminalPane entry={entry} focused={!published && !workflowRunning} />
-          {shared ? (
+          <TerminalPane entry={entry} focused={!published && !workflowRunning && !cellRunning} />
+          {entry.notebookPane ? (
+            <NotebookPane pane={entry.notebookPane} />
+          ) : shared ? (
             <div className="relative">
               <div className={layer(canvasActive)} inert={!canvasActive}>
                 <WorkflowPane entry={entry} />

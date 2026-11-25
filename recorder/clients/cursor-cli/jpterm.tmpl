@@ -51,4 +51,24 @@ set -a
 [ -f "$HOME/.config/hunt.env" ] && . "$HOME/.config/hunt.env"
 set +a
 export PATH="$VENV/bin:$PATH"
-exec "$VENV/bin/jpterm" "${args[@]}"
+case "${args[0]}" in
+  write|execute) ;;
+  *) exec "$VENV/bin/jpterm" "${args[@]}" ;;
+esac
+
+# For the hub's notebook pane: when each change ran, and the notebook file right after it. Outside the workspace, so
+# the agent never sees it; capture copies it into the take.
+TRACE="$HOME/.cache/jpterm-trace"
+mkdir -p "$TRACE"
+now() { "$VENV/bin/python" -c 'import time; print(f"{time.time():.3f}")'; }
+[ -f "$TRACE/initial.ipynb" ] || cp "${args[1]}" "$TRACE/initial.ipynb" 2>/dev/null || true
+start=$(now)
+status=0
+"$VENV/bin/jpterm" "${args[@]}" || status=$?
+end=$(now)
+seq=$(cat "$TRACE/trace.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+snap=$(printf '%03d.ipynb' "$seq")
+cp "${args[1]}" "$TRACE/$snap" 2>/dev/null || snap=""
+printf '{"op": "%s", "cell": "%s", "start": %s, "end": %s, "status": %d, "notebook": "%s"}\n' \
+  "${args[0]}" "$cell" "$start" "$end" "$status" "$snap" >> "$TRACE/trace.jsonl"
+exit "$status"
