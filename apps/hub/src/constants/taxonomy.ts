@@ -41,10 +41,12 @@ export const FACET_GROUPS: { id: FacetGroupId; label: string; values: string[] }
       'Agentic Splunk SDK',
       'Splunk Dashboard Studio',
       'Splunk AI Toolkit',
+      'Splunk Enterprise Security',
+      'contentctl',
       'CDTSM',
       'Machine Data Lake',
       'Splunk Cloud',
     ],
   },
-  { id: 'technologies', label: 'Technologies', values: ['Python', 'Jupyter', 'Gemini', 'Playwright', 'Jira', 'n8n', 'Outlook', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Slack', 'Azure'] },
+  { id: 'technologies', label: 'Technologies', values: ['Python', 'Jupyter', 'Gemini', 'Playwright', 'Jira', 'n8n', 'Outlook', 'Kubernetes', 'Terraform', 'GitHub Actions', 'Sigma', 'Slack', 'Azure'] },
 ]

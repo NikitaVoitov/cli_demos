@@ -1,0 +1,43 @@
+#!/bin/bash
+# gh in the capture home, for the detections-as-code demo repo only. Merging a pull request is the story's approval:
+# without --yes it is held with CONFIRMATION_REQUIRED until the same command is rerun with --yes. Repo settings,
+# secrets, workflow changes, deletes, and API writes are refused.
+REAL=__GH_BIN__
+REPO="__GH_REPO__"
+set -a
+. "$HOME/.config/gh-demo.env"
+set +a
+export GH_REPO="$REPO" GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 GH_SPINNER_DISABLED=1
+
+refuse() { echo "Error: $1" >&2; exit 2; }
+
+args=()
+yes=0
+prev=""
+for a in "$@"; do
+  if [ "$a" = "--yes" ]; then yes=1; continue; fi
+  case "$prev" in -R|--repo) [ "$a" = "$REPO" ] || refuse "only $REPO is available here" ;; esac
+  case "$a" in --repo=*) [ "${a#--repo=}" = "$REPO" ] || refuse "only $REPO is available here" ;; esac
+  args+=("$a")
+  prev="$a"
+done
+
+case "${args[0]} ${args[1]}" in
+  "pr merge")
+    if [ "$yes" -ne 1 ]; then
+      echo "CONFIRMATION_REQUIRED: gh pr merge ${args[2]} requires approval. Rerun the same command with --yes after approval." >&2
+      exit 3
+    fi ;;
+  "pr create"|"pr view"|"pr list"|"pr checks"|"pr diff"|"pr comment"|"pr status") ;;
+  "run view"|"run list"|"run watch"|"run download") ;;
+  "repo view"|"repo clone")
+    case "${args[2]}" in ""|-*|"$REPO"|"https://github.com/$REPO"|"https://github.com/$REPO.git") ;; *) refuse "only $REPO is available here" ;; esac ;;
+  "workflow list"|"workflow view"|"auth status") ;;
+  "api "*)
+    for a in "${args[@]}"; do
+      case "$a" in -X|--method|--method=*|-f|-F|--field|--raw-field|--input) refuse "gh api is read-only here" ;; esac
+    done ;;
+  "--version "*|"help "*|"--help "*) ;;
+  *) refuse "only gh pr, gh run, gh repo view/clone, and read-only gh api are available here" ;;
+esac
+exec "$REAL" "${args[@]}"

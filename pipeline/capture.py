@@ -19,6 +19,7 @@ Before the beats: fixture setup commands, a fresh Splunk Web login, and the capt
   stackProfile: <name>        capture against another stack (scripts/stack_profile.py builds .captures/ce01/stacks/<name>)
   integrations: [jira]        Jira tools (acli, Atlassian MCP)
   integrations: [notebook]    the gated jpterm and euporie-preview; `notebook.gated` lists the held cell IDs
+  integrations: [github]      the gated gh (merge held for approval), git, sigma-cli, and contentctl for the demo repo
   fixtures.stage: [commands]  run after the workspace is cleaned and the hints are written, to put files in it
   keep: [file, ...]           workspace files to copy into the take (<take>/workspace/) when it ends, such as an
                               executed notebook; pipeline.post publishes them to artifacts/
@@ -133,7 +134,7 @@ def prepare(recording: dict, home: Path, client: str = "cursor-cli") -> dict[str
         subprocess.run(["node", str(ROOT / "scripts/splunk_web_login.mjs")], check=True, cwd=ROOT / "apps/hub")
     # setup rewrites the workspace instructions from the base template, so hints are appended after it.
     subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), "setup"], check=True, cwd=ROOT)
-    for integration in ("jira", "n8n", "outlook", "search-reads"):
+    for integration in ("jira", "n8n", "outlook", "search-reads", "github"):
         if integration in recording.get("integrations", []):
             subprocess.run([sys.executable, str(ROOT / "scripts/ce01_capture.py"), integration], check=True, cwd=ROOT)
     if "notebook" in recording.get("integrations", []):

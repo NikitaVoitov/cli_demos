@@ -1,0 +1,3 @@
+name: process_memory_dump_via_comsvcs_dll_filter
+definition: search NOT (user="svc_purpleteam" dest="PT-LAB-01.acme.example")
+description: Excludes the nightly purple-team run of the Atomic Red Team T1003.001 tests by svc_purpleteam on PT-LAB-01 (same exclusion approved by the SOC lead under CHG-2077 for the ProcDump and Mimikatz detections; AI triage of the 16 alerts found only this account and host, applied at the reviewer's request).

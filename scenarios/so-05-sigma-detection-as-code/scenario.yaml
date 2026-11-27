@@ -1,0 +1,289 @@
+# What gets recorded. Written by authoring agents and PRs only; never edited in a CMS.
+# Detections as code with an agent: GitHub Copilot CLI turns a community Sigma rule into a tested Enterprise Security
+# detection, lets CI (with Splunk AI Toolkit triage) prove it, tunes it, and ships it through a reviewed pull request.
+# Stack and repo side: fixtures/SETUP.md. Until the first take this is a planned demo (source: metadata).
+id: so-05-sigma-detection-as-code
+useCase: SO-05
+source: captured
+change: Merge-gated
+stack: co2
+client:
+  name: copilot-cli
+  label: GitHub Copilot
+  model: Auto
+# Copilot CLI draws a failed command as one line that ends with the first line of its output; 110 columns keep
+# "CONFIRMATION_REQUIRED: gh pr merge <n>" on it.
+terminal: { cols: 110, rows: 32 }
+
+capture:
+  status: captured
+  take: take-2
+  month: Nov 2026
+  # Waits where only Copilot's spinner moves are cut (CI runs, indexing, the deploy); eight holds freeze the screen
+  # while each GitHub Actions run executes and on the evidence, and carry the narration. The raw take ran 13 min 16 s.
+  timeCompressed: true
+  rawDuration: 795.9
+  notes: >
+    Recorded from the beats in this file with GitHub Copilot CLI 1.0.114 (Auto, which picked Claude Sonnet 5.5) in the
+    neutral capture home on the CO2 stack. Copilot runs with all tools and paths allowed and the Splunk MCP write tools
+    denied; the gated gh's CONFIRMATION_REQUIRED on gh pr merge is the only stop. The pull request, both CI runs, and
+    the deploy are real GitHub Actions runs against the stack (fixtures/SETUP.md). Take 1 was lost to a leftover
+    python3 shim and a path dialog that swallowed a prompt.
+
+cast:
+  src: artifacts/session.cast
+  duration: 290.7
+
+# Stable IDs; times are seconds on the published cast clock, set by hand after each capture. Labels: content.yaml.
+chapters:
+  - { id: gap, t: 0 }
+  - { id: draft, t: 43.2 }
+  - { id: ci, t: 79.5 }
+  - { id: tune, t: 141.7 }
+  - { id: deploy, t: 192.5 }
+  - { id: verify, t: 221.5 }
+  # The detection's search in ES and the closing summary, over the last hold.
+  - { id: logic, t: 239.5 }
+
+# The one approval: merging the pull request, which deploys to Enterprise Security. Copy: content.yaml `gate`.
+gate:
+  t: 192.2
+  command: gh pr merge --squash --delete-branch
+  summary: "Merging the pull request stopped at CONFIRMATION_REQUIRED until you approved"
+
+# How this demo is recorded: `python -m pipeline.capture scenarios/so-05-sigma-detection-as-code <take>`.
+recording:
+  home: /Users/Shared/splunk-demo
+  workspace: payments
+  # No Splunk Web steps for the agent; the ES screenshot is taken after the run (fixtures/screenshots.mjs).
+  splunkWebLogin: false
+  # The gated gh (merge held until --yes), git with the demo repo's token, sigma-cli, and contentctl.
+  integrations: [github]
+  hints: [detection-as-code]
+  gateEvidence: "CONFIRMATION_REQUIRED: gh pr merge"
+  fixtures:
+    setup:
+      # Fills any missing night of demo_endpoint, then refuses unless the week holds the purple-team story.
+      - python3 scripts/seed_endpoint.py && python3 scripts/seed_endpoint.py --check
+      # Resets the demo repo's main to the baseline tag (CI then removes the comsvcs detection from ES) and checks
+      # ES holds the baseline: the two ACME detections on, no comsvcs detection, ESCU's comsvcs rule off.
+      - python3 scenarios/so-05-sigma-detection-as-code/fixtures/repo.py reset
+    stage:
+      # Clones the team repo to ~/payments/acme-detections and puts the cached attack data beside it.
+      - bash scenarios/so-05-sigma-detection-as-code/fixtures/stage.sh
+  beats:
+    - { comment: "Ship a community Sigma rule to Enterprise Security as code, with GitHub Copilot CLI", mark: intro }
+    - { run: copilot, waitFor: "open sidebar" }
+    # Short turns, so each ends with an answer on screen (Copilot collapses shell output).
+    - prompt: >
+        Microsoft and CISA report Volt Typhoon dumping LSASS memory with comsvcs.dll. Are we covered in Enterprise
+        Security? Check what is deployed and what its logic would miss. Don't change anything.
+      mark: gap
+    - { wait: turn-end, timeout: 600, mark: gap-done }
+    - prompt: >
+        Build our detection from the SigmaHQ rule in acme-detections, the way AGENTS.md says, with test cases for
+        the variants ESCU misses. Build it with contentctl and show me what you wrote.
+      mark: draft
+    - { wait: turn-end, timeout: 900, mark: draft-done }
+    - prompt: "Open a pull request and tell me what CI says."
+      mark: ci
+    - { wait: turn-end, timeout: 1800, mark: ci-done }
+    - prompt: >
+        Apply the tuning the triage points to, the same way the team tuned the other detections, and push.
+        Tell me when CI is green.
+      mark: tune
+    - { wait: turn-end, timeout: 1800, mark: tune-done }
+    - prompt: "Merge it."
+      mark: merge
+    - { wait: turn-end, timeout: 600, mark: gate, require: gate }
+    - prompt: >
+        Approved. Merge, watch the deploy, then confirm in Splunk that the detection is live and run it once over
+        the last day.
+      mark: deploy
+    - { wait: turn-end, timeout: 1200, mark: agent-done }
+    - { exit: true, mark: outro }
+
+# Shot after the run (fixtures/screenshots.mjs): each GitHub Actions run while its `gh run watch` hold plays, CI's
+# report on the pull request, ES Content management, and last the detection's search in ES. Copy: content.yaml `browser`.
+browser:
+  mode: observer
+  showAt: logic
+  object: ES detection search
+  screenshot: artifacts/es-spl.png
+  steps:
+    - { id: ci-run-1, screenshot: artifacts/ci-run-1.png, object: validate run, from: 85, until: 110.5 }
+    - { id: pr, screenshot: artifacts/pr-report.png, object: pull request, from: 110.5, until: 158 }
+    - { id: ci-run-2, screenshot: artifacts/ci-run-2.png, object: validate run, from: 158, until: deploy }
+    - { id: deploy-run, screenshot: artifacts/deploy-run.png, object: deploy run, from: deploy, until: verify }
+    - { id: es, screenshot: artifacts/es-content.png, object: ES Content management, from: verify, until: logic }
+
+artifacts:
+  transcript: artifacts/transcript.json
+  # Shown in full in the transcript at the step that read, wrote, or produced them. fixtures/artifacts.py <pr>
+  # publishes them after a take, from the pull request and its CI comments.
+  files:
+    - { src: artifacts/sigma-rule.yml, tag: SigmaHQ rule, read: 'sigma/rules/.*comsvcs.*\.yml' }
+    # Opening the pull request starts validate; the approved merge starts deploy.
+    - { src: artifacts/workflow-validate.yml, name: .github/workflows/validate.yml, tag: GitHub Actions, shell: 'gh pr create' }
+    - { src: artifacts/workflow-deploy.yml, name: .github/workflows/deploy.yml, tag: GitHub Actions, shell: 'gh pr merge .*--yes' }
+    - { src: artifacts/detection.yml, tag: contentctl detection, write: '(^|[/\s])detections/[^/\s]+/[^/\s]+\.yml\b' }
+    - { src: artifacts/tests.yml, tag: Test cases, write: '(^|[/\s])tests/[^/\s]+\.yml\b' }
+    - { src: artifacts/savedsearches.conf, name: savedsearches.conf, tag: ES correlation search, shell: '\bcontentctl build\b', nth: 1 }
+    # Copilot reads each report right after `gh run watch` returns, in the same command.
+    - { src: artifacts/ci-report-1.md, name: CI report, tag: First run, shell: 'gh run watch', nth: 1 }
+    - { src: artifacts/filter-macro.yml, tag: Tuning, write: '(^|[/\s])macros/[^/\s]+_filter\.yml\b' }
+    - { src: artifacts/ci-report-2.md, name: CI report, tag: After tuning, shell: 'gh run watch .*comments' }
+
+# Freeze frames on the evidence so narration can explain it (pipeline/post.py). The texts are this take's wording,
+# the last lines of each answer (a long answer scrolls). Copilot renders inline code with a space on each side, so
+# the patterns are plain words.
+post:
+  holds:
+    - { id: coverage, text: "to be enabled", seconds: 10, settle: 0.06 }
+    - { id: draft, text: "so CI runs", seconds: 12, settle: 0.06 }
+    # The three `gh run watch` commands, by run ID: each freezes while its run executes, so the run's page on GitHub
+    # (the job graph) can show beside the terminal and the narration can walk through it.
+    - { id: ci-run, text: "gh run watch 46039568107", seconds: 16, immediate: true }
+    - { id: ci-report, text: "is your call", seconds: 18, settle: 0.06 }
+    - { id: green-run, text: "gh run watch 46040311587", seconds: 9, immediate: true }
+    - { id: green, text: "12/12 pass", seconds: 12, settle: 0.06 }
+    - { id: deploy-run, text: "gh run watch 46040734033", seconds: 12, immediate: true }
+    # Long enough for ES Content management, the detection's search in ES, and the closing summary.
+    - { id: live, text: "Deployed and live", seconds: 60, settle: 0.06 }
+
+# Spoken over the published cast. `python -m pipeline.narrate scenarios/so-05-sigma-detection-as-code` builds the
+# audio and captions; rerun it after changing a line, an anchor, a chapter time, or the voice.
+narration:
+  audio: artifacts/narration.mp3
+  captions: artifacts/narration.vtt
+  lines:
+    - id: intro
+      chapter: gap
+      offset: 0.3
+      text: Volt Typhoon dumps LSASS with a built-in Windows DLL. Copilot checks our coverage and ships a fix as code.
+    - id: ask
+      t: 10.6
+      text: The engineer asks whether Enterprise Security would catch it, and says not to change anything.
+    - id: read
+      t: 17.5
+      text: Copilot reads the deployed detections through Splunk MCP, with their searches and the macros behind them.
+    - id: disabled
+      t: 27.0
+      text: ESCU has a rule for this, but it's off, and its search needs MiniDump or ordinal twenty-four.
+    - id: miss
+      t: 35.3
+      text: Call the same function by another ordinal, or leave off the DLL extension, and that rule stays silent.
+    - id: repo
+      chapter: draft
+      offset: 0.6
+      text: Copilot builds the fix in the team's detections repo, following its agents file.
+    - id: sigma
+      t: 50.5
+      text: It starts from SigmaHQ's community rule, which already covers the ordinal tricks.
+    - id: tests
+      t: 57.0
+      text: Real attack data from Splunk's threat research team becomes a test that must fire, plus crafted variants.
+    - id: build
+      t: 65.6
+      text: sigma-cli converts the rule for the CIM endpoint data model, and contentctl builds an Enterprise Security correlation search.
+    - id: nothing
+      t: 75.5
+      text: Nothing is pushed yet, and nothing in Splunk has changed.
+    - id: pr
+      chapter: ci
+      offset: 0.5
+      text: Copilot opens a pull request, and GitHub Actions takes over.
+    - id: workflow
+      t: 85.0
+      text: At right, the validate workflow runs two jobs on GitHub-hosted runners.
+    - id: build-job
+      t: 91.0
+      text: Build lints the Sigma rule, checks the search still matches it, and packages the app with contentctl.
+    - id: test-job
+      t: 100.1
+      text: Test sends each case to Splunk over HEC, runs our search beside ESCU's, and counts a week of real alerts.
+    - id: compare
+      t: 109.7
+      text: ESCU's rule misses all three ordinal variants. Ours catches each one.
+    - id: noise
+      t: 116.5
+      text: "But a week of real endpoint data raises sixteen alerts, over the budget of five."
+    - id: triage
+      t: 123.0
+      text: "Splunk AI Toolkit triages them: a purple-team account on a lab host, testing nightly."
+    - id: report
+      t: 130.5
+      text: CI fails, and posts its report on the pull request, at right.
+    - id: precedent
+      t: 136.1
+      text: Copilot sees the team already excludes that run, and asks before tuning.
+    - id: tune
+      chapter: tune
+      offset: 0.5
+      text: "Copilot adds the same narrow exclusion: that account and that host together, nothing broader."
+    - id: silent-case
+      t: 149.8
+      text: It adds that run as a test that must stay silent.
+    - id: push
+      t: 154.3
+      text: Copilot pushes, and validate runs again.
+    - id: green-run
+      t: 158.6
+      text: Both jobs pass at right, in under two and a half minutes.
+    - id: green
+      t: 164.0
+      text: Twelve of twelve cases pass, and noise drops from sixteen to zero.
+    - id: diff
+      t: 171.0
+      text: The tuning lives in one macro, so the diff shows what is excluded.
+    - id: git
+      t: 176.4
+      text: Every change is in Git, reviewed and tested before production.
+    - id: person
+      t: 181.8
+      text: Switched on, ESCU's rule would page the SOC about it nightly.
+    - id: gate-why
+      t: 187.3
+      text: Merging deploys, so the gate holds it for your approval.
+    - id: approved
+      chapter: gate
+      offset: 0.8
+      text: Approved. Copilot merges, and the deploy workflow installs the detection over the REST API.
+    - id: prune
+      t: 200.6
+      text: It also removes detections no longer in the repo, so Splunk matches Git.
+    - id: deploy-run
+      t: 207.0
+      text: At right, one deploy job rebuilds the app, installs it, and checks every detection is on and scheduled.
+    - id: check
+      t: 215.8
+      text: Then Copilot checks the live result in Splunk, not just the pipeline.
+    - id: live
+      chapter: verify
+      offset: 0.3
+      text: Splunk MCP confirms it's on, hourly, and a correlation search.
+    - id: fires
+      t: 228.2
+      text: Run once, it finds the replayed attack and every variant.
+    - id: content
+      t: 233.2
+      text: Content management shows it live beside ESCU's rule, still off.
+    - id: spl
+      chapter: logic
+      offset: 0.1
+      text: This is the search Enterprise Security now runs, generated from the Sigma rule.
+    - id: tstats
+      t: 245.4
+      text: It uses tstats on the CIM Endpoint data model, so it reads accelerated summaries, not raw events.
+    - id: logic
+      t: 253.4
+      text: It flags rundll32 loading comsvcs with the full-dump flag, whether the call names MiniDump or any form of ordinal twenty-four.
+    - id: macro
+      t: 263.7
+      text: The last macro is the team's tuning, kept apart so the logic stays Sigma's.
+    - id: agentic
+      t: 270.0
+      text: Agentic workflows with Splunk MCP and AI Toolkit turned ESCU's default rule into a stronger detection.
+    - id: practice
+      t: 278.9
+      text: "And the detection-as-code practices held: it's in Git, tested on real attacks, tuned with AI triage, and shipped by CI after your approval."

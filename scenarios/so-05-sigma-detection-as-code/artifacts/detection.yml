@@ -1,0 +1,67 @@
+name: Process Memory Dump Via Comsvcs DLL
+id: 646ea171-dded-4578-8a4d-65e9822892e3
+version: 1
+date: '2026-11-27'
+author: Florian Roth (Nextron Systems), Modexp, Nasreddine Bencherchali (Nextron Systems), Swachchhanda Shrawan Poudel (Nextron Systems) (Sigma); ACME SOC
+status: production
+enabled_by_default: true
+type: TTP
+description: Detects a process memory dump via comsvcs.dll using rundll32, covering multiple different techniques
+  (ordinal, MiniDump function, etc.). Attackers such as Volt Typhoon use it to dump LSASS memory and harvest credentials
+  with a signed Windows binary. Converted from SigmaHQ rule 646ea171-dded-4578-8a4d-65e9822892e3.
+data_source:
+- Sysmon EventID 1
+search: '| tstats `security_content_summariesonly` count min(_time) as firstTime max(_time) as lastTime from datamodel=Endpoint.Processes
+  where ((Processes.process_path="*\\rundll32.exe" OR Processes.original_file_name="RUNDLL32.EXE" OR Processes.process="*rundll32*")
+  Processes.process="*comsvcs*" Processes.process="*full*" (Processes.process IN ("*#-*", "*#+*", "*#24*", "*24 *",
+  "*MiniDump*", "*#65560*"))) OR (Processes.process="*24*" Processes.process="*comsvcs*" Processes.process="*full*"
+  (Processes.process IN ("* #*", "*,#*", "*, #*", "*\"#*"))) by Processes.dest Processes.user Processes.parent_process_name
+  Processes.parent_process Processes.process_name Processes.process Processes.process_id Processes.parent_process_id
+  Processes.original_file_name | `drop_dm_object_name(Processes)` | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)`
+  | `process_memory_dump_via_comsvcs_dll_filter`'
+how_to_implement: Requires Sysmon EventID 1 process creation events with full command lines, parsed by the Splunk
+  Add-on for Sysmon and mapped to the Endpoint.Processes data model.
+known_false_positives: Unlikely
+references:
+- https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_rundll32_process_dump_via_comsvcs.yml
+drilldown_searches:
+- name: View the detection results for $user$ and $dest$
+  search: '%original_detection_search% | search user=$user$ dest=$dest$'
+  earliest_offset: $info_min_time$
+  latest_offset: $info_max_time$
+- name: View risk events for the last 7 days for $user$ and $dest$
+  search: '| from datamodel Risk.All_Risk | search normalized_risk_object IN ($user$, $dest$) | stats count min(_time)
+    as firstTime max(_time) as lastTime values(search_name) as "Search Name" values(risk_message) as "Risk Message"
+    by normalized_risk_object | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)`'
+  earliest_offset: 7d
+  latest_offset: '0'
+rba:
+  message: 'Process Memory Dump Via Comsvcs DLL: $process_name$ on $dest$ by $user$'
+  risk_objects:
+  - field: dest
+    type: system
+    score: 64
+  - field: user
+    type: user
+    score: 64
+  threat_objects:
+  - field: process_name
+    type: process_name
+tags:
+  analytic_story:
+  - Credential Dumping
+  asset_type: Endpoint
+  mitre_attack_id:
+  - T1036
+  - T1003.001
+  product:
+  - Splunk Enterprise
+  - Splunk Enterprise Security
+  - Splunk Cloud
+  security_domain: endpoint
+tests:
+- name: True Positive Test
+  attack_data:
+  - data: https://media.githubusercontent.com/media/splunk/attack_data/master/datasets/attack_techniques/T1003.001/atomic_red_team/windows-sysmon.log
+    source: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+    sourcetype: XmlWinEventLog

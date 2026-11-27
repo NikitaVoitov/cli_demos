@@ -1,0 +1,11 @@
+detection: HackTool Mimikatz Execution
+cases:
+  - name: "attack_data T1003.001: mimikatz sekurlsa::minidump"
+    expect: match
+    file: tests/data/mimikatz_sekurlsa.log
+  - name: "crafted: cmd.exe whoami /all"
+    expect: none
+    file: tests/data/mimikatz_benign.log
+  - name: "crafted: nightly purple-team run on PT-LAB-01 (excluded, CHG-2077)"
+    expect: none
+    file: tests/data/mimikatz_purpleteam.log

@@ -1,6 +1,7 @@
 import type { DemoEntry } from '@/types/content.types'
 import {
   CdtsmFlowDiagram,
+  DacFlowDiagram,
   FlowDiagram,
   JiraFlowDiagram,
   NotebookFlowDiagram,
@@ -53,6 +54,8 @@ export function HowItWorksPanel({ entry }: { entry: DemoEntry }) {
             <PhishingFlowDiagram />
           ) : entry.content.flow?.kind === 'saia' ? (
             <SaiaFlowDiagram />
+          ) : entry.content.flow?.kind === 'dac' ? (
+            <DacFlowDiagram mcp={entry.content.flow.mcp} agent={entry.content.flow.agent} />
           ) : (
             <FlowDiagram browser={entry.split} mcp={entry.content.flow?.mcp} />
           )}

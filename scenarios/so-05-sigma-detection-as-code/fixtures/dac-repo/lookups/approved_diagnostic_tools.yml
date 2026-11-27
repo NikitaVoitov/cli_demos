@@ -1,0 +1,9 @@
+name: approved_diagnostic_tools
+id: 1bced0f6-d729-46f5-b21d-e0afa330addb
+version: 1
+date: '2026-11-27'
+author: ACME SOC
+description: Diagnostic tools IT may use to capture process memory on servers, and the change that approved each. Reference for reviewers; tuning itself lives in each detection's filter macro.
+lookup_type: csv
+default_match: 'false'
+case_sensitive_match: false

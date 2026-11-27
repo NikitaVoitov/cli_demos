@@ -1,0 +1,2 @@
+tool,approved_for,change
+procdump.exe,w3wp.exe hang dumps on IIS servers,CHG-2041

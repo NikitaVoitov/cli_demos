@@ -1,13 +1,14 @@
 #!/bin/bash
 # GitHub Copilot CLI in the capture home. Every take starts it with the same flags:
-#   --allow-all-tools --add-dir $HOME --allow-all-urls   no approval prompt stalls a take; the story's approvals are
+#   --allow-all-tools --allow-all-paths --add-dir $HOME  no approval prompt or path dialog stalls a take (a dialog
+#   --allow-all-urls                                     swallows the next typed prompt); the story's approvals are
 #                                                        the gated wrappers' CONFIRMATION_REQUIRED
 #   --deny-tool <rule>                                   one per line of ~/.config/copilot-deny (MCP write tools);
 #                                                        deny rules win over allow-all
 #   --no-ask-user                                        the agent asks in its reply, not in a form that waits
 #   --disable-builtin-mcps                               no GitHub MCP server in a Splunk demo
 #   --no-auto-update --no-mouse                          the same CLI every take; no mouse escapes in the cast
-args=(--allow-all-tools --add-dir "$HOME" --allow-all-urls --no-ask-user --disable-builtin-mcps --no-auto-update --no-mouse)
+args=(--allow-all-tools --allow-all-paths --add-dir "$HOME" --allow-all-urls --no-ask-user --disable-builtin-mcps --no-auto-update --no-mouse)
 if [ -f "$HOME/.config/copilot-deny" ]; then
   while IFS= read -r rule; do [ -n "$rule" ] && args+=(--deny-tool "$rule"); done < "$HOME/.config/copilot-deny"
 fi

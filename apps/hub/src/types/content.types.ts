@@ -46,8 +46,18 @@ export interface Scenario {
      */
     steps?: { id: string; screenshot: string; object: string; from?: string | number; until: string | number }[]
   }
-  /** `notebooks`: Jupyter notebooks the demo publishes; each shows in the transcript after the command that ran it. */
-  artifacts?: { dashboard?: string; source?: string; transcript?: string; notebooks?: string[] }
+  /**
+   * `notebooks`: Jupyter notebooks the demo publishes; each shows in the transcript after the command that ran it.
+   * `files`: text files shown in full in the transcript, attached by pipeline.transcript to the step that read, wrote,
+   * or produced them (`read`/`write` regexes on a path, `shell` on a command).
+   */
+  artifacts?: {
+    dashboard?: string
+    source?: string
+    transcript?: string
+    notebooks?: string[]
+    files?: { src: string; name?: string; tag?: string; read?: string; write?: string; shell?: string; nth?: number }[]
+  }
   /**
    * An n8n workflow drawn on the real n8n canvas beside the terminal. `src` is the sanitized export from
    * `pipeline.workflow`. Each step lights one node, by name: running from `at`, done at `until` (default: the next
@@ -112,7 +122,7 @@ export interface Content {
   workflow?: { title?: string; object?: string; alt: string; callouts?: Record<string, string> }
   /** Labels for the architecture diagram; the browser boxes appear only for demos with a browser pane. */
   /** `agent` names the recorded client in the notebook flow diagram (default Cursor CLI). */
-  flow?: { mcp?: string; agent?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' | 'saia' }
+  flow?: { mcp?: string; agent?: string; kind?: 'sdk' | 'jira' | 'cdtsm' | 'notebook' | 'phishing' | 'saia' | 'dac' }
   display: { hidden: boolean; featured: boolean; order: number }
 }
 
@@ -121,7 +131,16 @@ export type TranscriptEntry =
   | { kind: 'shell'; t: number; command: string; result?: string; blocked?: boolean; by?: 'user' }
   | { kind: 'mcp'; t: number; tool: string; args?: Record<string, unknown>; result?: string }
   | { kind: 'browser'; t: number; command: string; result?: string }
-  | { kind: 'file'; t: number; name: string; tag?: string; artifact?: 'dashboard' | 'source' | 'workflow' | 'notebook' }
+  | {
+      kind: 'file'
+      t: number
+      name: string
+      tag?: string
+      artifact?: 'dashboard' | 'source' | 'workflow' | 'notebook' | 'file'
+      /** For `file`: the published file's name in artifacts/, and whether the agent read, wrote, or ran the step. */
+      src?: string
+      via?: 'read' | 'write' | 'shell'
+    }
   | { kind: 'skill'; t: number; name: string }
 
 export interface TranscriptChapter {
@@ -209,6 +228,8 @@ export interface DemoEntry {
   sourceCode?: string
   /** `artifacts.notebooks` as raw .ipynb JSON, by file name (the transcript entry's `name`). */
   notebooks?: Record<string, string>
+  /** `artifacts.files` as text, by file name in artifacts/ (the transcript entry's `src`). */
+  files?: Record<string, string>
   notebookPane?: NotebookPane
   transcript?: Transcript
   howItWorksHtml?: string

@@ -22,6 +22,11 @@ const rawJson = import.meta.glob<string>('@scenarios/*/artifacts/*.{json,py,ipyn
   import: 'default',
 })
 const assetUrls = import.meta.glob<string>('@scenarios/*/artifacts/*.{cast,png,mp3}', { eager: true, query: '?url', import: 'default' })
+const rawText = import.meta.glob<string>('@scenarios/*/artifacts/*.{yml,yaml,conf,md,spl,txt}', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+})
 const captionFiles = import.meta.glob<string>('@scenarios/*/artifacts/*.vtt', { eager: true, query: '?raw', import: 'default' })
 
 function dirOf(path: string) {
@@ -180,6 +185,14 @@ function buildEntry(scenarioPath: string): DemoEntry {
     }),
   )
 
+  const files = Object.fromEntries(
+    (scenario.artifacts?.files ?? []).map(({ src }) => {
+      const text = rawText[artifact(src) ?? ''] ?? rawJson[artifact(src) ?? '']
+      if (text === undefined) throw new Error(`${scenario.id}: artifact file ${src} is missing`)
+      return [src.split('/').pop() ?? src, text]
+    }),
+  )
+
   return {
     id: scenario.id,
     scenario,
@@ -211,6 +224,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
     dashboardJson: rawJson[artifact(scenario.artifacts?.dashboard) ?? ''],
     sourceCode: rawJson[artifact(scenario.artifacts?.source) ?? ''],
     notebooks,
+    files,
     notebookPane: resolveNotebookPane(scenario, dir),
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],
     howItWorksHtml: howItWorks[`${dir}/how-it-works.md`],

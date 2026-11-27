@@ -7,6 +7,16 @@ import re
 from pathlib import Path
 
 STACKS = Path(__file__).resolve().parent.parent / ".captures/ce01/stacks"
+DOTENV = Path(__file__).resolve().parent.parent / ".env"
+
+
+def _github_owner() -> str:
+    """The demo repo's owner (DAC_DEMO_REPO=<owner>/<repo> in .env), a personal account name."""
+    if DOTENV.exists():
+        for line in DOTENV.read_text().splitlines():
+            if line.startswith("DAC_DEMO_REPO="):
+                return line.split("=", 1)[1].strip().strip("\"'").split("/")[0]
+    return ""
 
 
 def _same_length(value: str, template: str) -> str:
@@ -39,6 +49,9 @@ def find_replacements(text: str) -> dict[str, str]:
             reps[name] = _same_length(name, "jirademosite")
     for host in set(re.findall(r"[a-z0-9-]+\.app\.n8n\.cloud", text)):
         reps[host] = _same_length(host[: -len(".example.com")], "n8n-demo-instance") + ".example.com"
+    owner = _github_owner()
+    if len(owner) >= 3 and owner in text:
+        reps[owner] = _same_length(owner, "acme-soc-engineering")
     for email in set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[a-z]{2,}", text)):
         # Seeded story data uses the reserved .example TLD (acme-corp.example) and must stay readable, also where
         # the terminal wraps an address mid-TLD (acme-corp.examp|le).
@@ -76,4 +89,8 @@ LEFTOVER = re.compile(r"splunkcloud\.com|fedsearch|/Users/(?!Shared|demo)\w+|\b(
 
 
 def leftovers(text: str) -> list[str]:
-    return sorted(set(LEFTOVER.findall(text)))
+    found = set(LEFTOVER.findall(text))
+    owner = _github_owner()
+    if len(owner) >= 3 and owner in text:
+        found.add(owner)
+    return sorted(found)

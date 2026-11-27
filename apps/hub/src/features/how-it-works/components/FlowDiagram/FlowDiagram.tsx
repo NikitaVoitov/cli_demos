@@ -442,3 +442,82 @@ export function NotebookFlowDiagram({ mcp = 'hot index, triage', agent = 'Cursor
     </svg>
   )
 }
+
+// Detections as code (SO-05). Left to right: you, the agent, its three tools; on the right Splunk Cloud (top) and
+// GitHub (bottom). The agent never writes to Splunk: changes reach ES only through the merged pull request and CI.
+export function DacFlowDiagram({ mcp = 'ES detections, searches', agent = 'Copilot CLI' }: { mcp?: string; agent?: string }) {
+  return (
+    <svg viewBox="0 0 1000 380" className="h-auto w-full font-sans" role="img" aria-labelledby="dac-flow-title dac-flow-desc">
+      <title id="dac-flow-title">How the pieces fit together</title>
+      <desc id="dac-flow-desc">
+        You prompt {agent}. It reads Enterprise Security detections through Splunk MCP, converts a SigmaHQ rule and builds
+        the detection with sigma-cli and contentctl, and opens a pull request with git and gh. On the pull request, the
+        validate workflow replays the test events into a test index, checks a week of endpoint data for noise, and has
+        Splunk AI Toolkit triage the noise; it posts its report on the pull request. Merging stops at
+        CONFIRMATION_REQUIRED, so the agent asks you first. After the merge, the deploy workflow installs the detection in
+        Enterprise Security over the REST API.
+      </desc>
+      <defs>
+        <marker id="dac-flow-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--text-muted)" />
+        </marker>
+        <marker id="dac-flow-arrow-warn" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto">
+          <path d="M0 0L8 4L0 8z" fill="var(--status-warning)" />
+        </marker>
+      </defs>
+      <Box x={0} y={160} w={100} h={76} title="You" sub="prompt, approve" stroke="var(--border-strong)" />
+      <Box x={134} y={160} w={118} h={76} title={agent} sub="the agent" stroke="var(--text-primary)" />
+      <Box x={283} y={40} w={215} h={64} title="Splunk MCP" sub={mcp} stroke="var(--action-primary)" />
+      <Box x={283} y={160} w={215} h={76} title="sigma-cli, contentctl" sub="Shell · convert, build" stroke="var(--status-info)" />
+      <Box
+        x={283}
+        y={280}
+        w={215}
+        h={76}
+        title="git, gh"
+        sub="Shell · branch, pull request"
+        stroke="var(--status-success)"
+        note="merge: CONFIRMATION_REQUIRED"
+      />
+      <Box x={525} y={8} w={473} h={160} title="Splunk Cloud" sub="Enterprise Security search head" stroke="var(--border-strong)" />
+      <Box x={537} y={58} w={143} h={92} title="ES detections" sub="ESCU, ACME SOC" stroke="var(--action-primary)" />
+      <Box x={692} y={58} w={143} h={92} title="Test indexes" sub="dac_ci, demo_endpoint" stroke="var(--border-strong)" />
+      <Box x={847} y={58} w={143} h={92} title="AI Toolkit" sub="ai · Azure OpenAI" stroke="var(--status-info)" />
+      <Box x={525} y={210} w={473} h={162} title="GitHub" sub="the team's detections repo" stroke="var(--border-strong)" />
+      <Box x={537} y={262} w={143} h={92} title="Repository" sub="Sigma, YAML, tests" stroke="var(--border-strong)" />
+      <Box x={692} y={262} w={143} h={92} title="validate" sub="on pull request" stroke="var(--status-success)" />
+      <Box x={847} y={262} w={143} h={92} title="deploy" sub="on merge to main" stroke="var(--status-success)" />
+      <g stroke="var(--text-muted)" strokeWidth={1.3} fill="none" markerEnd="url(#dac-flow-arrow)">
+        <path d="M100 186H132" />
+        <path d="M252 188C267 188 267 72 281 72" />
+        <path d="M252 198H281" />
+        <path d="M252 208C267 208 267 318 281 318" />
+        <path d="M498 72C518 72 518 104 535 104" />
+        <path d="M498 318C518 318 518 308 535 308" />
+        <path d="M680 308H690" />
+        <path d="M765 262V152" />
+        <path d="M795 262C805 215 885 215 905 152" />
+        <path d="M920 262V189H610V152" />
+      </g>
+      <path d="M132 214H102" stroke="var(--status-warning)" strokeWidth={1.3} strokeDasharray="4 3" fill="none" markerEnd="url(#dac-flow-arrow-warn)" />
+      <Label x={116} y={178}>prompt</Label>
+      <Label x={116} y={252} warn>
+        asks first
+      </Label>
+      <Label x={517} y={60}>read</Label>
+      <Label x={517} y={300}>PR</Label>
+      <text x={759} y={240} fontSize={11} textAnchor="end" fill="var(--text-muted)">
+        replay, search
+      </text>
+      <text x={862} y={226} fontSize={11} fill="var(--text-muted)">
+        triage
+      </text>
+      <text x={616} y={184} fontSize={11} fill="var(--text-muted)">
+        REST install
+      </text>
+      <text x={692} y={367} fontSize={11} fill="var(--text-muted)">
+        validate posts its report on the pull request
+      </text>
+    </svg>
+  )
+}

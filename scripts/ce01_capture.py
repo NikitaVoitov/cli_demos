@@ -5,6 +5,7 @@
   python3 scripts/ce01_capture.py jira             # after setup: add Jira (acli + Atlassian MCP) for SO-07
   python3 scripts/ce01_capture.py notebook A,B,C   # after setup: add the gated jpterm wrapper for SO-03; A,B,C are the held cells
   python3 scripts/ce01_capture.py n8n              # after setup: add the gated n8n-contain wrapper for SO-08
+  python3 scripts/ce01_capture.py github           # after setup: gated gh, git, sigma-cli, and contentctl for SO-05
   python3 scripts/ce01_capture.py outlook          # after setup: load the Outlook plugin, read tools only, for SO-08
   python3 scripts/ce01_capture.py search-reads     # after setup: splunkctl runs read-only searches without confirmation
   python3 scripts/ce01_capture.py login            # one-time client login inside the capture HOME (Cursor or Copilot)
@@ -92,6 +93,13 @@ NOTEBOOK_VENV = CAPTURE_HOME / "nb"
 # The phishing demo (SO-08): containment goes through the gated n8n-contain wrapper to the n8n webhook.
 N8N_SHIMS = ("n8n-contain",)
 N8N_WEBHOOK_PATH = "webhook/contain-phishing"
+# The detections-as-code demo (SO-05): a gated gh for the demo repo only (DAC_DEMO_REPO in .env), git that pushes
+# with that repo's token, and sigma-cli and contentctl from a pinned environment.
+GITHUB_SHIMS = ("gh", "git-credential-demo")
+DAC_VENV = CAPTURE_HOME / "dac"
+DAC_REQUIREMENTS = ROOT / "scenarios/so-05-sigma-detection-as-code/fixtures/dac-repo/requirements.txt"
+DAC_TOOLS = ("sigma", "contentctl")
+GITHUB_ALLOW = ["Shell(gh)", "Shell(git)", "Shell(sigma)", "Shell(contentctl)"]
 # The Outlook plugin's MCP server is Cursor-hosted and signs in to Microsoft with `/mcp` > Log in in the capture
 # HOME. Cursor CLI only loads a plugin passed with --plugin-dir, so an `agent` shim adds it. The agent reads the
 # report; nothing in the story writes mail.
@@ -325,6 +333,51 @@ def n8n() -> None:
     print(f"n8n ready in {h}: gated n8n-contain wrapper")
 
 
+def github() -> None:
+    """Add GitHub and the detection tools to a capture home that setup just built (SO-05)."""
+    h = CAPTURE_HOME
+    repo = dotenv("DAC_DEMO_REPO")
+    gh = shutil.which("gh", path=TOOL_PATH)
+    if not gh:
+        raise SystemExit("gh is not installed (brew install gh)")
+    for name in GITHUB_SHIMS:
+        shim = h / "bin" / name
+        shim.write_text((CLIENT / f"{name}.tmpl").read_text().replace("__GH_BIN__", gh).replace("__GH_REPO__", repo))
+        shim.chmod(0o755)
+    env = h / ".config/gh-demo.env"
+    env.write_text(f"GH_TOKEN={dotenv('GH_TOKEN_DAC_DEMO')}\n")
+    env.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    # The empty helper drops inherited ones (Homebrew git's system config uses the login keychain).
+    (h / ".gitconfig").write_text(
+        "[user]\n\tname = ACME SOC Engineer\n\temail = soc@acme.example\n"
+        f"[credential]\n\thelper =\n\thelper = {h / 'bin/git-credential-demo'}\n"
+        "[init]\n\tdefaultBranch = main\n[push]\n\tautoSetupRemote = true\n[advice]\n\tdetachedHead = false\n")
+
+    if not (DAC_VENV / "bin/contentctl").exists():
+        subprocess.run(["uv", "venv", "--python", "3.11", str(DAC_VENV)], check=True)
+    subprocess.run(["uv", "pip", "install", "--python", str(DAC_VENV / "bin/python"), "-q", "-r", str(DAC_REQUIREMENTS)],
+                   check=True)
+    for tool in DAC_TOOLS:
+        shim = h / "bin" / tool
+        shim.write_text(f'#!/bin/sh\nexec "{DAC_VENV / "bin" / tool}" "$@"\n')
+        shim.chmod(0o755)
+    # The repo's CI scripts need PyYAML and sigma-cli; this python also replaces another demo's python3 shim (EB-03
+    # writes its own before each of its takes), whose PYTHONPATH breaks sigma-cli.
+    for name in ("python3", "python"):
+        shim = h / "bin" / name
+        shim.write_text(f'#!/bin/sh\nunset PYTHONPATH PYTHONHOME\nexec "{DAC_VENV / "bin/python"}" "$@"\n')
+        shim.chmod(0o755)
+
+    cfg_path = h / ".cursor/cli-config.json"
+    if CLIENT_NAME == "cursor-cli" and cfg_path.exists():
+        cfg = json.loads(cfg_path.read_text())
+        allow = cfg["permissions"]["allow"]
+        allow += [p for p in GITHUB_ALLOW if p not in allow]
+        cfg_path.write_text(json.dumps(cfg, indent=2))
+        cfg_path.chmod(0o600)
+    print(f"github ready in {h}: gated gh for the demo repo, git credentials, sigma and contentctl")
+
+
 def search_reads() -> None:
     """Swap the splunkctl shim for one that confirms read-only searches, for demos gated somewhere else.
 
@@ -440,6 +493,8 @@ def main() -> None:
         jira()
     elif cmd == "n8n":
         n8n()
+    elif cmd == "github":
+        github()
     elif cmd == "outlook":
         outlook()
     elif cmd == "search-reads":

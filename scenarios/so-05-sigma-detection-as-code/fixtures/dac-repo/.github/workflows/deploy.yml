@@ -1,0 +1,30 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: contentctl build
+      - name: Deploy to Enterprise Security and verify
+        env:
+          SPLUNK_MGMT_URL: ${{ secrets.SPLUNK_MGMT_URL }}
+          SPLUNK_TOKEN: ${{ secrets.SPLUNK_CI_DEPLOY_TOKEN }}
+        run: python ci/deploy.py

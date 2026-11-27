@@ -1,0 +1,21 @@
+detection: Process Memory Dump Via Comsvcs DLL
+compare_with: ESCU - Dump LSASS via comsvcs DLL - Rule
+cases:
+  - name: "attack_data T1003.001: rundll32 comsvcs.dll MiniDump lsass"
+    expect: match
+    file: tests/data/comsvcs_minidump.log
+  - name: "crafted: ordinal #+24 (ESCU needs #24 or MiniDump)"
+    expect: match
+    file: tests/data/comsvcs_ordinal_plus_crafted.log
+  - name: "crafted: wrapped ordinal #65560 = 24 (ESCU misses)"
+    expect: match
+    file: tests/data/comsvcs_ordinal_65560_crafted.log
+  - name: "crafted: negative ordinal #-65512 (ESCU misses)"
+    expect: match
+    file: tests/data/comsvcs_ordinal_minus_crafted.log
+  - name: "crafted: rundll32 loads comsvcs.dll RegisterComponent, no dump"
+    expect: none
+    file: tests/data/comsvcs_benign.log
+  - name: "crafted: nightly purple-team run on PT-LAB-01 (excluded, CHG-2077)"
+    expect: none
+    file: tests/data/comsvcs_purpleteam.log

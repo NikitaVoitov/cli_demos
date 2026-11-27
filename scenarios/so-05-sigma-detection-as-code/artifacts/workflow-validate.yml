@@ -1,0 +1,63 @@
+name: validate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Lint Sigma rules
+        run: sigma check sigma/rules
+      - name: Detections still match their Sigma rules
+        run: python ci/check_sigma.py
+      - name: Build the app (contentctl)
+        run: contentctl build
+      - name: AppInspect for Splunk Cloud
+        env:
+          SPLUNK_COM_USERNAME: ${{ secrets.SPLUNK_COM_USERNAME }}
+          SPLUNK_COM_PASSWORD: ${{ secrets.SPLUNK_COM_PASSWORD }}
+        run: python ci/appinspect.py dist/DA-ESS-DaC-Demo-latest.tar.gz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-package
+          path: dist/*-latest.tar.gz
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: contentctl build
+      - name: Replay tests, compare with ESCU, check noise, AI triage
+        env:
+          SPLUNK_MGMT_URL: ${{ secrets.SPLUNK_MGMT_URL }}
+          SPLUNK_TOKEN: ${{ secrets.SPLUNK_CI_READ_TOKEN }}
+          SPLUNK_HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
+          SPLUNK_HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN_DAC }}
+        run: python ci/test_detections.py
+      - name: Post the report on the pull request
+        if: always() && hashFiles('test_results/report.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file test_results/report.md

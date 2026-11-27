@@ -1,0 +1,167 @@
+WEBVTT
+
+NOTE Narration by an AI voice: Matilda (XrExE9yKIg1WjnnlVkGX), eleven_v4.
+
+intro
+00:00:00.300 --> 00:00:08.700
+Volt Typhoon dumps LSASS with a built-in Windows DLL. Copilot checks our coverage and ships a fix as code.
+
+ask
+00:00:10.600 --> 00:00:16.520
+The engineer asks whether Enterprise Security would catch it, and says not to change anything.
+
+read
+00:00:17.500 --> 00:00:24.860
+Copilot reads the deployed detections through Splunk MCP, with their searches and the macros behind them.
+
+disabled
+00:00:27.000 --> 00:00:34.200
+ESCU has a rule for this, but it's off, and its search needs MiniDump or ordinal twenty-four.
+
+miss
+00:00:35.300 --> 00:00:42.820
+Call the same function by another ordinal, or leave off the DLL extension, and that rule stays silent.
+
+repo
+00:00:43.800 --> 00:00:49.320
+Copilot builds the fix in the team's detections repo, following its agents file.
+
+sigma
+00:00:50.500 --> 00:00:56.260
+It starts from SigmaHQ's community rule, which already covers the ordinal tricks.
+
+tests
+00:00:57.000 --> 00:01:04.520
+Real attack data from Splunk's threat research team becomes a test that must fire, plus crafted variants.
+
+build
+00:01:05.600 --> 00:01:15.120
+sigma-cli converts the rule for the CIM endpoint data model, and contentctl builds an Enterprise Security correlation search.
+
+nothing
+00:01:15.500 --> 00:01:19.500
+Nothing is pushed yet, and nothing in Splunk has changed.
+
+pr
+00:01:20.000 --> 00:01:24.560
+Copilot opens a pull request, and GitHub Actions takes over.
+
+workflow
+00:01:25.000 --> 00:01:30.680
+At right, the validate workflow runs two jobs on GitHub-hosted runners.
+
+build-job
+00:01:31.000 --> 00:01:38.600
+Build lints the Sigma rule, checks the search still matches it, and packages the app with contentctl.
+
+test-job
+00:01:40.100 --> 00:01:49.380
+Test sends each case to Splunk over HEC, runs our search beside ESCU's, and counts a week of real alerts.
+
+compare
+00:01:49.700 --> 00:01:56.180
+ESCU's rule misses all three ordinal variants. Ours catches each one.
+
+noise
+00:01:56.500 --> 00:02:02.660
+But a week of real endpoint data raises sixteen alerts, over the budget of five.
+
+triage
+00:02:03.000 --> 00:02:10.120
+Splunk AI Toolkit triages them: a purple-team account on a lab host, testing nightly.
+
+report
+00:02:10.500 --> 00:02:15.700
+CI fails, and posts its report on the pull request, at right.
+
+precedent
+00:02:16.100 --> 00:02:21.620
+Copilot sees the team already excludes that run, and asks before tuning.
+
+tune
+00:02:22.200 --> 00:02:29.400
+Copilot adds the same narrow exclusion: that account and that host together, nothing broader.
+
+silent-case
+00:02:29.800 --> 00:02:33.880
+It adds that run as a test that must stay silent.
+
+push
+00:02:34.300 --> 00:02:37.740
+Copilot pushes, and validate runs again.
+
+green-run
+00:02:38.600 --> 00:02:43.000
+Both jobs pass at right, in under two and a half minutes.
+
+green
+00:02:44.000 --> 00:02:49.600
+Twelve of twelve cases pass, and noise drops from sixteen to zero.
+
+diff
+00:02:51.000 --> 00:02:55.880
+The tuning lives in one macro, so the diff shows what is excluded.
+
+git
+00:02:56.400 --> 00:03:01.360
+Every change is in Git, reviewed and tested before production.
+
+person
+00:03:01.800 --> 00:03:06.920
+Switched on, ESCU's rule would page the SOC about it nightly.
+
+gate-why
+00:03:07.300 --> 00:03:11.300
+Merging deploys, so the gate holds it for your approval.
+
+approved
+00:03:13.000 --> 00:03:20.200
+Approved. Copilot merges, and the deploy workflow installs the detection over the REST API.
+
+prune
+00:03:20.600 --> 00:03:26.120
+It also removes detections no longer in the repo, so Splunk matches Git.
+
+deploy-run
+00:03:27.000 --> 00:03:35.240
+At right, one deploy job rebuilds the app, installs it, and checks every detection is on and scheduled.
+
+check
+00:03:35.800 --> 00:03:41.080
+Then Copilot checks the live result in Splunk, not just the pipeline.
+
+live
+00:03:41.800 --> 00:03:47.800
+Splunk MCP confirms it's on, hourly, and a correlation search.
+
+fires
+00:03:48.200 --> 00:03:52.760
+Run once, it finds the replayed attack and every variant.
+
+content
+00:03:53.200 --> 00:03:58.800
+Content management shows it live beside ESCU's rule, still off.
+
+spl
+00:03:59.600 --> 00:04:05.040
+This is the search Enterprise Security now runs, generated from the Sigma rule.
+
+tstats
+00:04:05.400 --> 00:04:12.920
+It uses tstats on the CIM Endpoint data model, so it reads accelerated summaries, not raw events.
+
+logic
+00:04:13.400 --> 00:04:23.320
+It flags rundll32 loading comsvcs with the full-dump flag, whether the call names MiniDump or any form of ordinal twenty-four.
+
+macro
+00:04:23.700 --> 00:04:29.620
+The last macro is the team's tuning, kept apart so the logic stays Sigma's.
+
+agentic
+00:04:30.000 --> 00:04:38.480
+Agentic workflows with Splunk MCP and AI Toolkit turned ESCU's default rule into a stronger detection.
+
+practice
+00:04:38.900 --> 00:04:49.700
+And the detection-as-code practices held: it's in Git, tested on real attacks, tuned with AI triage, and shipped by CI after your approval.

@@ -42,10 +42,29 @@ export function PaneFrame({
           {title}
         </span>
         {aside && <span className="ml-auto flex min-w-0 items-center gap-2 truncate">{aside}</span>}
-        {actions && <span className="relative ml-auto flex items-center gap-2">{actions}</span>}
+        {actions && <span className={cn('relative flex items-center gap-2', aside === undefined && 'ml-auto')}>{actions}</span>}
       </div>
       {children}
     </div>
+  )
+}
+
+/** A small control for a pane header, such as fullscreen. */
+export function HeaderButton({ label, onClick, children }: {
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className="flex h-5 items-center gap-1 rounded-sm px-1.5 font-semibold text-subtle-foreground hover:bg-foreground/10"
+    >
+      {children}
+    </button>
   )
 }
 

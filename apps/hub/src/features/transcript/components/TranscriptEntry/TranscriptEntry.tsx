@@ -146,6 +146,9 @@ function Body({ entry, demo }: { entry: Entry; demo: DemoEntry }) {
           {entry.artifact === 'source' && demo.sourceCode && (
             <CodeBlock code={demo.sourceCode.trim()} copyLabel="Copy script" accent="file" maxLines={40} />
           )}
+          {entry.artifact === 'file' && entry.src && demo.files?.[entry.src] !== undefined && (
+            <CodeBlock code={demo.files[entry.src].trim()} copyLabel="Copy file" accent="file" maxLines={24} />
+          )}
           {entry.artifact === 'notebook' && demo.notebooks?.[entry.name] && (
             <NotebookView name={entry.name} json={demo.notebooks[entry.name]} Markdown={AgentText} />
           )}
@@ -171,7 +174,11 @@ export function TranscriptEntry({ entry, demo }: { entry: Entry; demo: DemoEntry
         ? { ...base, verb: 'Started in n8n' }
         : entry.kind === 'file' && entry.artifact === 'notebook'
           ? { ...base, verb: 'Agent ran' }
-          : base
+          : entry.kind === 'file' && entry.via === 'read'
+            ? { ...base, verb: 'Agent read' }
+            : entry.kind === 'file' && entry.via === 'shell'
+              ? { ...base, verb: 'Command made' }
+              : base
   return (
     <li className="grid gap-2 border-b border-border-subtle py-3 last:border-b-0 md:grid-cols-[170px_minmax(0,1fr)] md:gap-4">
       <div className="flex items-start gap-2.5">

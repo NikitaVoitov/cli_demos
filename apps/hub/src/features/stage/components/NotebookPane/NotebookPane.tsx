@@ -5,25 +5,7 @@ import { cn } from '@/lib/utils'
 import { usePlaybackStore } from '@/store/usePlaybackStore'
 import type { NotebookPane as Pane } from '@/types/content.types'
 import { frameAt } from '../../utils/timeline'
-import { PaneFrame } from '../TerminalPane/TerminalPane'
-
-function HeaderButton({ label, onClick, children }: {
-  label: string
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-      className="flex h-5 items-center gap-1 rounded-sm px-1.5 font-semibold text-subtle-foreground hover:bg-foreground/10"
-    >
-      {children}
-    </button>
-  )
-}
+import { HeaderButton, PaneFrame } from '../TerminalPane/TerminalPane'
 
 /**
  * The notebook beside the terminal. Its cast holds one frame per notebook state, so this player never plays: it seeks

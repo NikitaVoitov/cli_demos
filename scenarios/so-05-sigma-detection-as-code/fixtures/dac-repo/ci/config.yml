@@ -1,0 +1,11 @@
+app_dir: dist/DA-ESS-DaC-Demo
+# Test events are replayed here, one host per test case, so runs never see each other's events.
+test_index: dac_ci
+# A week of real endpoint data: a new or changed detection must stay under the budget there.
+noise:
+  index: demo_endpoint
+  earliest: -7d@d
+  budget: 5
+# Splunk AI Toolkit connection that triages any noise hits (`| ai connection=...`).
+triage:
+  connection: azure_gpt_5

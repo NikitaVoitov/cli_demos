@@ -1,0 +1,12 @@
+detection: Potential LSASS Process Dump Via Procdump
+compare_with: ESCU - Dump LSASS via procdump - Rule
+cases:
+  - name: "attack_data T1003.001: procdump -ma lsass.exe"
+    expect: match
+    file: tests/data/procdump_lsass.log
+  - name: "crafted: procdump of a hung IIS worker (w3wp.exe)"
+    expect: none
+    file: tests/data/procdump_w3wp_benign.log
+  - name: "crafted: nightly purple-team run on PT-LAB-01 (excluded, CHG-2077)"
+    expect: none
+    file: tests/data/procdump_purpleteam.log

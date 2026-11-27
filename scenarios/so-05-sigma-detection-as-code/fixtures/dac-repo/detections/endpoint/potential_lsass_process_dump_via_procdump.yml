@@ -1,0 +1,71 @@
+name: Potential LSASS Process Dump Via Procdump
+id: 5afee48e-67dd-4e03-a783-f74259dcf998
+version: 1
+date: '2025-10-19'
+author: Florian Roth (Nextron Systems) (Sigma); ACME SOC
+status: production
+enabled_by_default: true
+type: TTP
+description: Detects potential credential harvesting attempts through LSASS memory dumps using ProcDump. This rule
+  identifies suspicious command-line patterns that combine memory dump flags (-ma, -mm, -mp) with LSASS-related
+  process markers. LSASS (Local Security Authority Subsystem Service) contains sensitive authentication data including
+  plaintext passwords, NTLM hashes, and Kerberos tickets in memory. Attackers commonly dump LSASS memory to extract
+  credentials for lateral movement and privilege escalation. Converted from SigmaHQ rule 5afee48e-67dd-4e03-a783-f74259dcf998.
+data_source:
+- Sysmon EventID 1
+search: '| tstats `security_content_summariesonly` count min(_time) as firstTime max(_time) as lastTime from datamodel=Endpoint.Processes
+  where (Processes.process="* -ma *" OR Processes.process="* /ma *" OR Processes.process="* –ma *" OR Processes.process="*
+  —ma *" OR Processes.process="* ―ma *" OR Processes.process="* -mm *" OR Processes.process="* /mm *" OR Processes.process="*
+  –mm *" OR Processes.process="* —mm *" OR Processes.process="* ―mm *" OR Processes.process="* -mp *" OR Processes.process="*
+  /mp *" OR Processes.process="* –mp *" OR Processes.process="* —mp *" OR Processes.process="* ―mp *") (Processes.process
+  IN ("* ls*", "* keyiso*", "* samss*")) by Processes.dest Processes.user Processes.parent_process_name Processes.parent_process
+  Processes.process_name Processes.process Processes.process_id Processes.parent_process_id Processes.original_file_name
+  | `drop_dm_object_name(Processes)` | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)`
+  | `potential_lsass_process_dump_via_procdump_filter`'
+how_to_implement: Requires Sysmon EventID 1 process creation events with full command lines, parsed by the Splunk
+  Add-on for Sysmon and mapped to the Endpoint.Processes data model.
+known_false_positives: Unlikely, because no one should dump an lsass process memory; Another tool that uses command
+  line flags similar to ProcDump
+references:
+- https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_sysinternals_procdump_lsass.yml
+drilldown_searches:
+- name: View the detection results for $user$ and $dest$
+  search: '%original_detection_search% | search user=$user$ dest=$dest$'
+  earliest_offset: $info_min_time$
+  latest_offset: $info_max_time$
+- name: View risk events for the last 7 days for $user$ and $dest$
+  search: '| from datamodel Risk.All_Risk | search normalized_risk_object IN ($user$, $dest$) | stats count min(_time)
+    as firstTime max(_time) as lastTime values(search_name) as "Search Name" values(risk_message) as "Risk Message"
+    by normalized_risk_object | `security_content_ctime(firstTime)` | `security_content_ctime(lastTime)`'
+  earliest_offset: 7d
+  latest_offset: '0'
+rba:
+  message: 'Potential LSASS Process Dump Via Procdump: $process_name$ on $dest$ by $user$'
+  risk_objects:
+  - field: dest
+    type: system
+    score: 64
+  - field: user
+    type: user
+    score: 64
+  threat_objects:
+  - field: process_name
+    type: process_name
+tags:
+  analytic_story:
+  - Credential Dumping
+  asset_type: Endpoint
+  mitre_attack_id:
+  - T1036
+  - T1003.001
+  product:
+  - Splunk Enterprise
+  - Splunk Enterprise Security
+  - Splunk Cloud
+  security_domain: endpoint
+tests:
+- name: True Positive Test
+  attack_data:
+  - data: https://media.githubusercontent.com/media/splunk/attack_data/master/datasets/attack_techniques/T1003.001/atomic_red_team/windows-sysmon.log
+    source: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+    sourcetype: XmlWinEventLog

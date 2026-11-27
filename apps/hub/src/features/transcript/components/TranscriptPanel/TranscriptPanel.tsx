@@ -9,7 +9,9 @@ export function TranscriptPanel({ entry }: { entry: DemoEntry }) {
   if (!transcript) return <p className="text-body-sm text-muted-foreground">No transcript yet.</p>
 
   const labelOf = (id: string) => entry.chapters.find((chapter) => chapter.id === id)
-  const defaultOpen = transcript.chapters.map((chapter) => chapter.id).filter((id) => id !== 'deploy')
+  // A chapter that only narrates over a screenshot has no steps to list.
+  const chapters = transcript.chapters.filter((chapter) => chapter.entries.length)
+  const defaultOpen = chapters.map((chapter) => chapter.id).filter((id) => id !== 'deploy')
 
   return (
     <div>
@@ -20,7 +22,7 @@ export function TranscriptPanel({ entry }: { entry: DemoEntry }) {
         </p>
       )}
       <Accordion type="multiple" defaultValue={defaultOpen} className="flex flex-col gap-2.5">
-        {transcript.chapters.map((chapter, i) => {
+        {chapters.map((chapter, i) => {
           const meta = labelOf(chapter.id)
           return (
             <AccordionItem key={chapter.id} value={chapter.id} className="rounded-lg border border-border bg-card/60 not-last:border-b">

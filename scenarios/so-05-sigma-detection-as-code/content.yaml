@@ -1,0 +1,63 @@
+# What visitors read. Editable without a new capture.
+title: "Detection as Code (DaC): Automated Detection Refactoring via Agentic Workflows"
+summary: >
+  ESCU's rule for LSASS dumping with comsvcs.dll is off, and it misses the same call made by ordinal. GitHub Copilot
+  CLI turns SigmaHQ's community rule into an Enterprise Security detection with tests, opens a pull request, and
+  reads what CI found: every test passes, but a week of endpoint data shows nightly alerts that Splunk AI Toolkit
+  triages as the purple team. Copilot tunes them out the way the team already does, and the detection ships when
+  you approve the merge.
+taxonomy:
+  # Personas from docs/headless_use_case_matrix.md, using the hub's short names.
+  personas: [Detection Engineer]
+  category: Security Operations
+  technologies: [GitHub Actions, Sigma]
+  splunk: [Splunk Enterprise Security, contentctl, Splunk MCP, Splunk AI Toolkit, Splunk Cloud]
+chapters:
+  gap: Coverage gap
+  draft: Sigma to detection
+  ci: Pull request and CI
+  tune: Tune and retest
+  deploy: Merge and deploy
+  verify: Live in ES
+  logic: Detection logic
+gate:
+  title: Merging deploys to production
+  body: The merge triggers the deploy workflow, which installs the detection in Enterprise Security. CI has passed; this is the review.
+  approve: Approve
+  decline: Decline
+  declinedTitle: Nothing was merged.
+  declinedBody: The pull request stays open with green checks, and Enterprise Security keeps running only the detections already on main.
+browser:
+  title: Splunk Web
+  waiting: Waiting for the pull request
+  steps:
+    ci-run-1:
+      title: GitHub Actions
+      alt: >
+        The validate workflow's run on GitHub Actions for the new pull request: the build job has passed and the test
+        job has failed, with the summary of detection tests below.
+    pr:
+      title: GitHub
+      alt: >
+        The pull request on GitHub with CI's first report: the new rule raised 16 alerts in a week of endpoint data,
+        over the budget of 5, Splunk AI Toolkit triages them as the nightly purple-team run, and the run fails.
+    ci-run-2:
+      title: GitHub Actions
+      alt: >
+        The validate workflow's run after tuning: the build and test jobs both pass, in 2 minutes 22 seconds, with every
+        detection test passing below.
+    deploy-run:
+      title: GitHub Actions
+      alt: >
+        The deploy workflow's run after the merge: one deploy job passes, and its summary lists the three ACME SOC
+        detections in Enterprise Security, each on, scheduled hourly, and checked.
+    es:
+      alt: >
+        Enterprise Security Content management with the new ACME SOC comsvcs detection turned on next to ESCU's rule,
+        which is off.
+  alt: >
+    The new detection open in Enterprise Security's editor: its description cites SigmaHQ rule 646ea171, and its search
+    runs tstats over the CIM Endpoint Processes data model for rundll32 with comsvcs, full, and MiniDump or an ordinal
+    form of 24, ending with the team's tuning macro.
+flow: { kind: dac, mcp: "ES detections, searches", agent: "Copilot CLI" }
+display: { hidden: false, featured: false, order: 47 }

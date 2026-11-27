@@ -124,8 +124,24 @@ def _skill_name(path: str, output: str) -> str:
     return front.group(1) if front else Path(path).parent.name
 
 
+def _file_rules(scenario: dict) -> list[dict]:
+    """`artifacts.files`: published files the transcript shows in full, each attached to the step that read, wrote,
+    or produced it. `read` and `write` are regexes on a path (a read also matches a shell command that names the path,
+    such as cat or sigma convert); `shell` is a regex on a command that succeeded. `nth` picks the match: 1 is the
+    first, -1 (the default for write and shell) the last; a read defaults to the first."""
+    rules = []
+    for f in (scenario.get("artifacts") or {}).get("files", []):
+        how = next((k for k in ("read", "write", "shell") if k in f), None)
+        if not how:
+            raise SystemExit(f"artifacts.files {f.get('src')}: needs read, write, or shell")
+        rules.append({**f, "how": how, "re": re.compile(f[how]), "nth": f.get("nth", 1 if how == "read" else -1),
+                      "hits": []})
+    return rules
+
+
 def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock) -> list[dict]:
     dashboard = Path((scenario.get("artifacts") or {}).get("dashboard", "")).name
+    rules = _file_rules(scenario)
     # The shell command that starts the n8n workflow; the workflow follows it as an artifact, like a dashboard file.
     started_by = (scenario.get("workflow") or {}).get("startedBy")
     workflow_file = scenario.get("_workflow_file", "workflow.json")
@@ -146,7 +162,9 @@ def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock
             kind = "browser" if command.startswith("playwright-cli") else "shell"
             entry = {"kind": kind, "t": clock.at(command), "command": command,
                      "result": out["text"] or f"(no output) exit {out['exit']}"}
-            if kind == "shell" and out["exit"] not in (0, None) and "requires confirmation" in out["text"]:
+            # A gated wrapper's refusal; behind a pipe such as `| tail` the command still exits 0.
+            if kind == "shell" and ("CONFIRMATION_REQUIRED" in out["text"]
+                                    or out["exit"] not in (0, None) and "requires confirmation" in out["text"]):
                 entry["blocked"] = True
             if event.by_user:
                 entry["by"] = "user"
@@ -158,6 +176,11 @@ def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock
                     and out["exit"] in (0, None):
                 entries.append({"kind": "file", "t": entry["t"], "name": workflow_file, "tag": "n8n workflow",
                                 "artifact": "workflow"})
+            if kind == "shell" and not entry.get("blocked") and out["exit"] in (0, None):
+                for rule in rules:
+                    # A write rule also matches a command that writes the file (a heredoc, cp, a script).
+                    if rule["re"].search(command):
+                        rule["hits"].append((len(entries), "insert"))
             last_browser = entry if kind == "browser" else None
         elif action == "mcp":
             entries.append({"kind": "mcp", "t": clock.at(adapter.mcp_label(data["server"], data["tool"])),
@@ -173,12 +196,20 @@ def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock
                 entries.append({"kind": "skill", "t": clock.at(name), "name": name})
         elif action == "read" and last_browser and Path(data["path"]).name in last_browser["command"]:
             last_browser["result"] += f"\n\n── {Path(data['path']).name} ──\n{data['output'].strip()}"
+        elif action == "read":
+            for rule in rules:
+                if rule["how"] == "read" and rule["re"].search(data["path"]):
+                    # A read has no entry of its own; the file goes where the read happened.
+                    rule["hits"].append((len(entries), "insert"))
         elif action == "write":
             name = Path(data["path"]).name
             entry = {"kind": "file", "t": clock.at(f"Edited {name}"), "name": name}
             if name == dashboard:
                 entry.update(tag="Dashboard Studio", artifact="dashboard")
             entries.append(entry)
+            for rule in rules:
+                if rule["how"] == "write" and rule["re"].search(data["path"]):
+                    rule["hits"].append((len(entries), "mark"))
     # Commands typed in the recorded shell after the client quit (a `leave` beat) are not in its session log.
     left = False
     for beat in (scenario.get("recording") or {}).get("beats", []):
@@ -192,6 +223,30 @@ def build_entries(events: list[Event], adapter, scenario: dict, clock: CastClock
     for name, after in sorted(last_run.items(), key=lambda item: -item[1]):
         entries.insert(after, {"kind": "file", "t": entries[after - 1]["t"], "name": name, "tag": "Jupyter notebook",
                                "artifact": "notebook"})
+    return _attach_files(entries, rules)
+
+
+def _attach_files(entries: list[dict], rules: list[dict]) -> list[dict]:
+    """Insert each `artifacts.files` file after the step its rule matched (or mark the matched write itself)."""
+    inserts: list[tuple[int, dict]] = []
+    for rule in rules:
+        if not rule["hits"]:
+            print(f"artifacts.files {rule['src']}: no step matched {rule['how']} {rule[rule['how']]!r}")
+            continue
+        hits = rule["hits"]
+        if rule["how"] == "write" and any(mode == "mark" for _, mode in hits):
+            hits = [h for h in hits if h[1] == "mark"]
+        at, mode = hits[rule["nth"] - 1 if rule["nth"] > 0 else rule["nth"]]
+        src = Path(rule["src"]).name
+        if mode == "mark":
+            entries[at - 1].update(artifact="file", src=src, via="write", tag=rule.get("tag"),
+                                   name=rule.get("name", entries[at - 1]["name"]))
+            continue
+        t = entries[at - 1]["t"] if at else 0
+        inserts.append((at, {"kind": "file", "t": t, "name": rule.get("name", src), "tag": rule.get("tag"),
+                             "artifact": "file", "src": src, "via": rule["how"]}))
+    for at, entry in sorted(inserts, key=lambda item: -item[0]):
+        entries.insert(at, {k: v for k, v in entry.items() if v is not None})
     return entries
 
 
