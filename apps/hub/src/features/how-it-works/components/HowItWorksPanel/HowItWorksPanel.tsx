@@ -9,6 +9,7 @@ import {
   SaiaFlowDiagram,
   SdkFlowDiagram,
 } from '../FlowDiagram/FlowDiagram'
+import { SequenceDiagram } from '../SequenceDiagram/SequenceDiagram'
 
 // Each column is a sub-tile: the intro reads as prose, the details sit beside it.
 const proseClass = [
@@ -61,6 +62,14 @@ export function HowItWorksPanel({ entry }: { entry: DemoEntry }) {
           )}
         </div>
       </section>
+      {entry.sequence && (
+        <section aria-labelledby="agentic-workflow-heading" className="rounded-lg border border-border bg-card/60 p-4">
+          <h2 id="agentic-workflow-heading" className="mb-3 text-[16px] font-semibold">
+            Agentic workflow
+          </h2>
+          <SequenceDiagram source={entry.sequence} title="Agentic workflow" />
+        </section>
+      )}
     </div>
   )
 }

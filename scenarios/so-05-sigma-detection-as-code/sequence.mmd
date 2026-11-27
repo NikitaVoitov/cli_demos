@@ -1,0 +1,60 @@
+---
+title: Detection as code, run by an agent
+---
+sequenceDiagram
+    accTitle: Agentic detection-as-code workflow
+    accDescr: GitHub Copilot CLI finds a coverage gap through Splunk MCP, builds a detection from a SigmaHQ rule, and opens a pull request. GitHub Actions tests it in Splunk and AI Toolkit triages the noise. Copilot tunes it, the engineer approves the merge, the deploy workflow installs it in Enterprise Security, and Copilot confirms it is live.
+    autonumber
+
+    box rgba(120, 120, 140, 0.12) Workstation
+        actor Eng as Detection engineer
+        participant Copilot@{ "type": "control" } as GitHub Copilot CLI
+    end
+    box rgba(80, 140, 255, 0.10) GitHub
+        participant GH@{ "type": "database" } as Repo + Actions
+    end
+    box rgba(240, 0, 140, 0.10) Splunk Cloud
+        participant MCP@{ "type": "boundary" } as Splunk MCP
+        participant ES@{ "type": "database" } as Enterprise Security
+        participant AITK@{ "type": "entity" } as AI Toolkit
+    end
+
+    rect rgba(120, 120, 140, 0.10)
+        Note over Eng,AITK: Find the gap
+        Eng->>+Copilot: Are we covered for LSASS dumps via comsvcs.dll?
+        Copilot->>MCP: Read deployed detections
+        MCP-->>Copilot: ESCU rule is off and misses ordinal variants
+    end
+
+    rect rgba(80, 200, 120, 0.08)
+        Note over Eng,AITK: Detection as code
+        Copilot->>Copilot: SigmaHQ rule to detection and tests<br/>(sigma-cli, contentctl)
+        Copilot->>GH: Open a pull request
+    end
+
+    rect rgba(80, 140, 255, 0.08)
+        Note over Eng,AITK: CI tests and tunes
+        GH->>ES: Replay tests, check a week of data
+        GH->>AITK: Triage the noisy alerts
+        AITK-->>GH: Expected purple-team activity
+        GH-->>Copilot: Tests pass, noise over budget
+        Copilot->>GH: Push the team's narrow tuning
+        GH-->>Copilot: CI green
+    end
+
+    rect rgba(240, 0, 140, 0.08)
+        Note over Eng,AITK: Approve and deploy
+        critical Merging deploys to production
+            Copilot-->>Eng: Approve the merge?
+            Eng->>Copilot: Approved
+        end
+        Copilot->>GH: Merge
+        GH->>ES: Deploy workflow installs the detection
+    end
+
+    rect rgba(80, 200, 120, 0.08)
+        Note over Eng,AITK: Verify
+        Copilot->>MCP: Is it live?
+        MCP-->>Copilot: On, scheduled, catches every variant
+        Copilot-->>-Eng: Deployed and live
+    end

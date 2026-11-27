@@ -22,6 +22,7 @@ The full design is `docs/demo_pipeline_architecture.md`; §0.10 covers capture a
 |---|---|---|
 | `scenario.yaml` | Recording: client, fixtures, beats, chapter IDs and times, gate, artifacts, **narration lines** | Change it and the step that reads it must rerun |
 | `content.yaml`, `how-it-works.md` | Text visitors read: title, summary, taxonomy, chapter labels, gate copy | Editable any time; never needs a capture or new audio |
+| `sequence.mmd` (optional) | A Mermaid sequence diagram of the workflow end to end, drawn under Architecture in How it works (SO-05 is the example) | Editable any time; use `#35;` for `#` and `#59;` for `;` in labels |
 | `artifacts/` | Generated: `session.cast`, `transcript.json`, `narration.mp3`, `narration.vtt`, screenshots | Only pipeline steps write these |
 | `recorder/voice.yaml` | House voice, model, speaking rate, pronunciation map | Shared by all demos |
 

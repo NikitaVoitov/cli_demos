@@ -233,4 +233,6 @@ export interface DemoEntry {
   notebookPane?: NotebookPane
   transcript?: Transcript
   howItWorksHtml?: string
+  /** `sequence.mmd` beside scenario.yaml: a Mermaid sequence diagram of the agentic workflow, end to end. */
+  sequence?: string
 }

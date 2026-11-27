@@ -15,6 +15,8 @@ import type {
 const scenarios = import.meta.glob<Scenario>('@scenarios/*/scenario.yaml', { eager: true, import: 'default' })
 const contents = import.meta.glob<Content>('@scenarios/*/content.yaml', { eager: true, import: 'default' })
 const howItWorks = import.meta.glob<string>('@scenarios/*/how-it-works.md', { eager: true, import: 'default' })
+// The Agentic workflow sequence diagram (Mermaid source), drawn in How it works below the architecture.
+const sequences = import.meta.glob<string>('@scenarios/*/sequence.mmd', { eager: true, query: '?raw', import: 'default' })
 const transcripts = import.meta.glob<Transcript>('@scenarios/*/artifacts/transcript.json', { eager: true, import: 'default' })
 const rawJson = import.meta.glob<string>('@scenarios/*/artifacts/*.{json,py,ipynb}', {
   eager: true,
@@ -228,6 +230,7 @@ function buildEntry(scenarioPath: string): DemoEntry {
     notebookPane: resolveNotebookPane(scenario, dir),
     transcript: transcripts[artifact(scenario.artifacts?.transcript) ?? ''],
     howItWorksHtml: howItWorks[`${dir}/how-it-works.md`],
+    sequence: sequences[`${dir}/sequence.mmd`],
   }
 }
 
